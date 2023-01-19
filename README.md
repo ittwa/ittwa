@@ -3,6 +3,7 @@
 This repository contains the files associated with the administration of the I Thought This Was America fantasy football league.
 
 > CHAMPIONS  
+
 2014 - ALBARRAN  
 2015 - HOGAN/LAMB  
 2016 - KATZ  
