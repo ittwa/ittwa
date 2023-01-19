@@ -1,16 +1,14 @@
-### Hi there 👋
+### Sup, nerds? 👋
 
-<!--
-**ittwa/ittwa** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+This repository contains the files associated with the administration of the I Thought This Was America fantasy football league.
 
-Here are some ideas to get you started:
-
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+-- CHAMPIONS -- 
+2014 - ALBARRAN
+2015 - HOGAN/LAMB
+2016 - KATZ
+2017 - WILLIAMS
+2018 - WILLIAMS
+2019 - ALBARRAN
+2020 - CUMMINGS
+2021 - WILLIAMS
+2022 - COLLINS
