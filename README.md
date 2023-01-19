@@ -4,7 +4,7 @@ This repository contains the files associated with the administration of the I T
 
 ### CHAMPIONS  
 2014 - Albarran  
-2015 - Hogan/Lamb
+2015 - Hogan/Lamb  
 2016 - Katz  
 2017 - Williams  
 2018 - Williams  
@@ -12,4 +12,3 @@ This repository contains the files associated with the administration of the I T
 2020 - Cummings  
 2021 - Williams  
 2022 - Collins  
-
