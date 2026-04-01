@@ -1,0 +1,92 @@
+import { ContractRow, ContractWithValue, CapHitRow, TeamCapSummary } from "@/types/contracts";
+import { CONTRACT_VALUE_MULTIPLIERS, SALARY_CAP, YEARS_CAP, OWNER_LAST_NAME_MAP } from "./config";
+
+// Contract Status = "Active" is the SINGLE SOURCE OF TRUTH for whether a player
+// appears anywhere on the site.
+//
+// A player with Years = 0 and Salary = $0.0 but Contract Status = "Active" is a
+// legitimate mid-season FA pickup and MUST appear on the team's roster page and
+// the Contracts page — labeled with a "Mid-Season Pickup" badge.
+// This is not an error in the data; it is an intentional state.
+//
+// If Contract Status contains any value other than "Active", exclude that row
+// from all displays.
+
+export function filterActiveContracts(contracts: ContractRow[]): ContractRow[] {
+  return contracts.filter((c) => c.contractStatus === "Active");
+}
+
+export function filterBySeason(contracts: ContractRow[], season: string): ContractRow[] {
+  return contracts.filter((c) => c.season === season);
+}
+
+export function filterByOwner(contracts: ContractRow[], ownerLastName: string): ContractRow[] {
+  return contracts.filter((c) => c.owner === ownerLastName);
+}
+
+// Determine if a contract represents a mid-season pickup
+// Mid-season pickups have Years = 0 and Salary = 0 but are still Active
+export function isMidSeasonPickup(contract: ContractRow): boolean {
+  return contract.years === 0 && contract.salary === 0;
+}
+
+// Calculate contract value using the defined multipliers:
+//   Years = 0:  $0 (mid-season pickup — no contract value)
+//   1-year:     Salary × 1.0
+//   2-year:     Salary × 1.4
+//   3-year:     Salary × 1.7
+//   4-year:     Salary × 1.9
+//   5-year:     Salary × 2.0
+export function calculateContractValue(salary: number, years: number): number {
+  if (years === 0) return 0; // Mid-season pickup — no contract value
+  const multiplier = CONTRACT_VALUE_MULTIPLIERS[years] ?? CONTRACT_VALUE_MULTIPLIERS[5];
+  return Math.round(salary * multiplier * 10) / 10;
+}
+
+// Enrich a contract row with calculated value and mid-season pickup flag
+export function enrichContract(contract: ContractRow): ContractWithValue {
+  return {
+    ...contract,
+    contractValue: calculateContractValue(contract.salary, contract.years),
+    isMidSeasonPickup: isMidSeasonPickup(contract),
+  };
+}
+
+// Get all active contracts for a season, enriched with computed values
+export function getActiveContractsForSeason(
+  contracts: ContractRow[],
+  season: string
+): ContractWithValue[] {
+  return filterActiveContracts(filterBySeason(contracts, season)).map(enrichContract);
+}
+
+// Calculate cap summary for a specific owner in a given season
+export function calculateCapSummary(
+  contracts: ContractWithValue[],
+  capHits: CapHitRow[],
+  ownerLastName: string,
+  season: string
+): TeamCapSummary {
+  const ownerContracts = contracts.filter((c) => c.owner === ownerLastName);
+  const ownerPenalties = capHits.filter(
+    (ch) => ch.owner === ownerLastName && (!ch.season || ch.season === season)
+  );
+
+  const totalSalary = ownerContracts.reduce((sum, c) => sum + c.salary, 0);
+  const totalYears = ownerContracts.reduce((sum, c) => sum + c.years, 0);
+  const totalPenalty = ownerPenalties.reduce((sum, ch) => sum + ch.penalty, 0);
+
+  return {
+    totalSalary,
+    totalYears,
+    salaryCap: SALARY_CAP,
+    yearsCap: YEARS_CAP,
+    capPenalties: ownerPenalties,
+    totalPenalty,
+  };
+}
+
+// Resolve owner last name from Sheets to full display name
+export function resolveOwnerName(ownerLastName: string): string {
+  return OWNER_LAST_NAME_MAP[ownerLastName] || ownerLastName;
+}
