@@ -9,10 +9,24 @@ export const SALARY_FLOOR = 220;
 export const FAAB_BUDGET = 100;
 export const ROSTER_SIZE = 22;
 
-// Sleeper username → display name mapping
-// Most users display as their Sleeper display name; overrides listed here
+// Sleeper display_name → ITTWA display name mapping
+// Maps every Sleeper display name to "First Last" format used across the site.
 export const USERNAME_OVERRIDES: Record<string, string> = {
-  Rackalamb: "HoganLamb",
+  t11clancy: "Tiger Clancy",
+  mdurkin5: "Mike Durkin",
+  bpeterson: "Brian Peterson",
+  braintrust: "Mike Lamb",
+  mschapman: "Mike Chapman",
+  breezy7: "Chris Brown",
+  TheresaHitsOnMe: "Justin Williams",
+  Lropc: "Liam Collins",
+  rbohne: "Ryan Bohne",
+  zachkatz: "Zach Katz",
+  BooCake: "Jorge Albarran",
+  SamCummings: "Sam Cummings",
+  // Legacy / alternate handles
+  Rackalamb: "Mike Lamb",
+  HoganLamb: "Mike Lamb",
 };
 
 // Division configuration — permanent, year-over-year
@@ -21,6 +35,16 @@ export const DIVISIONS: Record<string, string[]> = {
   "Hey Arnold": ["Mike Chapman", "Jorge Albarran", "Mike Durkin"],
   Replacements: ["Brian Peterson", "Sam Cummings", "Ryan Bohne"],
   "Dark Knight Rises": ["Mike Lamb", "Chris Brown", "Justin Williams"],
+};
+
+// Sleeper division number → division name
+// Sleeper rosters have a settings.division field (1-4) that maps to these names.
+// This is more reliable than matching display names which may differ from real names.
+export const DIVISION_NUMBER_MAP: Record<number, string> = {
+  1: "Concussion",
+  2: "Hey Arnold",
+  3: "Replacements",
+  4: "Dark Knight Rises",
 };
 
 // Reverse lookup: display name → division

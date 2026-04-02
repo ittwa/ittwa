@@ -1,5 +1,4 @@
 import { TeamInfo, SleeperMatchup } from "@/types/sleeper";
-import { OWNER_DIVISION } from "./config";
 
 export interface StandingsEntry extends TeamInfo {
   rank: number;
@@ -29,9 +28,8 @@ export function calculateStandings(
     if (h2h.wins !== h2h.losses) return h2h.losses - h2h.wins; // more H2H wins = higher rank
 
     // Step 3: Division record — only if both teams share the same division
-    const aDivision = OWNER_DIVISION[a.displayName];
-    const bDivision = OWNER_DIVISION[b.displayName];
-    if (aDivision && bDivision && aDivision === bDivision) {
+    // Use the division field from TeamInfo (resolved from Sleeper's roster.settings.division)
+    if (a.division && b.division && a.division === b.division) {
       const aDivWins = parseDivRecord(a.divisionRecord).wins;
       const bDivWins = parseDivRecord(b.divisionRecord).wins;
       if (aDivWins !== bDivWins) return bDivWins - aDivWins;
@@ -88,7 +86,7 @@ export function getStandingsByDivision(
   const byDivision: Record<string, StandingsEntry[]> = {};
 
   for (const entry of standings) {
-    const division = OWNER_DIVISION[entry.displayName] || "Unknown";
+    const division = entry.division || "Unknown";
     if (!byDivision[division]) byDivision[division] = [];
     byDivision[division].push(entry);
   }
