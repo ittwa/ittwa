@@ -13,7 +13,7 @@ import { getContracts, getCapHits } from "./sheets";
 import { getActiveContractsForSeason, enrichContract, filterActiveContracts } from "./contracts";
 import { calculateStandings, calculateStreak } from "./standings";
 import { calculatePowerRankings, calculateRankChanges } from "./power-rankings";
-import { LEAGUE_ID, OWNER_DIVISION } from "./config";
+import { LEAGUE_ID, OWNER_DIVISION, DIVISION_NUMBER_MAP } from "./config";
 import { TeamInfo, SleeperMatchup, MatchupPair, SleeperRoster } from "@/types/sleeper";
 
 // --- Build full team info from Sleeper data ---
@@ -39,27 +39,36 @@ export async function getTeamsData(): Promise<{
     userMap[user.user_id] = getDisplayName(user);
   }
 
-  // Fetch all matchups for completed weeks
-  const completedWeeks = Math.min(currentWeek - 1, 18);
+  // Fetch all 18 possible regular+playoff weeks to ensure we get all completed matchups.
+  // Weeks with no data will return empty arrays and are filtered out naturally.
   const allMatchups = new Map<number, SleeperMatchup[]>();
 
   const matchupPromises = [];
-  for (let w = 1; w <= Math.max(completedWeeks, 1); w++) {
+  for (let w = 1; w <= 18; w++) {
     matchupPromises.push(
       getMatchups(w).then((m) => {
-        allMatchups.set(w, m);
+        // Only store weeks that have actual score data
+        if (m && m.length > 0 && m.some((mm) => mm.points > 0)) {
+          allMatchups.set(w, m);
+        }
       }).catch(() => {})
     );
   }
   await Promise.all(matchupPromises);
 
+  // Figure out the last completed week from the matchup data
+  const completedWeeks = allMatchups.size > 0 ? Math.max(...Array.from(allMatchups.keys())) : 0;
+
   // Build division records from matchups
   const divRecords = calculateDivisionRecords(rosters, allMatchups, userMap);
 
-  // Build teams
+  // Build teams — use Sleeper's roster.settings.division (a number 1-4) to resolve
+  // division name, since Sleeper display names often don't match the real names
+  // in our DIVISIONS config (e.g. "BooCake" vs "Tiger Clancy").
   const teams: TeamInfo[] = rosters.map((roster) => {
     const displayName = userMap[roster.owner_id] || `Team ${roster.roster_id}`;
-    const division = OWNER_DIVISION[displayName] || "Unknown";
+    const divisionNum = roster.settings.division as unknown as number;
+    const division = DIVISION_NUMBER_MAP[divisionNum] || OWNER_DIVISION[displayName] || "Unknown";
 
     return {
       rosterId: roster.roster_id,
@@ -90,11 +99,11 @@ function calculateDivisionRecords(
 ): Map<number, string> {
   const records = new Map<number, { wins: number; losses: number }>();
 
-  // Build rosterId → division
+  // Build rosterId → division using Sleeper's division number
   const rosterDivision = new Map<number, string>();
   for (const roster of rosters) {
-    const name = userMap[roster.owner_id] || "";
-    rosterDivision.set(roster.roster_id, OWNER_DIVISION[name] || "");
+    const divisionNum = roster.settings.division as unknown as number;
+    rosterDivision.set(roster.roster_id, DIVISION_NUMBER_MAP[divisionNum] || "");
     records.set(roster.roster_id, { wins: 0, losses: 0 });
   }
 

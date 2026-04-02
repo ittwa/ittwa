@@ -23,6 +23,16 @@ export const DIVISIONS: Record<string, string[]> = {
   "Dark Knight Rises": ["Mike Lamb", "Chris Brown", "Justin Williams"],
 };
 
+// Sleeper division number → division name
+// Sleeper rosters have a settings.division field (1-4) that maps to these names.
+// This is more reliable than matching display names which may differ from real names.
+export const DIVISION_NUMBER_MAP: Record<number, string> = {
+  1: "Concussion",
+  2: "Hey Arnold",
+  3: "Replacements",
+  4: "Dark Knight Rises",
+};
+
 // Reverse lookup: display name → division
 export const OWNER_DIVISION: Record<string, string> = {};
 for (const [div, owners] of Object.entries(DIVISIONS)) {
