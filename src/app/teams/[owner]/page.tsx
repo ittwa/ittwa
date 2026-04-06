@@ -4,9 +4,12 @@ import { notFound } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { getTeamsData, calculateStandings, getContracts, getCapHits, getMatchupPairs, getAllTransactions, buildRosterOwnerMap } from "@/lib/data";
-import { getActiveContractsForSeason, calculateCapSummary, resolveOwnerName } from "@/lib/contracts";
+import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap } from "@/lib/data";
+import { getActiveContractsForSeason, calculateCapSummary } from "@/lib/contracts";
+import { getNFLPlayers } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP } from "@/lib/config";
+import { ContractWithValue } from "@/types/contracts";
+import { SleeperPlayersMap } from "@/types/sleeper";
 
 export const revalidate = 300;
 
@@ -18,15 +21,78 @@ function getOwnerLastName(displayName: string): string {
   return displayName.split(" ").pop() || displayName;
 }
 
+// Build a merged roster: Sleeper players as source of truth, contract data merged in
+interface RosterPlayer {
+  playerId: string;
+  name: string;
+  position: string;
+  nflTeam: string;
+  salary: number | null;
+  years: number | null;
+  dpOriginalOwner: string;
+  isMidSeasonPickup: boolean;
+  hasContract: boolean;
+}
+
+function buildMergedRoster(
+  sleeperPlayerIds: string[],
+  nflPlayers: SleeperPlayersMap,
+  contracts: ContractWithValue[]
+): RosterPlayer[] {
+  // Index contracts by player_id for quick lookup
+  const contractMap = new Map<string, ContractWithValue>();
+  for (const c of contracts) {
+    if (c.playerId && c.playerId !== "#N/A") {
+      contractMap.set(c.playerId, c);
+    }
+  }
+
+  return sleeperPlayerIds.map((pid) => {
+    const sleeperPlayer = nflPlayers[pid];
+    const contract = contractMap.get(pid);
+
+    const name = sleeperPlayer
+      ? (sleeperPlayer.full_name || `${sleeperPlayer.first_name} ${sleeperPlayer.last_name}`)
+      : contract?.player || `Unknown (${pid})`;
+
+    const position = sleeperPlayer?.position || contract?.position || "—";
+    const nflTeam = sleeperPlayer?.team || "FA";
+
+    return {
+      playerId: pid,
+      name,
+      position,
+      nflTeam,
+      salary: contract ? contract.salary : null,
+      years: contract ? contract.years : null,
+      dpOriginalOwner: contract?.dpOriginalOwner || "",
+      isMidSeasonPickup: contract?.isMidSeasonPickup || false,
+      hasContract: !!contract,
+    };
+  });
+}
+
+// Sort roster: starters-friendly order (QB, RB, WR, TE, K, DEF, then rest)
+const POS_ORDER: Record<string, number> = { QB: 1, RB: 2, WR: 3, TE: 4, K: 5, DEF: 6, "D/ST": 6 };
+function sortRoster(players: RosterPlayer[]): RosterPlayer[] {
+  return [...players].sort((a, b) => {
+    const posA = POS_ORDER[a.position] || 99;
+    const posB = POS_ORDER[b.position] || 99;
+    if (posA !== posB) return posA - posB;
+    return a.name.localeCompare(b.name);
+  });
+}
+
 export default async function TeamDetailPage({ params }: { params: Promise<{ owner: string }> }) {
   const { owner: rawOwner } = await params;
   const ownerName = decodeURIComponent(rawOwner);
 
-  const [teamsData, contracts, capHits, rosterOwnerMap] = await Promise.all([
+  const [teamsData, contracts, capHits, rosterOwnerMap, nflPlayers] = await Promise.all([
     getTeamsData(),
     getContracts(),
     getCapHits(),
     buildRosterOwnerMap(),
+    getNFLPlayers(),
   ]);
 
   const { teams, season, currentWeek, allMatchups } = teamsData;
@@ -40,6 +106,11 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
     (c) => c.owner === ownerLastName
   );
   const capSummary = calculateCapSummary(activeContracts, capHits, ownerLastName, season);
+
+  // Build roster from Sleeper player IDs (source of truth) merged with contract data
+  const rosterPlayers = sortRoster(
+    buildMergedRoster(team.players, nflPlayers, activeContracts)
+  );
 
   // Schedule: get matchups for each week
   const schedule: { week: number; opponent: string; myScore: number; oppScore: number; completed: boolean }[] = [];
@@ -118,10 +189,10 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
         </Card>
       </div>
 
-      {/* Roster */}
+      {/* Roster — Sleeper is source of truth, contract data merged in */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Roster ({activeContracts.length} players)</CardTitle>
+          <CardTitle className="text-base">Roster ({rosterPlayers.length} players)</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -130,32 +201,38 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                 <tr className="border-b border-border bg-card text-muted-foreground">
                   <th className="px-4 py-3 text-left font-medium">Player</th>
                   <th className="px-4 py-3 text-left font-medium">Pos</th>
+                  <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Team</th>
                   <th className="px-4 py-3 text-right font-medium">Salary</th>
                   <th className="px-4 py-3 text-center font-medium">Years</th>
                   <th className="px-4 py-3 text-left font-medium hidden md:table-cell">DP Original Owner</th>
                 </tr>
               </thead>
               <tbody>
-                {activeContracts.length === 0 ? (
+                {rosterPlayers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground italic">
-                      No active contracts found. Either the season hasn&apos;t started or the data is still loading.
+                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground italic">
+                      No players on this roster. Rebuild season, apparently.
                     </td>
                   </tr>
                 ) : (
-                  activeContracts.map((c, i) => (
-                    <tr key={`${c.playerId}-${i}`} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
-                      <td className="px-4 py-2.5 font-medium">{c.player}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{c.position}</td>
+                  rosterPlayers.map((p) => (
+                    <tr key={p.playerId} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
+                      <td className="px-4 py-2.5 font-medium">{p.name}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{p.position}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell">{p.nflTeam}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">
-                        {c.isMidSeasonPickup ? (
+                        {p.isMidSeasonPickup ? (
                           <Badge variant="warning">Mid-Season Pickup</Badge>
+                        ) : p.salary !== null ? (
+                          `$${p.salary.toFixed(1)}`
                         ) : (
-                          `$${c.salary.toFixed(1)}`
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-center tabular-nums">{c.years}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground hidden md:table-cell">{c.dpOriginalOwner || "—"}</td>
+                      <td className="px-4 py-2.5 text-center tabular-nums">
+                        {p.years !== null ? p.years : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground hidden md:table-cell">{p.dpOriginalOwner || "—"}</td>
                     </tr>
                   ))
                 )}
