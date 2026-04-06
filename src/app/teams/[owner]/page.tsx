@@ -39,17 +39,29 @@ function buildMergedRoster(
   nflPlayers: SleeperPlayersMap,
   contracts: ContractWithValue[]
 ): RosterPlayer[] {
-  // Index contracts by player_id for quick lookup
-  const contractMap = new Map<string, ContractWithValue>();
+  // Index contracts by player_id for quick lookup.
+  // Use ALL active contracts (not just for one owner) so we can match by player_id
+  // regardless of any owner-name mismatches in the spreadsheet.
+  const contractByPlayerId = new Map<string, ContractWithValue>();
+  const contractByName = new Map<string, ContractWithValue>();
   for (const c of contracts) {
-    if (c.playerId && c.playerId !== "#N/A") {
-      contractMap.set(c.playerId, c);
+    if (c.playerId && c.playerId !== "#N/A" && c.playerId !== "N/A" && c.playerId !== "") {
+      contractByPlayerId.set(c.playerId, c);
+    }
+    // Also index by normalized player name as fallback
+    if (c.player) {
+      contractByName.set(c.player.toLowerCase().trim(), c);
     }
   }
 
   return sleeperPlayerIds.map((pid) => {
     const sleeperPlayer = nflPlayers[pid];
-    const contract = contractMap.get(pid);
+    // Try matching by player_id first, then by name as fallback
+    let contract = contractByPlayerId.get(pid);
+    if (!contract && sleeperPlayer) {
+      const fullName = (sleeperPlayer.full_name || `${sleeperPlayer.first_name} ${sleeperPlayer.last_name}`).toLowerCase().trim();
+      contract = contractByName.get(fullName);
+    }
 
     const name = sleeperPlayer
       ? (sleeperPlayer.full_name || `${sleeperPlayer.first_name} ${sleeperPlayer.last_name}`)
@@ -102,14 +114,18 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   if (!team) return notFound();
 
   const ownerLastName = getOwnerLastName(ownerName);
-  const activeContracts = getActiveContractsForSeason(contracts, season).filter(
-    (c) => c.owner === ownerLastName
-  );
-  const capSummary = calculateCapSummary(activeContracts, capHits, ownerLastName, season);
+  // Get ALL active contracts for the season (not filtered by owner) so we can
+  // match against Sleeper roster player IDs regardless of owner-name quirks.
+  const allActiveContracts = getActiveContractsForSeason(contracts, season);
+  // Owner-filtered contracts are still used for cap summary calculations.
+  const ownerContracts = allActiveContracts.filter((c) => c.owner === ownerLastName);
+  const capSummary = calculateCapSummary(ownerContracts, capHits, ownerLastName, season);
 
-  // Build roster from Sleeper player IDs (source of truth) merged with contract data
+  // Build roster from Sleeper player IDs (source of truth) merged with contract data.
+  // Pass ALL active contracts so player_id and name matching can find contracts
+  // even if the owner field in the spreadsheet doesn't match perfectly.
   const rosterPlayers = sortRoster(
-    buildMergedRoster(team.players, nflPlayers, activeContracts)
+    buildMergedRoster(team.players, nflPlayers, allActiveContracts)
   );
 
   // Schedule: get matchups for each week
