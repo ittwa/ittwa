@@ -52,12 +52,27 @@ export function enrichContract(contract: ContractRow): ContractWithValue {
   };
 }
 
-// Get all active contracts for a season, enriched with computed values
+// Get all active contracts for a season, enriched with computed values.
+// If no contracts match the exact season, fall back to the latest season with active data.
 export function getActiveContractsForSeason(
   contracts: ContractRow[],
   season: string
 ): ContractWithValue[] {
-  return filterActiveContracts(filterBySeason(contracts, season)).map(enrichContract);
+  const active = filterActiveContracts(contracts);
+  const forSeason = active.filter((c) => c.season === season);
+
+  // If we found contracts for the requested season, use those
+  if (forSeason.length > 0) {
+    return forSeason.map(enrichContract);
+  }
+
+  // Otherwise, find the latest season that has active contracts
+  const seasons = [...new Set(active.map((c) => c.season))].sort().reverse();
+  if (seasons.length > 0) {
+    return active.filter((c) => c.season === seasons[0]).map(enrichContract);
+  }
+
+  return [];
 }
 
 // Calculate cap summary for a specific owner in a given season
