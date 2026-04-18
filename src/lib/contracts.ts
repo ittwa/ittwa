@@ -13,7 +13,7 @@ import { CONTRACT_VALUE_MULTIPLIERS, SALARY_CAP, YEARS_CAP, OWNER_LAST_NAME_MAP 
 // from all displays.
 
 export function filterActiveContracts(contracts: ContractRow[]): ContractRow[] {
-  return contracts.filter((c) => c.contractStatus === "Active");
+  return contracts.filter((c) => c.contractStatus.toLowerCase() === "active");
 }
 
 export function filterBySeason(contracts: ContractRow[], season: string): ContractRow[] {
@@ -59,7 +59,7 @@ export function getActiveContractsForSeason(
   season: string
 ): ContractWithValue[] {
   const active = filterActiveContracts(contracts);
-  const forSeason = active.filter((c) => c.season === season);
+  const forSeason = active.filter((c) => c.season.trim() === season.trim());
 
   // If we found contracts for the requested season, use those
   if (forSeason.length > 0) {

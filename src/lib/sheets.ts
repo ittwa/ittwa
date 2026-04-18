@@ -39,24 +39,21 @@ export async function getContracts(): Promise<ContractRow[]> {
   return rows
     .filter((row) => row.length >= 10)
     .map((row) => ({
-      // player_id is the primary join key between Sheets and Sleeper data.
-      // Some rows show "#N/A" when Sleeper doesn't recognize the player —
-      // for these, display by name only and skip Sleeper merge.
-      playerId: row[0] || "",
-      season: row[1] || "",
-      owner: row[2] || "",
-      player: row[3] || "",
-      position: row[4] || "",
+      playerId: (row[0] || "").trim(),
+      season: (row[1] || "").trim(),
+      owner: (row[2] || "").trim(),
+      player: (row[3] || "").trim(),
+      position: (row[4] || "").trim(),
       years: parseInt(row[5] || "0", 10) || 0,
       salary: parseFloat((row[6] || "0").replace("$", "")) || 0,
-      dpOriginalOwner: row[7] || "",
-      draftPickId: row[8] || "",
-      contractStatus: row[9] || "",
-      contractStartYear: row[10] || "",
-      originalPick: row[11] || "",
-      franchiseTag: (row[12] || "").toUpperCase() === "Y",
-      fifthYearTag: (row[13] || "").toUpperCase() === "Y",
-      fifthYearTagAmount: row[14] || "",
+      dpOriginalOwner: (row[7] || "").trim(),
+      draftPickId: (row[8] || "").trim(),
+      contractStatus: (row[9] || "").trim(),
+      contractStartYear: (row[10] || "").trim(),
+      originalPick: (row[11] || "").trim(),
+      franchiseTag: (row[12] || "").trim().toUpperCase() === "Y",
+      fifthYearTag: (row[13] || "").trim().toUpperCase() === "Y",
+      fifthYearTagAmount: (row[14] || "").trim(),
     }));
 }
 
@@ -70,11 +67,11 @@ export async function getCapHits(): Promise<CapHitRow[]> {
   return rows
     .filter((row) => row.length >= 3)
     .map((row) => ({
-      owner: row[0] || "",
-      player: row[1] || "",
-      position: row[2] || "",
+      owner: (row[0] || "").trim(),
+      player: (row[1] || "").trim(),
+      position: (row[2] || "").trim(),
       penalty: parseFloat((row[3] || "0").replace("$", "")) || 0,
-      season: row[4] || "",
+      season: (row[4] || "").trim(),
       yearsRemaining: parseInt(row[5] || "0", 10) || undefined,
     }));
 }
