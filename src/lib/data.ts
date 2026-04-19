@@ -24,13 +24,16 @@ export async function getTeamsData(): Promise<{
   currentWeek: number;
   allMatchups: Map<number, SleeperMatchup[]>;
 }> {
-  const [nflState, users, rosters] = await Promise.all([
+  const [nflState, league, users, rosters] = await Promise.all([
     getNFLState(),
+    getLeague(),
     getLeagueUsers(),
     getRosters(),
   ]);
 
-  const season = nflState.season;
+  // Prefer the league's own season (e.g. "2026" for the 2026 dynasty league)
+  // over the global NFL state season, which can lag in the off-season.
+  const season = league.season || nflState.season;
   const currentWeek = nflState.week;
 
   // Build user ID → display name map
