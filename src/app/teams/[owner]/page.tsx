@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap } from "@/lib/data";
 import { getLatestActiveContracts } from "@/lib/contracts";
 import { getNFLPlayers } from "@/lib/sleeper";
-import { OWNER_LAST_NAME_MAP } from "@/lib/config";
+import { OWNER_LAST_NAME_MAP, AUCTION_DATE } from "@/lib/config";
 import { ContractWithValue } from "@/types/contracts";
 import { SleeperPlayersMap } from "@/types/sleeper";
 
@@ -127,12 +127,14 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   const rosterSalary = rosterPlayers.reduce((sum, p) => sum + (p.salary ?? 0), 0);
   const rosterYears = rosterPlayers.reduce((sum, p) => sum + (p.years ?? 0), 0);
   const currentSeasonNum = parseInt(season, 10);
-  const nextSeasonNum = currentSeasonNum + 1;
+  const isBeforeAuction = new Date() < AUCTION_DATE;
+  const displaySeason = isBeforeAuction ? currentSeasonNum : currentSeasonNum + 1;
   const ownerCapHits = capHits.filter((ch) => {
     if (ch.owner !== ownerLastName) return false;
-    return Object.entries(ch.yearlyHits).some(
-      ([year, value]) => parseInt(year, 10) > currentSeasonNum && value > 0
-    );
+    return Object.entries(ch.yearlyHits).some(([year, value]) => {
+      const y = parseInt(year, 10);
+      return (isBeforeAuction ? y >= currentSeasonNum : y > currentSeasonNum) && value > 0;
+    });
   });
 
   // Schedule: get matchups for each week
@@ -285,7 +287,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                     <th className="px-4 py-2 text-right font-medium">Salary</th>
                     <th className="px-4 py-2 text-center font-medium">Years</th>
                     <th className="px-4 py-2 text-right font-medium">Cap Hit</th>
-                    <th className="px-4 py-2 text-right font-medium">{nextSeasonNum} Cap Hit</th>
+                    <th className="px-4 py-2 text-right font-medium">{displaySeason} Cap Hit</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -296,7 +298,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                       <td className="px-4 py-2 text-right tabular-nums">${ch.salary.toFixed(1)}</td>
                       <td className="px-4 py-2 text-center tabular-nums">{ch.years}</td>
                       <td className="px-4 py-2 text-right text-ittwa font-medium tabular-nums">${ch.capHit.toFixed(1)}</td>
-                      <td className="px-4 py-2 text-right text-ittwa font-medium tabular-nums">${(ch.yearlyHits[nextSeasonNum] || 0).toFixed(1)}</td>
+                      <td className="px-4 py-2 text-right text-ittwa font-medium tabular-nums">${(ch.yearlyHits[displaySeason] || 0).toFixed(1)}</td>
                     </tr>
                   ))}
                 </tbody>
