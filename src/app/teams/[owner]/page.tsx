@@ -126,10 +126,14 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   // Totals from the actual roster (not raw spreadsheet) so only on-roster players count.
   const rosterSalary = rosterPlayers.reduce((sum, p) => sum + (p.salary ?? 0), 0);
   const rosterYears = rosterPlayers.reduce((sum, p) => sum + (p.years ?? 0), 0);
-  const capPenalties = capHits.filter(
-    (ch) => ch.owner === ownerLastName && (!ch.season || ch.season === season)
-  );
-  const totalPenalty = capPenalties.reduce((sum, ch) => sum + ch.penalty, 0);
+  const currentSeasonNum = parseInt(season, 10);
+  const nextSeasonNum = currentSeasonNum + 1;
+  const ownerCapHits = capHits.filter((ch) => {
+    if (ch.owner !== ownerLastName) return false;
+    return Object.entries(ch.yearlyHits).some(
+      ([year, value]) => parseInt(year, 10) > currentSeasonNum && value > 0
+    );
+  });
 
   // Schedule: get matchups for each week
   const schedule: { week: number; opponent: string; myScore: number; oppScore: number; completed: boolean }[] = [];
@@ -261,15 +265,15 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
         </CardContent>
       </Card>
 
-      {/* Cap Penalties */}
+      {/* Cap Hits */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Cap Penalties</CardTitle>
+          <CardTitle className="text-base">Cap Hits</CardTitle>
         </CardHeader>
         <CardContent>
-          {capPenalties.length === 0 ? (
+          {ownerCapHits.length === 0 ? (
             <p className="text-sm text-muted-foreground italic">
-              No cap penalties. Remarkable financial discipline from this franchise.
+              No open cap hits. Remarkable financial discipline from this franchise.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -277,20 +281,24 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                 <thead>
                   <tr className="border-b border-border text-muted-foreground">
                     <th className="px-4 py-2 text-left font-medium">Player</th>
-                    <th className="px-4 py-2 text-right font-medium">Penalty</th>
+                    <th className="px-4 py-2 text-left font-medium">Pos</th>
+                    <th className="px-4 py-2 text-right font-medium">Salary</th>
+                    <th className="px-4 py-2 text-center font-medium">Years</th>
+                    <th className="px-4 py-2 text-right font-medium">Cap Hit</th>
+                    <th className="px-4 py-2 text-right font-medium">{nextSeasonNum} Cap Hit</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {capPenalties.map((cp, i) => (
+                  {ownerCapHits.map((ch, i) => (
                     <tr key={i} className="border-b border-border/50">
-                      <td className="px-4 py-2">{cp.player}</td>
-                      <td className="px-4 py-2 text-right text-ittwa font-medium tabular-nums">${cp.penalty.toFixed(1)}</td>
+                      <td className="px-4 py-2 font-medium">{ch.player}</td>
+                      <td className="px-4 py-2 text-muted-foreground">{ch.position}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">${ch.salary.toFixed(1)}</td>
+                      <td className="px-4 py-2 text-center tabular-nums">{ch.years}</td>
+                      <td className="px-4 py-2 text-right text-ittwa font-medium tabular-nums">${ch.capHit.toFixed(1)}</td>
+                      <td className="px-4 py-2 text-right text-ittwa font-medium tabular-nums">${(ch.yearlyHits[nextSeasonNum] || 0).toFixed(1)}</td>
                     </tr>
                   ))}
-                  <tr>
-                    <td className="px-4 py-2 font-semibold">Total</td>
-                    <td className="px-4 py-2 text-right text-ittwa font-bold tabular-nums">${totalPenalty.toFixed(1)}</td>
-                  </tr>
                 </tbody>
               </table>
             </div>
