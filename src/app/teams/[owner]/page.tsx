@@ -124,9 +124,32 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   );
 
   // Totals from the actual roster (not raw spreadsheet) so only on-roster players count.
-  const rosterSalary = rosterPlayers.reduce((sum, p) => sum + (p.salary ?? 0), 0);
-  const rosterYears = rosterPlayers.reduce((sum, p) => sum + (p.years ?? 0), 0);
   const currentSeasonNum = parseInt(season, 10);
+
+  // Draft picks: position = "Draft Pick", active, current or future season
+  const ownerDraftPicks = contracts
+    .filter((c) =>
+      c.contractStatus.toLowerCase() === "active" &&
+      c.position.toLowerCase() === "draft pick" &&
+      c.owner === ownerLastName &&
+      parseInt(c.season, 10) >= currentSeasonNum
+    )
+    .sort((a, b) => {
+      const sd = a.season.localeCompare(b.season);
+      if (sd !== 0) return sd;
+      return a.player.localeCompare(b.player);
+    });
+
+  // Current-season draft picks count toward salary/years totals
+  const draftPickSalary = ownerDraftPicks
+    .filter((p) => parseInt(p.season, 10) === currentSeasonNum)
+    .reduce((sum, p) => sum + p.salary, 0);
+  const draftPickYears = ownerDraftPicks
+    .filter((p) => parseInt(p.season, 10) === currentSeasonNum)
+    .reduce((sum, p) => sum + p.years, 0);
+
+  const rosterSalary = rosterPlayers.reduce((sum, p) => sum + (p.salary ?? 0), 0) + draftPickSalary;
+  const rosterYears = rosterPlayers.reduce((sum, p) => sum + (p.years ?? 0), 0) + draftPickYears;
   const isBeforeAuction = new Date() < AUCTION_DATE;
   const displaySeason = isBeforeAuction ? currentSeasonNum : currentSeasonNum + 1;
   const ownerCapHits = capHits.filter((ch) => {
@@ -264,6 +287,47 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
               </tbody>
             </table>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Draft Picks */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Draft Picks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {ownerDraftPicks.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">
+              No draft picks. Traded them all away, apparently.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground">
+                    <th className="px-4 py-2 text-left font-medium">Name</th>
+                    <th className="px-4 py-2 text-left font-medium">DP Original Owner</th>
+                    <th className="px-4 py-2 text-right font-medium">Salary</th>
+                    <th className="px-4 py-2 text-center font-medium">Years</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ownerDraftPicks.map((dp, i) => (
+                    <tr key={i} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
+                      <td className="px-4 py-2 font-medium">{dp.player}</td>
+                      <td className="px-4 py-2 text-muted-foreground">{dp.dpOriginalOwner || "—"}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">
+                        {dp.salary > 0 ? `$${dp.salary.toFixed(1)}` : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="px-4 py-2 text-center tabular-nums">
+                        {dp.years > 0 ? dp.years : <span className="text-muted-foreground">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
