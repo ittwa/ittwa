@@ -116,6 +116,9 @@ export const CONTRACT_VALUE_MULTIPLIERS: Record<number, number> = {
   5: 2.0,
 };
 
+// Annual auction date — update each season before the new year kicks off
+export const AUCTION_DATE = new Date("2026-08-20");
+
 // Payout structure
 export const PAYOUTS = {
   first: 1250,
