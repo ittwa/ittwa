@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap } from "@/lib/data";
-import { getLatestActiveContracts, calculateCapSummary } from "@/lib/contracts";
+import { getLatestActiveContracts } from "@/lib/contracts";
 import { getNFLPlayers } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP } from "@/lib/config";
 import { ContractWithValue } from "@/types/contracts";
@@ -117,16 +117,19 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   // Get ALL active contracts for the season (not filtered by owner) so we can
   // match against Sleeper roster player IDs regardless of owner-name quirks.
   const allActiveContracts = getLatestActiveContracts(contracts);
-  // Owner-filtered contracts are still used for cap summary calculations.
-  const ownerContracts = allActiveContracts.filter((c) => c.owner === ownerLastName);
-  const capSummary = calculateCapSummary(ownerContracts, capHits, ownerLastName, season);
 
   // Build roster from Sleeper player IDs (source of truth) merged with contract data.
-  // Pass ALL active contracts so player_id and name matching can find contracts
-  // even if the owner field in the spreadsheet doesn't match perfectly.
   const rosterPlayers = sortRoster(
     buildMergedRoster(team.players, nflPlayers, allActiveContracts)
   );
+
+  // Totals from the actual roster (not raw spreadsheet) so only on-roster players count.
+  const rosterSalary = rosterPlayers.reduce((sum, p) => sum + (p.salary ?? 0), 0);
+  const rosterYears = rosterPlayers.reduce((sum, p) => sum + (p.years ?? 0), 0);
+  const capPenalties = capHits.filter(
+    (ch) => ch.owner === ownerLastName && (!ch.season || ch.season === season)
+  );
+  const totalPenalty = capPenalties.reduce((sum, ch) => sum + ch.penalty, 0);
 
   // Schedule: get matchups for each week
   const schedule: { week: number; opponent: string; myScore: number; oppScore: number; completed: boolean }[] = [];
@@ -189,18 +192,18 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Salary Cap</CardTitle>
+            <CardTitle className="text-sm">Salary</CardTitle>
           </CardHeader>
           <CardContent>
-            <Progress value={capSummary.totalSalary} max={capSummary.salaryCap} label={`$${capSummary.totalSalary.toFixed(1)} / $${capSummary.salaryCap}`} />
+            <Progress value={rosterSalary} max={270} label={`$${rosterSalary.toFixed(1)} / $270`} />
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Years Cap</CardTitle>
+            <CardTitle className="text-sm">Years</CardTitle>
           </CardHeader>
           <CardContent>
-            <Progress value={capSummary.totalYears} max={capSummary.yearsCap} label={`${capSummary.totalYears} / ${capSummary.yearsCap}`} />
+            <Progress value={rosterYears} max={60} label={`${rosterYears} / 60`} />
           </CardContent>
         </Card>
       </div>
@@ -264,7 +267,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
           <CardTitle className="text-base">Cap Penalties</CardTitle>
         </CardHeader>
         <CardContent>
-          {capSummary.capPenalties.length === 0 ? (
+          {capPenalties.length === 0 ? (
             <p className="text-sm text-muted-foreground italic">
               No cap penalties. Remarkable financial discipline from this franchise.
             </p>
@@ -278,7 +281,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                   </tr>
                 </thead>
                 <tbody>
-                  {capSummary.capPenalties.map((cp, i) => (
+                  {capPenalties.map((cp, i) => (
                     <tr key={i} className="border-b border-border/50">
                       <td className="px-4 py-2">{cp.player}</td>
                       <td className="px-4 py-2 text-right text-ittwa font-medium tabular-nums">${cp.penalty.toFixed(1)}</td>
@@ -286,7 +289,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                   ))}
                   <tr>
                     <td className="px-4 py-2 font-semibold">Total</td>
-                    <td className="px-4 py-2 text-right text-ittwa font-bold tabular-nums">${capSummary.totalPenalty.toFixed(1)}</td>
+                    <td className="px-4 py-2 text-right text-ittwa font-bold tabular-nums">${totalPenalty.toFixed(1)}</td>
                   </tr>
                 </tbody>
               </table>
