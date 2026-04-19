@@ -58,20 +58,30 @@ export async function getContracts(): Promise<ContractRow[]> {
 }
 
 // --- Cap Hits ---
-// Active cap penalties for players cut with years remaining on their contract.
-// Penalty = 50% of remaining contract value.
 
 export async function getCapHits(): Promise<CapHitRow[]> {
-  const rows = await fetchSheet("CapHits", "A2:F500");
+  const rows = await fetchSheet("CapHits", "A2:AJ5000");
 
   return rows
-    .filter((row) => row.length >= 3)
-    .map((row) => ({
-      owner: (row[0] || "").trim(),
-      player: (row[1] || "").trim(),
-      position: (row[2] || "").trim(),
-      penalty: parseFloat((row[3] || "0").replace("$", "")) || 0,
-      season: (row[4] || "").trim(),
-      yearsRemaining: parseInt(row[5] || "0", 10) || undefined,
-    }));
+    .filter((row) => row.length >= 10)
+    .map((row) => {
+      const yearlyHits: Record<number, number> = {};
+      for (let i = 15; i <= 35 && i < row.length; i++) {
+        const year = 2015 + (i - 15);
+        const val = parseFloat((row[i] || "0").replace("$", "")) || 0;
+        if (val > 0) yearlyHits[year] = val;
+      }
+
+      return {
+        season: (row[0] || "").trim(),
+        owner: (row[8] || "").trim(),
+        player: (row[9] || "").trim(),
+        position: (row[10] || "").trim(),
+        years: parseInt(row[11] || "0", 10) || 0,
+        salary: parseFloat((row[12] || "0").replace("$", "")) || 0,
+        capHit: parseFloat((row[13] || "0").replace("$", "")) || 0,
+        yearsRemaining: parseInt(row[14] || "0", 10) || 0,
+        yearlyHits,
+      };
+    });
 }

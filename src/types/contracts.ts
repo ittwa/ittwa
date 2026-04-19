@@ -19,22 +19,15 @@ export interface ContractRow {
 }
 
 export interface CapHitRow {
+  season: string;
   owner: string;
   player: string;
   position: string;
-  penalty: number;
-  season: string;
-  yearsRemaining?: number;
-  originalSalary?: number;
-}
-
-export interface TeamCapSummary {
-  totalSalary: number;
-  totalYears: number;
-  salaryCap: number;    // $270
-  yearsCap: number;     // 60
-  capPenalties: CapHitRow[];
-  totalPenalty: number;
+  years: number;
+  salary: number;
+  capHit: number;
+  yearsRemaining: number;
+  yearlyHits: Record<number, number>;
 }
 
 export interface ContractWithValue extends ContractRow {

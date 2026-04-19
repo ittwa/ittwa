@@ -1,5 +1,5 @@
-import { ContractRow, ContractWithValue, CapHitRow, TeamCapSummary } from "@/types/contracts";
-import { CONTRACT_VALUE_MULTIPLIERS, SALARY_CAP, YEARS_CAP, OWNER_LAST_NAME_MAP } from "./config";
+import { ContractRow, ContractWithValue } from "@/types/contracts";
+import { CONTRACT_VALUE_MULTIPLIERS, OWNER_LAST_NAME_MAP } from "./config";
 
 // Contract Status = "Active" is the SINGLE SOURCE OF TRUTH for whether a player
 // appears anywhere on the site.
@@ -73,32 +73,6 @@ export function getActiveContractsForSeason(
   }
 
   return [];
-}
-
-// Calculate cap summary for a specific owner in a given season
-export function calculateCapSummary(
-  contracts: ContractWithValue[],
-  capHits: CapHitRow[],
-  ownerLastName: string,
-  season: string
-): TeamCapSummary {
-  const ownerContracts = contracts.filter((c) => c.owner === ownerLastName);
-  const ownerPenalties = capHits.filter(
-    (ch) => ch.owner === ownerLastName && (!ch.season || ch.season === season)
-  );
-
-  const totalSalary = ownerContracts.reduce((sum, c) => sum + c.salary, 0);
-  const totalYears = ownerContracts.reduce((sum, c) => sum + c.years, 0);
-  const totalPenalty = ownerPenalties.reduce((sum, ch) => sum + ch.penalty, 0);
-
-  return {
-    totalSalary,
-    totalYears,
-    salaryCap: SALARY_CAP,
-    yearsCap: YEARS_CAP,
-    capPenalties: ownerPenalties,
-    totalPenalty,
-  };
 }
 
 // Get the latest active contract per player across all seasons.
