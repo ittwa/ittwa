@@ -101,6 +101,26 @@ export function calculateCapSummary(
   };
 }
 
+// Get the latest active contract per player across all seasons.
+// The spreadsheet has one row per player per season. This deduplicates to the
+// most recent season's entry so roster/cap data is correct even when the
+// Sleeper season (e.g. "2026") has only partial data (draft picks).
+export function getLatestActiveContracts(contracts: ContractRow[]): ContractWithValue[] {
+  const active = filterActiveContracts(contracts);
+  const sorted = [...active].sort((a, b) => a.season.localeCompare(b.season));
+
+  const latest = new Map<string, ContractRow>();
+  for (const c of sorted) {
+    const key =
+      c.playerId && c.playerId !== "#N/A" && c.playerId !== "N/A" && c.playerId !== ""
+        ? c.playerId
+        : c.player.toLowerCase().trim();
+    latest.set(key, c);
+  }
+
+  return [...latest.values()].map(enrichContract);
+}
+
 // Resolve owner last name from Sheets to full display name
 export function resolveOwnerName(ownerLastName: string): string {
   return OWNER_LAST_NAME_MAP[ownerLastName] || ownerLastName;

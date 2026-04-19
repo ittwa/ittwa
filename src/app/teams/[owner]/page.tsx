@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap } from "@/lib/data";
-import { getActiveContractsForSeason, calculateCapSummary } from "@/lib/contracts";
+import { getLatestActiveContracts, calculateCapSummary } from "@/lib/contracts";
 import { getNFLPlayers } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP } from "@/lib/config";
 import { ContractWithValue } from "@/types/contracts";
@@ -116,7 +116,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   const ownerLastName = getOwnerLastName(ownerName);
   // Get ALL active contracts for the season (not filtered by owner) so we can
   // match against Sleeper roster player IDs regardless of owner-name quirks.
-  const allActiveContracts = getActiveContractsForSeason(contracts, season);
+  const allActiveContracts = getLatestActiveContracts(contracts);
   // Owner-filtered contracts are still used for cap summary calculations.
   const ownerContracts = allActiveContracts.filter((c) => c.owner === ownerLastName);
   const capSummary = calculateCapSummary(ownerContracts, capHits, ownerLastName, season);
