@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContractWithValue } from "@/types/contracts";
 import { resolveOwnerName } from "@/lib/contracts";
+import { PlayerAvatar } from "@/components/player-avatar";
 
 type SortKey = "player" | "position" | "owner" | "salary" | "years" | "contractStartYear" | "contractValue";
 type SortDir = "asc" | "desc";
@@ -140,7 +141,12 @@ export function ContractsClient({ contracts, season }: ContractsClientProps) {
                 ) : (
                   filtered.map((c, i) => (
                     <tr key={`${c.playerId}-${i}`} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
-                      <td className="px-3 py-2.5 font-medium">{c.player}</td>
+                      <td className="px-3 py-2.5 font-medium">
+                        <div className="flex items-center gap-2">
+                          <PlayerAvatar playerId={c.playerId} playerName={c.player} />
+                          {c.player}
+                        </div>
+                      </td>
                       <td className="px-3 py-2.5 text-muted-foreground">{c.position}</td>
                       <td className="px-3 py-2.5 hidden sm:table-cell">{resolveOwnerName(c.owner)}</td>
                       <td className="px-3 py-2.5 text-right tabular-nums">

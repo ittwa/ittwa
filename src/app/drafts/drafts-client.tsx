@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PlayerAvatar } from "@/components/player-avatar";
 
 interface DraftPick {
   pickNo: number;
@@ -91,7 +92,14 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
                                 {pick.round}.{((pick.pickNo - 1) % 12 + 1).toString().padStart(2, "0")}
                               </td>
                               <td className="px-4 py-2">{pick.ownerName}</td>
-                              <td className="px-4 py-2 font-medium">{pick.playerName || "—"}</td>
+                              <td className="px-4 py-2 font-medium">
+                                {pick.playerId ? (
+                                  <div className="flex items-center gap-2">
+                                    <PlayerAvatar playerId={pick.playerId} playerName={pick.playerName || ""} />
+                                    {pick.playerName || "—"}
+                                  </div>
+                                ) : (pick.playerName || "—")}
+                              </td>
                               <td className="px-4 py-2 text-muted-foreground hidden sm:table-cell">{pick.position}</td>
                               <td className="px-4 py-2 text-right tabular-nums">
                                 {pick.contractSalary > 0 ? `$${pick.contractSalary}` : "—"}

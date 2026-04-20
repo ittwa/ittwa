@@ -10,6 +10,7 @@ import { getNFLPlayers } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP, AUCTION_DATE } from "@/lib/config";
 import { ContractWithValue } from "@/types/contracts";
 import { SleeperPlayersMap } from "@/types/sleeper";
+import { PlayerAvatar } from "@/components/player-avatar";
 
 export const revalidate = 300;
 
@@ -265,7 +266,12 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                 ) : (
                   rosterPlayers.map((p) => (
                     <tr key={p.playerId} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
-                      <td className="px-4 py-2.5 font-medium">{p.name}</td>
+                      <td className="px-4 py-2.5 font-medium">
+                        <div className="flex items-center gap-2">
+                          <PlayerAvatar playerId={p.playerId} playerName={p.name} />
+                          {p.name}
+                        </div>
+                      </td>
                       <td className="px-4 py-2.5 text-muted-foreground">{p.position}</td>
                       <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell">{p.nflTeam}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">
