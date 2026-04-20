@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import { useState } from "react";
 
 interface PlayerAvatarProps {
@@ -39,14 +38,14 @@ export function PlayerAvatar({ playerId, playerName, size = 32 }: PlayerAvatarPr
   }
 
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src={getAvatarUrl(playerId)}
       alt={playerName}
       width={size}
       height={size}
       className="rounded-full object-cover shrink-0"
       onError={() => setFailed(true)}
-      unoptimized
     />
   );
 }
