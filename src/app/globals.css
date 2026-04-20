@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme inline {
@@ -21,7 +22,13 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ittwa: #FD4A48;
+  --color-gold: #EAB308;
+  --color-concussion: #3B82F6;
+  --color-hey-arnold: #8B5CF6;
+  --color-replacements: #22C55E;
+  --color-dark-knight: #F97316;
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Barlow Condensed', system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

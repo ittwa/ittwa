@@ -1,7 +1,7 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { SleeperMatchup } from "@/types/sleeper";
 
 interface TeamRecord {
@@ -22,6 +22,15 @@ interface RecordsClientProps {
   currentWeek: number;
 }
 
+function SectionTick({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-1 h-5 rounded-sm shrink-0 bg-gold" />
+      <span className="font-heading font-bold uppercase tracking-widest text-sm">{label}</span>
+    </div>
+  );
+}
+
 export function RecordsClient({
   matchupsArray,
   rosterOwnerMap,
@@ -29,7 +38,9 @@ export function RecordsClient({
   season,
   currentWeek,
 }: RecordsClientProps) {
-  // Find single-game records
+  const [activeYear] = useState(season);
+
+  // Single-game records
   let highestScore = { name: "", points: 0, week: 0 };
   let lowestScore = { name: "", points: Infinity, week: 0 };
 
@@ -37,130 +48,162 @@ export function RecordsClient({
     for (const m of matchups) {
       if (m.points <= 0) continue;
       const name = rosterOwnerMap[m.roster_id] || `Team ${m.roster_id}`;
-      if (m.points > highestScore.points) {
-        highestScore = { name, points: m.points, week };
-      }
-      if (m.points < lowestScore.points) {
-        lowestScore = { name, points: m.points, week };
-      }
+      if (m.points > highestScore.points) highestScore = { name, points: m.points, week };
+      if (m.points < lowestScore.points) lowestScore = { name, points: m.points, week };
     }
   }
 
   if (lowestScore.points === Infinity) lowestScore = { name: "N/A", points: 0, week: 0 };
 
-  // Season bests
   const sortedByPF = [...teamRecords].sort((a, b) => b.pointsFor - a.pointsFor);
   const sortedByWins = [...teamRecords].sort((a, b) => b.wins - a.wins || b.pointsFor - a.pointsFor);
   const sortedByLosses = [...teamRecords].sort((a, b) => b.losses - a.losses || a.pointsFor - b.pointsFor);
+  const sortedByPA = [...teamRecords].sort((a, b) => b.pointsAgainst - a.pointsAgainst);
 
-  // Win/loss streaks
   const streaks = calculateStreaks(matchupsArray, rosterOwnerMap);
+
+  const weeksPlayed = currentWeek - 1;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Records</h1>
+        <h1 className="font-heading text-3xl font-black uppercase tracking-tight">Records</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {season} season records &middot; Through week {currentWeek - 1}
+          {season} season · Through week {weeksPlayed}
         </p>
       </div>
 
-      <p className="text-sm text-muted-foreground italic bg-secondary/50 rounded-lg p-3">
-        Historical records across all ITTWA seasons coming soon. Showing {season} season data.
-      </p>
+      {/* Year filter tabs */}
+      <div className="flex items-center gap-2">
+        <button className="inline-flex items-center rounded-full bg-secondary border border-border/50 px-4 py-1.5 text-xs text-muted-foreground/50 cursor-not-allowed">
+          All Time
+        </button>
+        <button className="inline-flex items-center rounded-full bg-gold/10 border border-gold/40 text-gold px-4 py-1.5 text-xs font-medium">
+          {season}
+        </button>
+      </div>
 
-      {/* Trophy Room placeholder */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <span>🏆</span> Trophy Room
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground italic">
-            Full trophy room with champions, runners-up, and 3rd place finishers from 2014–present coming soon.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Game Records */}
+      <div>
+        <SectionTick label="Game Records" />
+        <div className="grid gap-4 sm:grid-cols-2 mt-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-muted-foreground uppercase tracking-wider">Highest Single-Game Score</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="font-heading text-4xl font-black text-ittwa tabular-nums">{highestScore.points.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground mt-1">{highestScore.name} · Week {highestScore.week}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-muted-foreground uppercase tracking-wider">Lowest Single-Game Score</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="font-heading text-4xl font-black tabular-nums">{lowestScore.points.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground mt-1">{lowestScore.name} · Week {lowestScore.week}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-muted-foreground uppercase tracking-wider">Longest Win Streak</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="font-heading text-4xl font-black text-emerald-400">{streaks.longestWin.count}W</p>
+              <p className="text-sm text-muted-foreground mt-1">{streaks.longestWin.name}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-muted-foreground uppercase tracking-wider">Longest Losing Streak</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="font-heading text-4xl font-black text-red-400">{streaks.longestLoss.count}L</p>
+              <p className="text-sm text-muted-foreground mt-1">{streaks.longestLoss.name}</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-      {/* Single-game records */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Highest Single-Game Score</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-ittwa tabular-nums">{highestScore.points.toFixed(2)}</p>
-            <p className="text-sm text-muted-foreground">{highestScore.name} &middot; Week {highestScore.week}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Lowest Single-Game Score</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold tabular-nums">{lowestScore.points.toFixed(2)}</p>
-            <p className="text-sm text-muted-foreground">{lowestScore.name} &middot; Week {lowestScore.week}</p>
+      {/* Season Records */}
+      <div>
+        <SectionTick label="Season Leaders" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+          {[
+            { label: "Most Points For", name: sortedByPF[0]?.displayName, value: sortedByPF[0]?.pointsFor.toFixed(1), color: "text-gold" },
+            { label: "Fewest Points For", name: sortedByPF[sortedByPF.length-1]?.displayName, value: sortedByPF[sortedByPF.length-1]?.pointsFor.toFixed(1) },
+            { label: "Most Points Against", name: sortedByPA[0]?.displayName, value: sortedByPA[0]?.pointsAgainst.toFixed(1) },
+            { label: "Best Record", name: sortedByWins[0]?.displayName, value: `${sortedByWins[0]?.wins}-${sortedByWins[0]?.losses}`, color: "text-emerald-400" },
+            { label: "Worst Record", name: sortedByLosses[0]?.displayName, value: `${sortedByLosses[0]?.wins}-${sortedByLosses[0]?.losses}`, color: "text-red-400" },
+            { label: "Highest Win %", name: sortedByWins[0]?.displayName, value: sortedByWins[0] ? `${((sortedByWins[0].wins / (sortedByWins[0].wins + sortedByWins[0].losses)) * 100).toFixed(0)}%` : "—" },
+          ].map((item) => (
+            <Card key={item.label}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground uppercase tracking-wider">{item.label}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className={`font-heading text-3xl font-black tabular-nums ${item.color || ""}`}>{item.value ?? "—"}</p>
+                <p className="text-sm text-muted-foreground mt-1">{item.name ?? "—"}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* All-Time Standings */}
+      <div>
+        <SectionTick label="Season Standings" />
+        <Card className="mt-4">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-card text-muted-foreground">
+                    <th className="px-4 py-3 text-center font-medium w-12">#</th>
+                    <th className="px-4 py-3 text-left font-medium">Owner</th>
+                    <th className="px-4 py-3 text-center font-medium">W</th>
+                    <th className="px-4 py-3 text-center font-medium">L</th>
+                    <th className="px-4 py-3 text-center font-medium hidden sm:table-cell">Win%</th>
+                    <th className="px-4 py-3 text-right font-medium">PF</th>
+                    <th className="px-4 py-3 text-right font-medium hidden md:table-cell">PA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedByWins.map((t, i) => {
+                    const total = t.wins + t.losses;
+                    const pct = total > 0 ? (t.wins / total * 100).toFixed(1) : "0.0";
+                    return (
+                      <tr key={t.rosterId} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
+                        <td className="px-4 py-2.5 text-center">
+                          <span className={`font-semibold tabular-nums text-sm ${i === 0 ? "text-gold" : i <= 2 ? "text-ittwa" : "text-muted-foreground"}`}>
+                            {i + 1}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 font-medium">{t.displayName}</td>
+                        <td className="px-4 py-2.5 text-center tabular-nums text-emerald-400 font-semibold">{t.wins}</td>
+                        <td className="px-4 py-2.5 text-center tabular-nums text-red-400 font-semibold">{t.losses}</td>
+                        <td className="px-4 py-2.5 text-center tabular-nums text-green-400 hidden sm:table-cell">{pct}%</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground font-mono text-xs">{t.pointsFor.toFixed(1)}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground font-mono text-xs hidden md:table-cell">{t.pointsAgainst.toFixed(1)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Season bests */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <span>📊</span> Season Leaders
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="divide-y divide-border">
-            <div className="px-6 py-3 flex justify-between items-center">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase">Most Points For</p>
-                <p className="font-medium">{sortedByPF[0]?.displayName}</p>
-              </div>
-              <span className="text-ittwa font-bold tabular-nums">{sortedByPF[0]?.pointsFor.toFixed(2)}</span>
-            </div>
-            <div className="px-6 py-3 flex justify-between items-center">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase">Best Record</p>
-                <p className="font-medium">{sortedByWins[0]?.displayName}</p>
-              </div>
-              <span className="font-bold tabular-nums">{sortedByWins[0]?.wins}-{sortedByWins[0]?.losses}</span>
-            </div>
-            <div className="px-6 py-3 flex justify-between items-center">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase">Worst Record</p>
-                <p className="font-medium">{sortedByLosses[0]?.displayName}</p>
-              </div>
-              <span className="font-bold tabular-nums">{sortedByLosses[0]?.wins}-{sortedByLosses[0]?.losses}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Streaks */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <span>🔥</span> Longest Win Streak
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-emerald-400">{streaks.longestWin.count}W</p>
-            <p className="text-sm text-muted-foreground">{streaks.longestWin.name}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <span>🔥</span> Longest Losing Streak
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-red-400">{streaks.longestLoss.count}L</p>
-            <p className="text-sm text-muted-foreground">{streaks.longestLoss.name}</p>
+      {/* Trophy Room placeholder */}
+      <div>
+        <SectionTick label="Trophy Room" />
+        <Card className="mt-4">
+          <CardContent className="py-8">
+            <p className="text-sm text-muted-foreground italic text-center">
+              Full trophy room with champions from 2014–present coming soon.
+            </p>
           </CardContent>
         </Card>
       </div>

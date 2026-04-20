@@ -3,18 +3,17 @@ export const dynamic = 'force-dynamic';
 import { notFound } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap } from "@/lib/data";
 import { getLatestActiveContracts } from "@/lib/contracts";
 import { getNFLPlayers } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP, AUCTION_DATE } from "@/lib/config";
+import { getDivisionVariant, getDivisionColor, getPositionVariant, getSalaryBarColor } from "@/lib/ui-utils";
 import { ContractWithValue } from "@/types/contracts";
 import { SleeperPlayersMap } from "@/types/sleeper";
 import { PlayerAvatar } from "@/components/player-avatar";
 
 export const revalidate = 300;
 
-// Reverse lookup: display name → owner last name (for Sheets)
 function getOwnerLastName(displayName: string): string {
   for (const [lastName, fullName] of Object.entries(OWNER_LAST_NAME_MAP)) {
     if (fullName === displayName) return lastName;
@@ -22,7 +21,6 @@ function getOwnerLastName(displayName: string): string {
   return displayName.split(" ").pop() || displayName;
 }
 
-// Build a merged roster: Sleeper players as source of truth, contract data merged in
 interface RosterPlayer {
   playerId: string;
   name: string;
@@ -40,16 +38,12 @@ function buildMergedRoster(
   nflPlayers: SleeperPlayersMap,
   contracts: ContractWithValue[]
 ): RosterPlayer[] {
-  // Index contracts by player_id for quick lookup.
-  // Use ALL active contracts (not just for one owner) so we can match by player_id
-  // regardless of any owner-name mismatches in the spreadsheet.
   const contractByPlayerId = new Map<string, ContractWithValue>();
   const contractByName = new Map<string, ContractWithValue>();
   for (const c of contracts) {
     if (c.playerId && c.playerId !== "#N/A" && c.playerId !== "N/A" && c.playerId !== "") {
       contractByPlayerId.set(c.playerId, c);
     }
-    // Also index by normalized player name as fallback
     if (c.player) {
       contractByName.set(c.player.toLowerCase().trim(), c);
     }
@@ -57,7 +51,6 @@ function buildMergedRoster(
 
   return sleeperPlayerIds.map((pid) => {
     const sleeperPlayer = nflPlayers[pid];
-    // Try matching by player_id first, then by name as fallback
     let contract = contractByPlayerId.get(pid);
     if (!contract && sleeperPlayer) {
       const fullName = (sleeperPlayer.full_name || `${sleeperPlayer.first_name} ${sleeperPlayer.last_name}`).toLowerCase().trim();
@@ -68,14 +61,11 @@ function buildMergedRoster(
       ? (sleeperPlayer.full_name || `${sleeperPlayer.first_name} ${sleeperPlayer.last_name}`)
       : contract?.player || `Unknown (${pid})`;
 
-    const position = sleeperPlayer?.position || contract?.position || "—";
-    const nflTeam = sleeperPlayer?.team || "FA";
-
     return {
       playerId: pid,
       name,
-      position,
-      nflTeam,
+      position: sleeperPlayer?.position || contract?.position || "—",
+      nflTeam: sleeperPlayer?.team || "FA",
       salary: contract ? contract.salary : null,
       years: contract ? contract.years : null,
       dpOriginalOwner: contract?.dpOriginalOwner || "",
@@ -85,15 +75,22 @@ function buildMergedRoster(
   });
 }
 
-// Sort roster: starters-friendly order (QB, RB, WR, TE, K, DEF, then rest)
-const POS_ORDER: Record<string, number> = { QB: 1, RB: 2, WR: 3, TE: 4, K: 5, DEF: 6, "D/ST": 6 };
 function sortRoster(players: RosterPlayer[]): RosterPlayer[] {
   return [...players].sort((a, b) => {
-    const posA = POS_ORDER[a.position] || 99;
-    const posB = POS_ORDER[b.position] || 99;
-    if (posA !== posB) return posA - posB;
+    const salA = a.salary ?? -1;
+    const salB = b.salary ?? -1;
+    if (salA !== salB) return salB - salA;
     return a.name.localeCompare(b.name);
   });
+}
+
+function SectionTick({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-1 h-5 rounded-sm shrink-0 bg-gold" />
+      <span className="font-heading font-bold uppercase tracking-widest text-sm">{label}</span>
+    </div>
+  );
 }
 
 export default async function TeamDetailPage({ params }: { params: Promise<{ owner: string }> }) {
@@ -115,19 +112,12 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   if (!team) return notFound();
 
   const ownerLastName = getOwnerLastName(ownerName);
-  // Get ALL active contracts for the season (not filtered by owner) so we can
-  // match against Sleeper roster player IDs regardless of owner-name quirks.
   const allActiveContracts = getLatestActiveContracts(contracts);
 
-  // Build roster from Sleeper player IDs (source of truth) merged with contract data.
-  const rosterPlayers = sortRoster(
-    buildMergedRoster(team.players, nflPlayers, allActiveContracts)
-  );
+  const rosterPlayers = sortRoster(buildMergedRoster(team.players, nflPlayers, allActiveContracts));
 
-  // Totals from the actual roster (not raw spreadsheet) so only on-roster players count.
   const currentSeasonNum = parseInt(season, 10);
 
-  // Draft picks: position = "Draft Pick", active, current or future season
   const ownerDraftPicks = contracts
     .filter((c) =>
       c.contractStatus.toLowerCase() === "active" &&
@@ -141,7 +131,6 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
       return a.player.localeCompare(b.player);
     });
 
-  // Current-season draft picks count toward salary/years totals
   const draftPickSalary = ownerDraftPicks
     .filter((p) => parseInt(p.season, 10) === currentSeasonNum)
     .reduce((sum, p) => sum + p.salary, 0);
@@ -151,6 +140,8 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
 
   const rosterSalary = rosterPlayers.reduce((sum, p) => sum + (p.salary ?? 0), 0) + draftPickSalary;
   const rosterYears = rosterPlayers.reduce((sum, p) => sum + (p.years ?? 0), 0) + draftPickYears;
+  const maxRosterSalary = Math.max(...rosterPlayers.map((p) => p.salary ?? 0), 1);
+
   const isBeforeAuction = new Date() < AUCTION_DATE;
   const displaySeason = isBeforeAuction ? currentSeasonNum : currentSeasonNum + 1;
   const ownerCapHits = capHits.filter((ch) => {
@@ -161,31 +152,17 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
     });
   });
 
-  // Schedule: get matchups for each week
+  // Schedule
   const schedule: { week: number; opponent: string; myScore: number; oppScore: number; completed: boolean }[] = [];
   for (let w = 1; w <= 13; w++) {
     const weekMatchups = allMatchups.get(w);
-    if (!weekMatchups) {
-      schedule.push({ week: w, opponent: "TBD", myScore: 0, oppScore: 0, completed: false });
-      continue;
-    }
+    if (!weekMatchups) { schedule.push({ week: w, opponent: "TBD", myScore: 0, oppScore: 0, completed: false }); continue; }
     const myMatchup = weekMatchups.find((m) => m.roster_id === team.rosterId);
-    if (!myMatchup) {
-      schedule.push({ week: w, opponent: "TBD", myScore: 0, oppScore: 0, completed: false });
-      continue;
-    }
-    const oppMatchup = weekMatchups.find(
-      (m) => m.matchup_id === myMatchup.matchup_id && m.roster_id !== team.rosterId
-    );
+    if (!myMatchup) { schedule.push({ week: w, opponent: "TBD", myScore: 0, oppScore: 0, completed: false }); continue; }
+    const oppMatchup = weekMatchups.find((m) => m.matchup_id === myMatchup.matchup_id && m.roster_id !== team.rosterId);
     const oppName = oppMatchup ? (rosterOwnerMap[oppMatchup.roster_id] || `Team ${oppMatchup.roster_id}`) : "BYE";
     const completed = myMatchup.points > 0 || (oppMatchup?.points ?? 0) > 0;
-    schedule.push({
-      week: w,
-      opponent: oppName,
-      myScore: myMatchup.points,
-      oppScore: oppMatchup?.points ?? 0,
-      completed,
-    });
+    schedule.push({ week: w, opponent: oppName, myScore: myMatchup.points, oppScore: oppMatchup?.points ?? 0, completed });
   }
 
   // Trades
@@ -195,53 +172,116 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
     trades = txns
       .filter((t) => t.type === "trade" && t.status === "complete" && t.roster_ids.includes(team.rosterId))
       .sort((a, b) => b.created - a.created)
-      .map((t) => ({
-        date: new Date(t.created).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        rosterIds: t.roster_ids,
-        type: t.type,
-      }));
+      .map((t) => ({ date: new Date(t.created).toLocaleDateString("en-US", { month: "short", day: "numeric" }), rosterIds: t.roster_ids, type: t.type }));
   } catch {}
+
+  // Hero helpers
+  const divisionColor = getDivisionColor(team.division);
+  const ghostInitials = team.displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const salaryPct = Math.min((rosterSalary / 270) * 100, 100);
+  const yearsPct = Math.min((rosterYears / 60) * 100, 100);
+  const salaryBarColor = rosterSalary >= 255 ? "#EF4444" : rosterSalary >= 230 ? "#EAB308" : "#22C55E";
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{team.displayName}</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant="outline">{team.division}</Badge>
-            <span className="text-sm text-muted-foreground">
-              {team.wins}-{team.losses}{team.ties > 0 ? `-${team.ties}` : ""} &middot; #{team.rank} overall
+      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-xl border border-border bg-card">
+        {/* Division color stripe */}
+        <div className="h-1.5" style={{ backgroundColor: divisionColor }} />
+
+        {/* Ghost initials watermark */}
+        <div
+          className="absolute right-2 top-0 select-none pointer-events-none leading-none font-heading font-black"
+          style={{ fontSize: "160px", color: "rgba(255,255,255,0.03)" }}
+        >
+          {ghostInitials}
+        </div>
+
+        <div className="p-6 sm:p-8">
+          {/* Badges */}
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <Badge variant={getDivisionVariant(team.division)}>{team.division}</Badge>
+            <Badge variant="outline">#{team.rank} Overall</Badge>
+          </div>
+
+          {/* Name */}
+          <h1 className="font-heading font-black uppercase tracking-tight leading-none mb-4 text-5xl sm:text-7xl">
+            {team.displayName.toUpperCase()}
+          </h1>
+
+          {/* Record */}
+          <div className="flex items-center gap-4 mb-8">
+            <span className="font-heading text-2xl sm:text-3xl font-bold tracking-wide">
+              <span className="text-emerald-400">{team.wins}</span>
+              <span className="text-muted-foreground mx-2">—</span>
+              <span className="text-red-400">{team.losses}</span>
+              {team.ties > 0 && <span className="text-muted-foreground ml-1">({team.ties}T)</span>}
             </span>
+            <span className="text-sm text-muted-foreground">Week {currentWeek} · {season}</span>
+          </div>
+
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="rounded-lg border border-border/50 bg-background/50 p-3">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Salary</p>
+              <p className="font-heading text-2xl font-black text-gold">${rosterSalary.toFixed(0)}</p>
+              <p className="text-xs text-muted-foreground">of $270</p>
+            </div>
+            <div className="rounded-lg border border-border/50 bg-background/50 p-3">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Years</p>
+              <p className="font-heading text-2xl font-black">{rosterYears}</p>
+              <p className="text-xs text-muted-foreground">of 60</p>
+            </div>
+            <div className="rounded-lg border border-border/50 bg-background/50 p-3">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Roster</p>
+              <p className="font-heading text-2xl font-black">{rosterPlayers.length}</p>
+              <p className="text-xs text-muted-foreground">players</p>
+            </div>
+            <div className="rounded-lg border border-border/50 bg-background/50 p-3">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Draft Picks</p>
+              <p className="font-heading text-2xl font-black">{ownerDraftPicks.length}</p>
+              <p className="text-xs text-muted-foreground">active</p>
+            </div>
           </div>
         </div>
-        <Badge variant="ittwa">{season}</Badge>
       </div>
 
-      {/* Cap Summary */}
+      {/* ── Cap bars ─────────────────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Salary</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Salary Cap</CardTitle>
           </CardHeader>
           <CardContent>
-            <Progress value={rosterSalary} max={270} label={`$${rosterSalary.toFixed(1)} / $270`} />
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="font-heading text-2xl font-black">${rosterSalary.toFixed(1)}</span>
+              <span className="text-sm text-muted-foreground">/ $270</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+              <div className="h-full rounded-full transition-all" style={{ width: `${salaryPct}%`, backgroundColor: salaryBarColor }} />
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Years</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Years Cap</CardTitle>
           </CardHeader>
           <CardContent>
-            <Progress value={rosterYears} max={60} label={`${rosterYears} / 60`} />
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="font-heading text-2xl font-black">{rosterYears}</span>
+              <span className="text-sm text-muted-foreground">/ 60</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+              <div className="h-full rounded-full bg-gold/70 transition-all" style={{ width: `${yearsPct}%` }} />
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Roster — Sleeper is source of truth, contract data merged in */}
+      {/* ── Roster ───────────────────────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Roster ({rosterPlayers.length} players)</CardTitle>
+          <SectionTick label={`Roster (${rosterPlayers.length} players)`} />
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -253,13 +293,12 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                   <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Team</th>
                   <th className="px-4 py-3 text-right font-medium">Salary</th>
                   <th className="px-4 py-3 text-center font-medium">Years</th>
-                  <th className="px-4 py-3 text-left font-medium hidden md:table-cell">DP Original Owner</th>
                 </tr>
               </thead>
               <tbody>
                 {rosterPlayers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground italic">
+                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground italic">
                       No players on this roster. Rebuild season, apparently.
                     </td>
                   </tr>
@@ -272,13 +311,24 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                           {p.name}
                         </div>
                       </td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{p.position}</td>
+                      <td className="px-4 py-2.5">
+                        <Badge variant={getPositionVariant(p.position)}>{p.position}</Badge>
+                      </td>
                       <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell">{p.nflTeam}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">
                         {p.isMidSeasonPickup ? (
-                          <Badge variant="warning">Mid-Season Pickup</Badge>
+                          <Badge variant="warning">Pickup</Badge>
                         ) : p.salary !== null ? (
-                          `$${p.salary.toFixed(1)}`
+                          <div className="flex flex-col items-end">
+                            <span>${p.salary.toFixed(1)}</span>
+                            <div
+                              className="h-0.5 mt-0.5 rounded-full"
+                              style={{
+                                width: `${Math.max((p.salary / maxRosterSalary) * 48, 4)}px`,
+                                backgroundColor: getSalaryBarColor(p.salary),
+                              }}
+                            />
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -286,7 +336,6 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                       <td className="px-4 py-2.5 text-center tabular-nums">
                         {p.years !== null ? p.years : <span className="text-muted-foreground">—</span>}
                       </td>
-                      <td className="px-4 py-2.5 text-muted-foreground hidden md:table-cell">{p.dpOriginalOwner || "—"}</td>
                     </tr>
                   ))
                 )}
@@ -296,16 +345,14 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
         </CardContent>
       </Card>
 
-      {/* Draft Picks */}
+      {/* ── Draft Picks ──────────────────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Draft Picks</CardTitle>
+          <SectionTick label="Draft Picks" />
         </CardHeader>
         <CardContent>
           {ownerDraftPicks.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">
-              No draft picks. Traded them all away, apparently.
-            </p>
+            <p className="text-sm text-muted-foreground italic">No draft picks. Traded them all away, apparently.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -337,10 +384,10 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
         </CardContent>
       </Card>
 
-      {/* Cap Hits */}
+      {/* ── Cap Hits ─────────────────────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Cap Hits</CardTitle>
+          <SectionTick label="Cap Hits" />
         </CardHeader>
         <CardContent>
           {ownerCapHits.length === 0 ? (
@@ -378,10 +425,10 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
         </CardContent>
       </Card>
 
-      {/* Schedule */}
+      {/* ── Schedule ─────────────────────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Season Schedule</CardTitle>
+          <SectionTick label="Season Schedule" />
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -420,10 +467,10 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
         </CardContent>
       </Card>
 
-      {/* Trade History */}
+      {/* ── Trade History ─────────────────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Trade History</CardTitle>
+          <SectionTick label="Trade History" />
         </CardHeader>
         <CardContent>
           {trades.length === 0 ? (
