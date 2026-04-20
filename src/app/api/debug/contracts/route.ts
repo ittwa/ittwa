@@ -4,31 +4,38 @@ import { getContracts } from "@/lib/sheets";
 export async function GET() {
   const contracts = await getContracts();
 
-  // Find all draft picks and all Clancy rows for diagnosis
   const draftPicks = contracts.filter((c) =>
-    c.position.toLowerCase().includes("draft") || c.position.toLowerCase().includes("pick")
+    c.position.toLowerCase() === "draft pick"
   );
 
-  const clancyAll = contracts.filter((c) =>
-    c.owner.toLowerCase().includes("clancy") || c.owner.toLowerCase().includes("tiger")
+  // All draft picks with season >= 2026 (across ALL owners)
+  const futurePicksAllOwners = draftPicks.filter((c) =>
+    parseInt(c.season, 10) >= 2026
   );
 
-  const clancyDraftPicks = contracts.filter((c) =>
-    c.position.toLowerCase() === "draft pick" && c.owner.toLowerCase() === "clancy"
+  // All draft picks that mention "2026" or "2027" in the player name (across ALL owners)
+  const picksWithFutureYear = draftPicks.filter((c) =>
+    c.player.includes("2026") || c.player.includes("2027")
   );
 
-  // Sample of all unique positions and owners found
-  const uniquePositions = [...new Set(contracts.map((c) => c.position))].sort();
-  const uniqueOwners = [...new Set(contracts.map((c) => c.owner))].sort();
+  // All ACTIVE draft picks across ALL owners
+  const activePicksAll = draftPicks.filter((c) =>
+    c.contractStatus.toLowerCase() === "active"
+  );
+
+  // All draft picks where dpOriginalOwner or player mentions Clancy
+  const picksRelatedToClancy = draftPicks.filter((c) =>
+    c.owner.toLowerCase() === "clancy" ||
+    c.dpOriginalOwner.toLowerCase() === "clancy" ||
+    c.player.toLowerCase().includes("clancy")
+  );
 
   return NextResponse.json({
-    totalContracts: contracts.length,
-    uniquePositions,
-    uniqueOwners,
-    clancyAll: clancyAll.slice(0, 30),
-    draftPicksCount: draftPicks.length,
-    draftPickSample: draftPicks.slice(0, 20),
-    clancyDraftPicksCount: clancyDraftPicks.length,
-    clancyDraftPicks,
+    totalDraftPicks: draftPicks.length,
+    futurePicksAllOwners,
+    picksWithFutureYear,
+    activePicksAllCount: activePicksAll.length,
+    activePicksAll,
+    picksRelatedToClancy,
   });
 }
