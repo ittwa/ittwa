@@ -135,5 +135,5 @@ export const REVALIDATE = {
   players: 86400,      // 24 hours
   roster: 3600,        // 1 hour
   matchups: 300,       // 5 minutes
-  sheets: 600,         // 10 minutes
+  sheets: 60,          // 1 minute
 } as const;

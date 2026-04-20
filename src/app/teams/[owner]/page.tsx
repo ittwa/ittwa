@@ -131,7 +131,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
     .filter((c) =>
       c.contractStatus.toLowerCase() === "active" &&
       c.position.toLowerCase() === "draft pick" &&
-      c.owner === ownerLastName &&
+      c.owner.toLowerCase() === ownerLastName.toLowerCase() &&
       parseInt(c.season, 10) >= currentSeasonNum
     )
     .sort((a, b) => {
