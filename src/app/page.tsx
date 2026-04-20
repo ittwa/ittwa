@@ -240,7 +240,11 @@ function PowerRankingsSection({ rankings }: { rankings: PowerRankingEntry[] }) {
 
             return (
               <div key={entry.rosterId} className="flex items-center gap-3 px-6 py-3">
-                <span className="w-6 text-center font-semibold text-ittwa text-sm shrink-0">{entry.rank}</span>
+                {entry.rank <= 3 ? (
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-ittwa text-white text-xs font-bold shrink-0">{entry.rank}</span>
+                ) : (
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded border border-border text-muted-foreground text-xs font-medium shrink-0">{entry.rank}</span>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{entry.displayName}</p>
                   <div>

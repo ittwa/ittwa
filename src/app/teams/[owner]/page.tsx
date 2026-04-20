@@ -7,7 +7,7 @@ import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTrans
 import { getLatestActiveContracts } from "@/lib/contracts";
 import { getNFLPlayers } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP, AUCTION_DATE } from "@/lib/config";
-import { getDivisionVariant, getDivisionColor, getPositionVariant, getSalaryBarColor } from "@/lib/ui-utils";
+import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha, getPositionVariant, getSalaryBarColor } from "@/lib/ui-utils";
 import { ContractWithValue } from "@/types/contracts";
 import { SleeperPlayersMap } from "@/types/sleeper";
 import { PlayerAvatar } from "@/components/player-avatar";
@@ -178,104 +178,89 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   // Hero helpers
   const divisionColor = getDivisionColor(team.division);
   const ghostInitials = team.displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-  const salaryPct = Math.min((rosterSalary / 270) * 100, 100);
-  const yearsPct = Math.min((rosterYears / 60) * 100, 100);
-  const salaryBarColor = rosterSalary >= 255 ? "#EF4444" : rosterSalary >= 230 ? "#EAB308" : "#22C55E";
 
   return (
     <div className="space-y-6">
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-card">
-        {/* Division color stripe */}
-        <div className="h-1.5" style={{ backgroundColor: divisionColor }} />
+        {/* Division gradient stripe */}
+        <div
+          className="h-1.5"
+          style={{ background: `linear-gradient(90deg, ${divisionColor} 0%, transparent 60%)` }}
+        />
 
-        {/* Ghost initials watermark */}
+        {/* Ghost initials watermark — division-colored */}
         <div
           className="absolute right-2 top-0 select-none pointer-events-none leading-none font-heading font-black"
-          style={{ fontSize: "160px", color: "rgba(255,255,255,0.03)" }}
+          style={{ fontSize: "200px", color: getDivisionColorAlpha(team.division, 0.04) }}
         >
           {ghostInitials}
         </div>
 
-        <div className="p-6 sm:p-8">
-          {/* Badges */}
-          <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <Badge variant={getDivisionVariant(team.division)}>{team.division}</Badge>
-            <Badge variant="outline">#{team.rank} Overall</Badge>
+        <div className="p-6 sm:p-8 flex items-start justify-between gap-6">
+          {/* Left: identity */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <Badge variant={getDivisionVariant(team.division)}>{team.division}</Badge>
+              <Badge variant="outline">#{team.rank} Overall</Badge>
+            </div>
+            <h1 className="font-heading font-black uppercase tracking-tight leading-none mb-4 text-5xl sm:text-7xl">
+              {team.displayName.toUpperCase()}
+            </h1>
+            <div className="flex items-center gap-4">
+              <span className="font-heading text-2xl sm:text-3xl font-bold tracking-wide">
+                <span className="text-emerald-400">{team.wins}</span>
+                <span className="text-muted-foreground mx-2">—</span>
+                <span className="text-red-400">{team.losses}</span>
+                {team.ties > 0 && <span className="text-muted-foreground ml-1">({team.ties}T)</span>}
+              </span>
+              <span className="text-sm text-muted-foreground">Week {currentWeek} · {season}</span>
+            </div>
           </div>
 
-          {/* Name */}
-          <h1 className="font-heading font-black uppercase tracking-tight leading-none mb-4 text-5xl sm:text-7xl">
-            {team.displayName.toUpperCase()}
-          </h1>
-
-          {/* Record */}
-          <div className="flex items-center gap-4 mb-8">
-            <span className="font-heading text-2xl sm:text-3xl font-bold tracking-wide">
-              <span className="text-emerald-400">{team.wins}</span>
-              <span className="text-muted-foreground mx-2">—</span>
-              <span className="text-red-400">{team.losses}</span>
-              {team.ties > 0 && <span className="text-muted-foreground ml-1">({team.ties}T)</span>}
-            </span>
-            <span className="text-sm text-muted-foreground">Week {currentWeek} · {season}</span>
-          </div>
-
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="rounded-lg border border-border/50 bg-background/50 p-3">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Salary</p>
-              <p className="font-heading text-2xl font-black text-gold">${rosterSalary.toFixed(0)}</p>
-              <p className="text-xs text-muted-foreground">of $270</p>
+          {/* Right: stat boxes */}
+          <div className="hidden sm:flex flex-col gap-2 shrink-0">
+            <div className="flex gap-2">
+              {[
+                { label: "Salary", value: `$${rosterSalary.toFixed(0)}`, sub: "of $270", color: "text-gold" },
+                { label: "Years", value: String(rosterYears), sub: "of 60", color: "" },
+              ].map((s) => (
+                <div key={s.label} className="rounded-lg border border-border/50 bg-background/50 p-3 text-center min-w-[80px]">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{s.label}</p>
+                  <p className={`font-heading text-2xl font-black ${s.color}`}>{s.value}</p>
+                  <p className="text-xs text-muted-foreground">{s.sub}</p>
+                </div>
+              ))}
             </div>
-            <div className="rounded-lg border border-border/50 bg-background/50 p-3">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Years</p>
-              <p className="font-heading text-2xl font-black">{rosterYears}</p>
-              <p className="text-xs text-muted-foreground">of 60</p>
-            </div>
-            <div className="rounded-lg border border-border/50 bg-background/50 p-3">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Roster</p>
-              <p className="font-heading text-2xl font-black">{rosterPlayers.length}</p>
-              <p className="text-xs text-muted-foreground">players</p>
-            </div>
-            <div className="rounded-lg border border-border/50 bg-background/50 p-3">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Draft Picks</p>
-              <p className="font-heading text-2xl font-black">{ownerDraftPicks.length}</p>
-              <p className="text-xs text-muted-foreground">active</p>
+            <div className="flex gap-2">
+              {[
+                { label: "Roster", value: String(rosterPlayers.length), sub: "players", color: "" },
+                { label: "Picks", value: String(ownerDraftPicks.length), sub: "active", color: "" },
+              ].map((s) => (
+                <div key={s.label} className="rounded-lg border border-border/50 bg-background/50 p-3 text-center min-w-[80px]">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{s.label}</p>
+                  <p className={`font-heading text-2xl font-black ${s.color}`}>{s.value}</p>
+                  <p className="text-xs text-muted-foreground">{s.sub}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ── Cap bars ─────────────────────────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Salary Cap</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline justify-between mb-2">
-              <span className="font-heading text-2xl font-black">${rosterSalary.toFixed(1)}</span>
-              <span className="text-sm text-muted-foreground">/ $270</span>
+        {/* Mobile-only stat row */}
+        <div className="sm:hidden flex gap-3 px-6 pb-6 overflow-x-auto">
+          {[
+            { label: "Salary", value: `$${rosterSalary.toFixed(0)}`, color: "text-gold" },
+            { label: "Years", value: String(rosterYears), color: "" },
+            { label: "Roster", value: String(rosterPlayers.length), color: "" },
+            { label: "Picks", value: String(ownerDraftPicks.length), color: "" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-lg border border-border/50 bg-background/50 px-4 py-2 text-center shrink-0">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{s.label}</p>
+              <p className={`font-heading text-xl font-black ${s.color}`}>{s.value}</p>
             </div>
-            <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-              <div className="h-full rounded-full transition-all" style={{ width: `${salaryPct}%`, backgroundColor: salaryBarColor }} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Years Cap</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline justify-between mb-2">
-              <span className="font-heading text-2xl font-black">{rosterYears}</span>
-              <span className="text-sm text-muted-foreground">/ 60</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-              <div className="h-full rounded-full bg-gold/70 transition-all" style={{ width: `${yearsPct}%` }} />
-            </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       </div>
 
       {/* ── Roster ───────────────────────────────────────────────────────────── */}
@@ -291,6 +276,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                   <th className="px-4 py-3 text-left font-medium">Player</th>
                   <th className="px-4 py-3 text-left font-medium">Pos</th>
                   <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Team</th>
+                  <th className="px-4 py-3 text-left font-medium hidden md:table-cell">DP Owner</th>
                   <th className="px-4 py-3 text-right font-medium">Salary</th>
                   <th className="px-4 py-3 text-center font-medium">Years</th>
                 </tr>
@@ -298,7 +284,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
               <tbody>
                 {rosterPlayers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground italic">
+                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground italic">
                       No players on this roster. Rebuild season, apparently.
                     </td>
                   </tr>
@@ -307,7 +293,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                     <tr key={p.playerId} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
                       <td className="px-4 py-2.5 font-medium">
                         <div className="flex items-center gap-2">
-                          <PlayerAvatar playerId={p.playerId} playerName={p.name} />
+                          <PlayerAvatar playerId={p.playerId} playerName={p.name} position={p.position} />
                           {p.name}
                         </div>
                       </td>
@@ -315,19 +301,22 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                         <Badge variant={getPositionVariant(p.position)}>{p.position}</Badge>
                       </td>
                       <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell">{p.nflTeam}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground text-xs hidden md:table-cell">{p.dpOriginalOwner || "—"}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">
                         {p.isMidSeasonPickup ? (
                           <Badge variant="warning">Pickup</Badge>
                         ) : p.salary !== null ? (
                           <div className="flex flex-col items-end">
                             <span>${p.salary.toFixed(1)}</span>
-                            <div
-                              className="h-0.5 mt-0.5 rounded-full"
-                              style={{
-                                width: `${Math.max((p.salary / maxRosterSalary) * 48, 4)}px`,
-                                backgroundColor: getSalaryBarColor(p.salary),
-                              }}
-                            />
+                            <div className="mt-0.5 rounded-full bg-secondary overflow-hidden" style={{ width: "64px", height: "3px" }}>
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${Math.max((p.salary / maxRosterSalary) * 100, 6)}%`,
+                                  backgroundColor: getSalaryBarColor(p.salary),
+                                }}
+                              />
+                            </div>
                           </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>

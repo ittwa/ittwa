@@ -1,9 +1,11 @@
 "use client";
 import { useState } from "react";
+import { getPositionColors } from "@/lib/ui-utils";
 
 interface PlayerAvatarProps {
   playerId: string;
   playerName: string;
+  position?: string;
   size?: number;
 }
 
@@ -23,14 +25,21 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-export function PlayerAvatar({ playerId, playerName, size = 32 }: PlayerAvatarProps) {
+export function PlayerAvatar({ playerId, playerName, position, size = 32 }: PlayerAvatarProps) {
   const [failed, setFailed] = useState(false);
 
   if (!playerId || playerId === "#N/A" || failed) {
+    const colors = getPositionColors(position || "");
     return (
       <span
-        style={{ width: size, height: size }}
-        className="inline-flex items-center justify-center rounded-full bg-muted text-muted-foreground text-[10px] font-medium shrink-0"
+        style={{
+          width: size,
+          height: size,
+          backgroundColor: colors.bg,
+          border: `1px solid ${colors.border}`,
+          color: colors.text,
+        }}
+        className="inline-flex items-center justify-center rounded-full text-[10px] font-semibold shrink-0"
       >
         {initials(playerName)}
       </span>

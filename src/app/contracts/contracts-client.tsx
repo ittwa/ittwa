@@ -6,8 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContractWithValue } from "@/types/contracts";
 import { resolveOwnerName } from "@/lib/contracts";
-import { PlayerAvatar } from "@/components/player-avatar";
-import { getPositionVariant } from "@/lib/ui-utils";
+import { getPositionVariant, getPositionColors, getSalaryBarColor } from "@/lib/ui-utils";
 
 type SortKey = "player" | "position" | "owner" | "salary" | "years" | "contractStartYear";
 type SortDir = "asc" | "desc";
@@ -24,11 +23,26 @@ function yearsClass(years: number): string {
   return "bg-zinc-800 text-zinc-300 border border-zinc-700";
 }
 
-function salaryBarColor(salary: number): string {
-  if (salary >= 28) return "#EF4444";
-  if (salary >= 10) return "#EAB308";
-  return "#52525b";
+function PlayerInitials({ name, position, size = 32 }: { name: string; position: string; size?: number }) {
+  const colors = getPositionColors(position);
+  const init = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: colors.bg,
+        border: `1px solid ${colors.border}`,
+        color: colors.text,
+      }}
+      className="inline-flex items-center justify-center rounded-full text-[10px] font-semibold shrink-0"
+    >
+      {init}
+    </span>
+  );
 }
+
+const rectFilter = "bg-secondary border border-border rounded-lg px-3 py-1.5 text-sm text-foreground appearance-none cursor-pointer hover:border-gold/60 transition-colors";
 
 export function ContractsClient({ contracts, season }: ContractsClientProps) {
   const [search, setSearch] = useState("");
@@ -91,18 +105,21 @@ export function ContractsClient({ contracts, season }: ContractsClientProps) {
   }
 
   function SortHeader({ label, field, className }: { label: string; field: SortKey; className?: string }) {
+    const active = sortKey === field;
     return (
       <th
-        className={cn("px-3 py-3 font-medium cursor-pointer hover:text-foreground select-none", className)}
+        className={cn(
+          "px-3 py-3 font-medium cursor-pointer hover:text-foreground select-none transition-colors",
+          active ? "text-gold" : "",
+          className
+        )}
         onClick={() => toggleSort(field)}
       >
         {label}
-        {sortKey === field && <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>}
+        {active && <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>}
       </th>
     );
   }
-
-  const pillSelect = "bg-secondary border border-border rounded-full px-4 py-1.5 text-sm text-foreground appearance-none cursor-pointer hover:border-gold/60 transition-colors";
 
   return (
     <div className="space-y-6">
@@ -115,39 +132,49 @@ export function ContractsClient({ contracts, season }: ContractsClientProps) {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
-        <input
-          type="text"
-          placeholder="Search player..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="bg-secondary border border-border rounded-full px-4 py-1.5 text-sm text-foreground w-48 focus:border-gold/60 focus:outline-none transition-colors"
-        />
-        <select value={posFilter} onChange={(e) => setPosFilter(e.target.value)} className={pillSelect}>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">⌕</span>
+          <input
+            type="text"
+            placeholder="Search player..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-secondary border border-border rounded-lg pl-8 pr-3 py-1.5 text-sm text-foreground w-48 focus:border-gold/60 focus:outline-none transition-colors"
+          />
+        </div>
+        <select value={posFilter} onChange={(e) => setPosFilter(e.target.value)} className={rectFilter}>
           <option value="">All Positions</option>
           {positions.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
-        <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)} className={pillSelect}>
+        <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)} className={rectFilter}>
           <option value="">All Owners</option>
           {owners.map((o) => <option key={o} value={o}>{resolveOwnerName(o)}</option>)}
         </select>
-        <select value={yearsFilter} onChange={(e) => setYearsFilter(e.target.value)} className={pillSelect}>
+        <select value={yearsFilter} onChange={(e) => setYearsFilter(e.target.value)} className={rectFilter}>
           <option value="">All Years</option>
           {yearsOptions.map((y) => <option key={y} value={y}>{y === 0 ? "0 (Pickup)" : y}</option>)}
         </select>
         {/* Ghost placeholder filters */}
-        <select disabled className="bg-secondary border border-border/40 rounded-full px-4 py-1.5 text-sm text-muted-foreground/40 appearance-none cursor-not-allowed opacity-40">
+        <select disabled className="bg-secondary border border-border/40 rounded-lg px-3 py-1.5 text-sm text-muted-foreground/40 appearance-none cursor-not-allowed opacity-40">
           <option>Salary Range</option>
         </select>
-        <select disabled className="bg-secondary border border-border/40 rounded-full px-4 py-1.5 text-sm text-muted-foreground/40 appearance-none cursor-not-allowed opacity-40">
+        <select disabled className="bg-secondary border border-border/40 rounded-lg px-3 py-1.5 text-sm text-muted-foreground/40 appearance-none cursor-not-allowed opacity-40">
           <option>Start Year</option>
         </select>
-        <select disabled className="bg-secondary border border-border/40 rounded-full px-4 py-1.5 text-sm text-muted-foreground/40 appearance-none cursor-not-allowed opacity-40">
-          <option>Division</option>
-        </select>
-        <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer">
-          <input type="checkbox" checked={ftOnly} onChange={(e) => setFtOnly(e.target.checked)} className="rounded accent-ittwa" />
+        <button
+          onClick={() => setFtOnly((v) => !v)}
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors",
+            ftOnly
+              ? "bg-ittwa/10 border-ittwa/40 text-ittwa"
+              : "bg-secondary border-border text-muted-foreground hover:border-gold/60"
+          )}
+        >
+          <span className={cn("inline-flex w-3.5 h-3.5 rounded border items-center justify-center text-[8px]", ftOnly ? "bg-ittwa border-ittwa text-white" : "border-muted-foreground")}>
+            {ftOnly && "✓"}
+          </span>
           FT Only
-        </label>
+        </button>
         {anyFilterActive && (
           <button onClick={clearAll} className="text-xs text-muted-foreground hover:text-foreground underline transition-colors">
             Clear all
@@ -179,10 +206,14 @@ export function ContractsClient({ contracts, season }: ContractsClientProps) {
                   </tr>
                 ) : (
                   filtered.map((c, i) => (
-                    <tr key={`${c.playerId}-${i}`} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
+                    <tr
+                      key={`${c.playerId}-${i}`}
+                      className="border-b border-border/50 hover:bg-accent transition-colors"
+                      style={i % 2 === 1 ? { backgroundColor: "rgba(22,22,22,0.5)" } : undefined}
+                    >
                       <td className="px-3 py-2.5 font-medium">
                         <div className="flex items-center gap-2">
-                          <PlayerAvatar playerId={c.playerId} playerName={c.player} />
+                          <PlayerInitials name={c.player} position={c.position} />
                           {c.player}
                         </div>
                       </td>
@@ -196,13 +227,15 @@ export function ContractsClient({ contracts, season }: ContractsClientProps) {
                         ) : (
                           <div className="flex flex-col items-end">
                             <span>${c.salary.toFixed(1)}</span>
-                            <div
-                              className="h-0.5 mt-0.5 rounded-full"
-                              style={{
-                                width: `${Math.max((c.salary / maxSalary) * 48, 4)}px`,
-                                backgroundColor: salaryBarColor(c.salary),
-                              }}
-                            />
+                            <div className="mt-0.5 rounded-full bg-secondary overflow-hidden" style={{ width: "64px", height: "3px" }}>
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${Math.max((c.salary / maxSalary) * 100, 4)}%`,
+                                  backgroundColor: getSalaryBarColor(c.salary),
+                                }}
+                              />
+                            </div>
                           </div>
                         )}
                       </td>
