@@ -169,36 +169,44 @@ function StandingsSection({ standings }: { standings: StandingsEntry[] }) {
         <Link href="/standings" className="text-xs text-ittwa hover:underline font-medium">Full Standings →</Link>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="grid grid-cols-[2rem_1fr_4rem_5rem_auto] gap-x-3 px-6 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border">
-          <span>#</span>
-          <span>Owner</span>
-          <span className="text-center">W-L</span>
-          <span className="text-right">PF</span>
-          <span className="text-right hidden sm:block">Division</span>
-        </div>
-        <div className="divide-y divide-border">
-          {standings.map((entry) => (
-            <div
-              key={entry.rosterId}
-              className={`grid grid-cols-[2rem_1fr_4rem_5rem_auto] gap-x-3 items-center px-6 py-2.5 text-sm ${entry.rank <= 3 ? "bg-ittwa/5" : ""}`}
-            >
-              <span className={`font-semibold tabular-nums ${entry.rank <= 3 ? "text-ittwa" : "text-muted-foreground"}`}>
-                {entry.rank}
-              </span>
-              <span className="font-medium truncate">{entry.displayName}</span>
-              <span className="text-center tabular-nums text-muted-foreground">
-                {entry.wins}-{entry.losses}
-              </span>
-              <span className="text-right tabular-nums text-muted-foreground font-mono text-xs">
-                {entry.pointsFor.toFixed(1)}
-              </span>
-              <span className="text-right hidden sm:block">
-                <Badge variant={getDivisionVariant(entry.division)} className="text-xs">
-                  {entry.division}
-                </Badge>
-              </span>
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="px-6 py-2 text-left w-8">#</th>
+                <th className="px-2 py-2 text-left">Owner</th>
+                <th className="px-2 py-2 text-center w-16">W-L</th>
+                <th className="px-2 py-2 text-right w-16">PF</th>
+                <th className="px-6 py-2 text-right hidden sm:table-cell">Division</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {standings.map((entry) => (
+                <tr
+                  key={entry.rosterId}
+                  className={entry.rank <= 3 ? "bg-ittwa/5" : ""}
+                >
+                  <td className="px-6 py-2.5">
+                    <span className={`font-semibold tabular-nums ${entry.rank <= 3 ? "text-ittwa" : "text-muted-foreground"}`}>
+                      {entry.rank}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2.5 font-medium truncate max-w-[140px]">{entry.displayName}</td>
+                  <td className="px-2 py-2.5 text-center tabular-nums text-muted-foreground">
+                    {entry.wins}-{entry.losses}
+                  </td>
+                  <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground font-mono text-xs">
+                    {entry.pointsFor.toFixed(1)}
+                  </td>
+                  <td className="px-6 py-2.5 text-right hidden sm:table-cell">
+                    <Badge variant={getDivisionVariant(entry.division)} className="text-xs">
+                      {entry.division}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </CardContent>
     </Card>

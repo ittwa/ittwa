@@ -25,19 +25,55 @@ function SectionHeader({ id, title }: { id: string; title: string }) {
   const paddedNum = num.padStart(2, "0");
   const sectionTitle = rest.join(". ");
   return (
-    <h2 id={id} className="flex items-center gap-3 mt-10 mb-4 scroll-mt-20">
-      <span className="font-heading text-2xl font-black text-gold tabular-nums">{paddedNum}</span>
-      <span className="font-heading text-2xl font-black uppercase tracking-wide">{sectionTitle}</span>
-    </h2>
+    <div id={id} className="mt-10 mb-4 scroll-mt-20">
+      <div className="flex items-center gap-3 mb-2">
+        <span className="font-heading text-2xl font-black text-gold tabular-nums">{paddedNum}</span>
+        <span className="font-heading text-2xl font-black uppercase tracking-wide">{sectionTitle}</span>
+      </div>
+      <div className="h-px bg-border" />
+    </div>
   );
 }
 
 function SubHeader({ children }: { children: React.ReactNode }) {
   return (
     <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest mb-2 mt-5 text-muted-foreground">
-      <span className="w-0.5 h-3.5 rounded-sm shrink-0 bg-gold" />
+      <span className="shrink-0 rounded-sm bg-gold" style={{ width: "3px", height: "14px" }} />
       {children}
     </h3>
+  );
+}
+
+function InfoBox({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="rounded-lg px-4 py-3 mb-3"
+      style={{
+        background: "rgba(232,184,75,0.06)",
+        border: "1px solid rgba(232,184,75,0.2)",
+        borderLeft: "3px solid #E8B84B",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function InfoStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-center">
+      <p className="font-heading text-xl font-black text-gold">{value}</p>
+      <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
+    </div>
+  );
+}
+
+function ScoreChip({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary/50 px-2.5 py-1.5">
+      <span className="font-heading font-bold text-sm tabular-nums">{value}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+    </div>
   );
 }
 
@@ -62,6 +98,16 @@ const DIVISION_MEMBERS: Record<string, string[]> = {
   Replacements: ["Brian Peterson", "Sam Cummings", "Ryan Bohne"],
   "Dark Knight Rises": ["Mike Lamb", "Chris Brown", "Justin Williams"],
 };
+
+const WAIVER_DAYS: { day: string; status: string; color: string; bg: string }[] = [
+  { day: "Mon", status: "Free Agent", color: "#22C55E", bg: "rgba(34,197,94,0.1)" },
+  { day: "Tue", status: "Locked", color: "#EF4444", bg: "rgba(239,68,68,0.1)" },
+  { day: "Wed", status: "Locked", color: "#EF4444", bg: "rgba(239,68,68,0.1)" },
+  { day: "Thu", status: "Waivers", color: "#E8B84B", bg: "rgba(232,184,75,0.1)" },
+  { day: "Fri", status: "Waivers", color: "#E8B84B", bg: "rgba(232,184,75,0.1)" },
+  { day: "Sat", status: "Waivers", color: "#E8B84B", bg: "rgba(232,184,75,0.1)" },
+  { day: "Sun", status: "Free Agent", color: "#22C55E", bg: "rgba(34,197,94,0.1)" },
+];
 
 export default function ConstitutionPage() {
   const [activeSection, setActiveSection] = useState("membership");
@@ -128,6 +174,13 @@ export default function ConstitutionPage() {
             <CardContent className="p-6 sm:p-8">
 
               <SectionHeader id="membership" title="1. Membership" />
+              <InfoBox>
+                <div className="flex items-center justify-around gap-4">
+                  <InfoStat label="Owners" value="12" />
+                  <InfoStat label="Annual Dues" value="$150" />
+                  <InfoStat label="Platform" value="Sleeper" />
+                </div>
+              </InfoBox>
               <P>12 owners; $150 annual dues due by FA Auction date; platform is Sleeper.</P>
 
               <SectionHeader id="ownership" title="2. Ownership" />
@@ -154,6 +207,23 @@ export default function ConstitutionPage() {
 
               <SectionHeader id="team-management" title="5. Team Management" />
               <SubHeader>Roster</SubHeader>
+              <InfoBox>
+                <div className="grid grid-cols-5 gap-2 text-center">
+                  {[
+                    { pos: "QB", count: "1" },
+                    { pos: "RB", count: "2" },
+                    { pos: "WR", count: "3" },
+                    { pos: "TE", count: "1" },
+                    { pos: "D/ST", count: "1" },
+                  ].map((s) => (
+                    <div key={s.pos}>
+                      <p className="font-heading text-lg font-black text-gold">{s.count}</p>
+                      <p className="text-xs text-muted-foreground">{s.pos}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground text-center mt-2">+ 1 Flex · 13 Bench · 4 IR</p>
+              </InfoBox>
               <P>22 players: start 1 QB / 2 RB / 3 WR / 1 TE / 1 D/ST / 1 Flex; 13 bench + 4 IR; 2 IR returns per season.</P>
 
               <SubHeader>Salary Cap</SubHeader>
@@ -203,7 +273,25 @@ export default function ConstitutionPage() {
 
               <SectionHeader id="free-agency" title="7. Free Agency" />
               <P>Expired contract players are Free Agents. All rostered players at season end are Restricted Free Agents (RFAs) — previous owner may match any auction offer. Bids include salary + years.</P>
-              <P>Contract value multipliers: 1.0 / 1.4 / 1.7 / 1.9 / 2.0 for 1–5 year contracts. Minimum bid $1M; under $10M may use $0.5M increments.</P>
+              <SubHeader>Contract Value Multipliers</SubHeader>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {[
+                  { yrs: "1yr", mult: "1.0×" },
+                  { yrs: "2yr", mult: "1.4×" },
+                  { yrs: "3yr", mult: "1.7×" },
+                  { yrs: "4yr", mult: "1.9×" },
+                  { yrs: "5yr", mult: "2.0×" },
+                ].map((m) => (
+                  <div
+                    key={m.yrs}
+                    className="rounded-lg border border-border bg-secondary/50 px-4 py-2 text-center"
+                  >
+                    <p className="font-heading text-lg font-black text-gold">{m.mult}</p>
+                    <p className="text-xs text-muted-foreground">{m.yrs}</p>
+                  </div>
+                ))}
+              </div>
+              <P>Minimum bid $1M; under $10M may use $0.5M increments.</P>
 
               <SectionHeader id="divisions" title="8. Divisions" />
               <P>Permanent year-over-year divisions:</P>
@@ -212,7 +300,7 @@ export default function ConstitutionPage() {
                   <div
                     key={name}
                     className="rounded-lg border px-4 py-3"
-                    style={{ backgroundColor: style.bg, borderColor: style.border }}
+                    style={{ backgroundColor: style.bg, borderColor: style.border, borderLeft: `3px solid ${style.color}` }}
                   >
                     <p className="font-heading font-bold uppercase tracking-wide text-sm mb-2" style={{ color: style.color }}>
                       {name}
@@ -227,6 +315,14 @@ export default function ConstitutionPage() {
               </div>
 
               <SectionHeader id="schedule-playoffs" title="9. Schedule & Playoffs" />
+              <InfoBox>
+                <div className="flex items-center justify-around gap-4">
+                  <InfoStat label="Games" value="13" />
+                  <InfoStat label="Div Winners" value="4" />
+                  <InfoStat label="Wild Cards" value="2" />
+                  <InfoStat label="HFA Pts" value="3" />
+                </div>
+              </InfoBox>
               <P>13-game regular season; division rivals twice, all others once.</P>
               <SubHeader>Playoffs</SubHeader>
               <P>4 division winners + 2 wild cards; top 2 seeds get byes; 3 vs 6, 4 vs 5 in wildcard round; re-seeded for semis (#1 plays lowest remaining). 3-point home field advantage; ties go to higher seed.</P>
@@ -235,56 +331,89 @@ export default function ConstitutionPage() {
               <P>In-season deadline: Thursday of Week 10 at 12PM EST. Off-season trades reopen after season ends. Players and picks only — no real-life incentives.</P>
 
               <SectionHeader id="waiver-wire" title="11. Waiver Wire" />
-              <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 px-4 py-3 mb-3">
-                <span className="text-sm font-medium">FAAB Budget</span>
-                <span className="font-heading text-2xl font-black">$100</span>
+              <InfoBox>
+                <div className="flex items-center justify-around gap-4">
+                  <InfoStat label="FAAB Budget" value="$100" />
+                  <InfoStat label="Min Bid" value="$0" />
+                  <InfoStat label="Waiver Period" value="1 day" />
+                </div>
+              </InfoBox>
+              <SubHeader>Weekly Schedule</SubHeader>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {WAIVER_DAYS.map((d) => (
+                  <div
+                    key={d.day}
+                    className="rounded-md border px-3 py-1.5 text-center"
+                    style={{ borderColor: d.color + "40", backgroundColor: d.bg }}
+                  >
+                    <p className="text-xs font-bold" style={{ color: d.color }}>{d.day}</p>
+                    <p className="text-[10px] text-muted-foreground">{d.status}</p>
+                  </div>
+                ))}
               </div>
-              <P>Minimum bid $0.</P>
-              <ul className="list-disc list-inside space-y-1 mb-3">
-                <Li>Mon/Sun = Free Agents</Li>
-                <Li>Thu/Fri/Sat = Waivers (11AM EST)</Li>
-                <Li>Tue/Wed = Locked</Li>
-              </ul>
-              <P>Players on waivers for 1 day.</P>
+              <P>Players on waivers for 1 day. Waiver claims process at 11AM EST.</P>
 
               <SectionHeader id="scoring" title="12. Scoring" />
               <SubHeader>Passing</SubHeader>
-              <P>+0.04/yd (25 yds = 1 pt), +4 TD, +2 two-pt conversion, -2 INT</P>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <ScoreChip value="+0.04" label="/yd" />
+                <ScoreChip value="+4" label="TD" />
+                <ScoreChip value="+2" label="2pt" />
+                <ScoreChip value="-2" label="INT" />
+              </div>
 
               <SubHeader>Rushing</SubHeader>
-              <P>+0.1/yd, +6 TD, +2 two-pt conversion</P>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <ScoreChip value="+0.1" label="/yd" />
+                <ScoreChip value="+6" label="TD" />
+                <ScoreChip value="+2" label="2pt" />
+              </div>
 
               <SubHeader>Receiving</SubHeader>
-              <P>+0.5 per reception, +0.1/yd, +6 TD, +2 two-pt conversion</P>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <ScoreChip value="+0.5" label="PPR" />
+                <ScoreChip value="+0.1" label="/yd" />
+                <ScoreChip value="+6" label="TD" />
+                <ScoreChip value="+2" label="2pt" />
+              </div>
 
               <SubHeader>Defense</SubHeader>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <ScoreChip value="+6" label="TD" />
+                <ScoreChip value="+1" label="Sack" />
+                <ScoreChip value="+2" label="INT" />
+                <ScoreChip value="+2" label="Fum Rec" />
+                <ScoreChip value="+2" label="Safety" />
+                <ScoreChip value="+2" label="Blk Kick" />
+              </div>
               <div className="overflow-x-auto mb-3">
                 <table className="text-sm w-full">
                   <tbody>
-                    <tr className="border-b border-border/50"><td className="py-1 pr-4 text-muted-foreground">TD</td><td>+6</td></tr>
-                    <tr className="border-b border-border/50"><td className="py-1 pr-4 text-muted-foreground">Points Allowed</td><td>0→+5; 1-6→+4; 7-13→+3; 14-20→+1; 28-34→-1; 35+→-3</td></tr>
-                    <tr className="border-b border-border/50"><td className="py-1 pr-4 text-muted-foreground">Yards Allowed</td><td>&lt;100→+5; 100-199→+3; 200-299→+2; 350-399→-1; 400-449→-3; 450-499→-5; 500-549→-6; 550+→-7</td></tr>
-                    <tr className="border-b border-border/50"><td className="py-1 pr-4 text-muted-foreground">Sack</td><td>+1</td></tr>
-                    <tr className="border-b border-border/50"><td className="py-1 pr-4 text-muted-foreground">INT</td><td>+2</td></tr>
-                    <tr className="border-b border-border/50"><td className="py-1 pr-4 text-muted-foreground">Fumble Recovery</td><td>+2</td></tr>
-                    <tr className="border-b border-border/50"><td className="py-1 pr-4 text-muted-foreground">Safety</td><td>+2</td></tr>
-                    <tr><td className="py-1 pr-4 text-muted-foreground">Blocked Kick</td><td>+2</td></tr>
+                    <tr className="border-b border-border/50"><td className="py-1 pr-4 text-muted-foreground">Points Allowed</td><td className="text-xs">0→+5; 1-6→+4; 7-13→+3; 14-20→+1; 28-34→-1; 35+→-3</td></tr>
+                    <tr><td className="py-1 pr-4 text-muted-foreground">Yards Allowed</td><td className="text-xs">&lt;100→+5; 100-199→+3; 200-299→+2; 350-399→-1; 400-449→-3; 450-499→-5; 500-549→-6; 550+→-7</td></tr>
                   </tbody>
                 </table>
               </div>
 
               <SubHeader>Special Teams</SubHeader>
-              <P>TD +6; Fumble Recovery +2; ST Player TD +6</P>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <ScoreChip value="+6" label="TD" />
+                <ScoreChip value="+2" label="Fum Rec" />
+                <ScoreChip value="+6" label="Player TD" />
+              </div>
 
               <SubHeader>Misc</SubHeader>
-              <P>Fumble Lost -2; Fumble Recovery TD +6</P>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <ScoreChip value="-2" label="Fum Lost" />
+                <ScoreChip value="+6" label="Fum Rec TD" />
+              </div>
 
               <SectionHeader id="amendments" title="13. Amendments" />
               <P>Rule changes passed by &#8532; quorum override the Constitution and are tracked in league records.</P>
 
               <SectionHeader id="payouts" title="14. Payouts" />
               <div className="space-y-3">
-                <div className="flex items-center justify-between rounded-lg border border-gold/30 bg-gold/5 px-5 py-4">
+                <div className="flex items-center justify-between rounded-lg border px-5 py-4" style={{ borderColor: "rgba(232,184,75,0.3)", background: "rgba(232,184,75,0.06)" }}>
                   <span className="font-medium">1st Place</span>
                   <span className="font-heading text-4xl font-black text-gold">$1,250</span>
                 </div>
