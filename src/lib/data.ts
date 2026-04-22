@@ -67,7 +67,7 @@ export async function getTeamsData(): Promise<{
 
   // Build teams — use Sleeper's roster.settings.division (a number 1-4) to resolve
   // division name, since Sleeper display names often don't match the real names
-  // in our DIVISIONS config (e.g. "BooCake" vs "Tiger Clancy").
+  // in our DIVISIONS config (e.g. "BooCake" vs "Clancy").
   const teams: TeamInfo[] = rosters.map((roster) => {
     const displayName = userMap[roster.owner_id] || `Team ${roster.roster_id}`;
     const divisionNum = roster.settings.division as unknown as number;

@@ -93,10 +93,10 @@ const DIVISION_STYLES: Record<string, { color: string; bg: string; border: strin
 };
 
 const DIVISION_MEMBERS: Record<string, string[]> = {
-  Concussion: ["Tiger Clancy", "Liam Collins", "Zach Katz"],
-  "Hey Arnold": ["Mike Chapman", "Jorge Albarran", "Mike Durkin"],
-  Replacements: ["Brian Peterson", "Sam Cummings", "Ryan Bohne"],
-  "Dark Knight Rises": ["Mike Lamb", "Chris Brown", "Justin Williams"],
+  Concussion: ["Clancy", "Collins", "Katz"],
+  "Hey Arnold": ["Chapman", "Albarran", "Durkin"],
+  Replacements: ["Peterson", "Cummings", "Bohne"],
+  "Dark Knight Rises": ["HoganLamb", "Brown", "Williams"],
 };
 
 const WAIVER_DAYS: { day: string; status: string; color: string; bg: string }[] = [

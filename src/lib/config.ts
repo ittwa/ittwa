@@ -12,29 +12,29 @@ export const ROSTER_SIZE = 22;
 // Sleeper display_name → ITTWA display name mapping
 // Maps every Sleeper display name to "First Last" format used across the site.
 export const USERNAME_OVERRIDES: Record<string, string> = {
-  t11clancy: "Tiger Clancy",
-  mdurkin5: "Mike Durkin",
-  bpeterson: "Brian Peterson",
-  braintrust: "Mike Lamb",
-  mschapman: "Mike Chapman",
-  breezy7: "Chris Brown",
-  TheresaHitsOnMe: "Justin Williams",
-  Lropc: "Liam Collins",
-  rbohne: "Ryan Bohne",
-  zachkatz: "Zach Katz",
-  BooCake: "Jorge Albarran",
-  SamCummings: "Sam Cummings",
+  t11clancy: "Clancy",
+  mdurkin5: "Durkin",
+  bpeterson: "Peterson",
+  braintrust: "HoganLamb",
+  mschapman: "Chapman",
+  breezy7: "Brown",
+  TheresaHitsOnMe: "Williams",
+  Lropc: "Collins",
+  rbohne: "Bohne",
+  zachkatz: "Katz",
+  BooCake: "Albarran",
+  SamCummings: "Cummings",
   // Legacy / alternate handles
-  Rackalamb: "Mike Lamb",
-  HoganLamb: "Mike Lamb",
+  Rackalamb: "HoganLamb",
+  HoganLamb: "HoganLamb",
 };
 
 // Division configuration — permanent, year-over-year
 export const DIVISIONS: Record<string, string[]> = {
-  Concussion: ["Tiger Clancy", "Liam Collins", "Zach Katz"],
-  "Hey Arnold": ["Mike Chapman", "Jorge Albarran", "Mike Durkin"],
-  Replacements: ["Brian Peterson", "Sam Cummings", "Ryan Bohne"],
-  "Dark Knight Rises": ["Mike Lamb", "Chris Brown", "Justin Williams"],
+  Concussion: ["Clancy", "Collins", "Katz"],
+  "Hey Arnold": ["Chapman", "Albarran", "Durkin"],
+  Replacements: ["Peterson", "Cummings", "Bohne"],
+  "Dark Knight Rises": ["HoganLamb", "Brown", "Williams"],
 };
 
 // Sleeper division number → division name
@@ -60,21 +60,20 @@ export const ALL_OWNERS = Object.values(DIVISIONS).flat();
 
 // Owner last name mapping for Google Sheets → display name
 export const OWNER_LAST_NAME_MAP: Record<string, string> = {
-  Clancy: "Tiger Clancy",
-  Collins: "Liam Collins",
-  Katz: "Zach Katz",
-  Chapman: "Mike Chapman",
-  Albarran: "Jorge Albarran",
-  Durkin: "Mike Durkin",
-  Peterson: "Brian Peterson",
-  Cummings: "Sam Cummings",
-  Bohne: "Ryan Bohne",
-  Lamb: "Mike Lamb",
-  Brown: "Chris Brown",
-  Williams: "Justin Williams",
-  // Handle "HoganLamb" or "Hogan" as well
-  Hogan: "Mike Lamb",
-  HoganLamb: "Mike Lamb",
+  Clancy: "Clancy",
+  Collins: "Collins",
+  Katz: "Katz",
+  Chapman: "Chapman",
+  Albarran: "Albarran",
+  Durkin: "Durkin",
+  Peterson: "Peterson",
+  Cummings: "Cummings",
+  Bohne: "Bohne",
+  Lamb: "HoganLamb",
+  Brown: "Brown",
+  Williams: "Williams",
+  Hogan: "HoganLamb",
+  HoganLamb: "HoganLamb",
 };
 
 // Rookie draft pick contract values — hardcoded per league rules
