@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { SleeperMatchup } from "@/types/sleeper";
+import { HistoricalChampion, AllTimeStanding, HistoricalMilestone } from "@/lib/historical";
 import { cn } from "@/lib/utils";
 
 interface TeamRecord {
@@ -21,46 +22,10 @@ interface RecordsClientProps {
   teamRecords: TeamRecord[];
   season: string;
   currentWeek: number;
+  champions: HistoricalChampion[];
+  allTimeStandings: AllTimeStanding[];
+  milestones: HistoricalMilestone[];
 }
-
-const CHAMPIONS: { year: string; champion: string; runnerUp: string; third: string }[] = [
-  { year: "2025", champion: "Clancy", runnerUp: "Chapman", third: "Collins" },
-  { year: "2024", champion: "Collins", runnerUp: "Albarran", third: "Cummings" },
-  { year: "2023", champion: "Clancy", runnerUp: "Cummings", third: "Chapman" },
-  { year: "2022", champion: "Cummings", runnerUp: "Clancy", third: "Peterson" },
-  { year: "2021", champion: "Albarran", runnerUp: "Cummings", third: "Clancy" },
-  { year: "2020", champion: "Chapman", runnerUp: "Collins", third: "Katz" },
-  { year: "2019", champion: "Peterson", runnerUp: "Chapman", third: "Albarran" },
-  { year: "2018", champion: "Katz", runnerUp: "Peterson", third: "Collins" },
-  { year: "2017", champion: "Clancy", runnerUp: "Katz", third: "Cummings" },
-  { year: "2016", champion: "Durkin", runnerUp: "HoganLamb", third: "Brown" },
-  { year: "2015", champion: "Bohne", runnerUp: "Clancy", third: "Albarran" },
-  { year: "2014", champion: "Cummings", runnerUp: "Bohne", third: "Durkin" },
-];
-
-const ALL_TIME_STANDINGS: { owner: string; wins: number; losses: number; pf: number; rings: number; playoffs: number }[] = [
-  { owner: "Clancy", wins: 89, losses: 67, pf: 14832, rings: 3, playoffs: 9 },
-  { owner: "Cummings", wins: 82, losses: 74, pf: 13940, rings: 2, playoffs: 8 },
-  { owner: "Collins", wins: 79, losses: 77, pf: 13580, rings: 1, playoffs: 7 },
-  { owner: "Chapman", wins: 76, losses: 80, pf: 13210, rings: 1, playoffs: 7 },
-  { owner: "Albarran", wins: 74, losses: 82, pf: 13050, rings: 1, playoffs: 6 },
-  { owner: "Peterson", wins: 71, losses: 85, pf: 12870, rings: 1, playoffs: 5 },
-  { owner: "Katz", wins: 69, losses: 87, pf: 12640, rings: 1, playoffs: 5 },
-  { owner: "Bohne", wins: 67, losses: 89, pf: 12420, rings: 1, playoffs: 4 },
-  { owner: "Durkin", wins: 65, losses: 91, pf: 12180, rings: 1, playoffs: 4 },
-  { owner: "HoganLamb", wins: 62, losses: 94, pf: 11950, rings: 0, playoffs: 3 },
-  { owner: "Brown", wins: 58, losses: 98, pf: 11620, rings: 0, playoffs: 2 },
-  { owner: "Williams", wins: 54, losses: 102, pf: 11340, rings: 0, playoffs: 2 },
-];
-
-const MILESTONES: { label: string; value: string; detail: string }[] = [
-  { label: "Most Points (Season)", value: "1,842.3", detail: "Clancy · 2023" },
-  { label: "Fewest Points (Season)", value: "987.1", detail: "Williams · 2016" },
-  { label: "Highest Score (Game)", value: "198.42", detail: "Cummings · Wk 12, 2022" },
-  { label: "Lowest Score (Game)", value: "42.10", detail: "Brown · Wk 8, 2018" },
-  { label: "Longest Win Streak", value: "9W", detail: "Clancy · 2023" },
-  { label: "Most Trades (Season)", value: "14", detail: "Albarran · 2021" },
-];
 
 function SectionTick({ label }: { label: string }) {
   return (
@@ -71,16 +36,6 @@ function SectionTick({ label }: { label: string }) {
   );
 }
 
-function getRingCounts(): { name: string; count: number }[] {
-  const map = new Map<string, number>();
-  for (const c of CHAMPIONS) {
-    map.set(c.champion, (map.get(c.champion) || 0) + 1);
-  }
-  return [...map.entries()]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count);
-}
-
 type AllTimeSortKey = "owner" | "wins" | "losses" | "pf" | "rings" | "playoffs";
 
 export function RecordsClient({
@@ -89,16 +44,18 @@ export function RecordsClient({
   teamRecords,
   season,
   currentWeek,
+  champions,
+  allTimeStandings,
+  milestones,
 }: RecordsClientProps) {
   const [activeTab, setActiveTab] = useState<string>("all-time");
   const [atSortKey, setAtSortKey] = useState<AllTimeSortKey>("wins");
   const [atSortDir, setAtSortDir] = useState<"asc" | "desc">("desc");
 
   const allSeasons = useMemo(() => {
-    const years: string[] = [];
-    for (let y = parseInt(season); y >= 2014; y--) years.push(String(y));
+    const years = [...new Set(champions.map((c) => c.year))].sort().reverse();
     return years;
-  }, [season]);
+  }, [champions]);
 
   const showAllTime = activeTab === "all-time";
   const showCurrentSeason = activeTab === season;
@@ -125,11 +82,21 @@ export function RecordsClient({
   const streaks = calculateStreaks(matchupsArray, rosterOwnerMap);
   const weeksPlayed = currentWeek - 1;
 
-  const ringCounts = useMemo(getRingCounts, []);
+  // Ring counts from champions
+  const ringCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of champions) {
+      map.set(c.champion, (map.get(c.champion) || 0) + 1);
+    }
+    return [...map.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [champions]);
+
   const maxRings = ringCounts[0]?.count || 1;
 
   const sortedAllTime = useMemo(() => {
-    const copy = [...ALL_TIME_STANDINGS];
+    const copy = [...allTimeStandings];
     copy.sort((a, b) => {
       let cmp = 0;
       switch (atSortKey) {
@@ -143,7 +110,7 @@ export function RecordsClient({
       return atSortDir === "asc" ? cmp : -cmp;
     });
     return copy;
-  }, [atSortKey, atSortDir]);
+  }, [allTimeStandings, atSortKey, atSortDir]);
 
   function toggleAtSort(key: AllTimeSortKey) {
     if (atSortKey === key) {
@@ -168,7 +135,7 @@ export function RecordsClient({
   }
 
   const selectedYearChamp = !showAllTime && !showCurrentSeason
-    ? CHAMPIONS.find((c) => c.year === activeTab)
+    ? champions.find((c) => c.year === activeTab)
     : null;
 
   return (
@@ -176,7 +143,7 @@ export function RecordsClient({
       <div>
         <h1 className="font-heading text-3xl font-black uppercase tracking-tight">Records</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Historical records from 2014–{season} · Stub data — integration in progress
+          All-time records from 2014–{season}
         </p>
       </div>
 
@@ -256,7 +223,7 @@ export function RecordsClient({
                       </tr>
                     </thead>
                     <tbody>
-                      {CHAMPIONS.map((c) => (
+                      {champions.map((c) => (
                         <tr key={c.year} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
                           <td className="px-4 py-2 tabular-nums text-muted-foreground">{c.year}</td>
                           <td className="px-4 py-2 font-medium">
@@ -327,7 +294,7 @@ export function RecordsClient({
                       {sortedAllTime.map((t, i) => {
                         const total = t.wins + t.losses;
                         const pct = total > 0 ? (t.wins / total * 100).toFixed(1) : "0.0";
-                        const maxPlayoffs = Math.max(...ALL_TIME_STANDINGS.map((s) => s.playoffs), 1);
+                        const maxPlayoffs = Math.max(...allTimeStandings.map((s) => s.playoffs), 1);
                         return (
                           <tr key={t.owner} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
                             <td className="px-4 py-2.5 text-center">
@@ -365,7 +332,7 @@ export function RecordsClient({
           <div>
             <SectionTick label="Milestones" />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
-              {MILESTONES.map((m) => (
+              {milestones.map((m) => (
                 <Card key={m.label}>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xs text-muted-foreground uppercase tracking-wider">{m.label}</CardTitle>
@@ -384,7 +351,6 @@ export function RecordsClient({
       {/* ── Current Season View ────────────────────────────────────────────── */}
       {showCurrentSeason && (
         <>
-          {/* Game Records */}
           <div>
             <SectionTick label="Game Records" />
             <div className="grid gap-4 sm:grid-cols-2 mt-4">
@@ -427,7 +393,6 @@ export function RecordsClient({
             </div>
           </div>
 
-          {/* Season Leaders */}
           <div>
             <SectionTick label="Season Leaders" />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
@@ -452,7 +417,6 @@ export function RecordsClient({
             </div>
           </div>
 
-          {/* Season Standings */}
           <div>
             <SectionTick label="Season Standings" />
             <Card className="mt-4">
@@ -514,17 +478,9 @@ export function RecordsClient({
               </div>
             </CardContent>
           </Card>
-          <Card className="mt-4">
-            <CardContent className="py-6">
-              <p className="text-sm text-muted-foreground italic text-center">
-                Detailed {activeTab} season stats — data integration in progress.
-              </p>
-            </CardContent>
-          </Card>
         </div>
       )}
 
-      {/* Past year not found */}
       {!showAllTime && !showCurrentSeason && !selectedYearChamp && (
         <Card>
           <CardContent className="py-8">

@@ -1,23 +1,24 @@
 export const dynamic = 'force-dynamic';
 
 import { getTeamsData, buildRosterOwnerMap } from "@/lib/data";
+import { getScores } from "@/lib/sheets";
+import { computeChampions, computeAllTimeStandings, computeMilestones } from "@/lib/historical";
 import { RecordsClient } from "./records-client";
 import { SleeperMatchup } from "@/types/sleeper";
 
 export const revalidate = 300;
 
 export default async function RecordsPage() {
-  const [teamsData, rosterOwnerMap] = await Promise.all([
+  const [teamsData, rosterOwnerMap, scores] = await Promise.all([
     getTeamsData(),
     buildRosterOwnerMap(),
+    getScores(),
   ]);
 
   const { teams, season, currentWeek, allMatchups } = teamsData;
 
-  // Serialize matchups Map for client
   const matchupsArray: [number, SleeperMatchup[]][] = Array.from(allMatchups.entries());
 
-  // Build records from current season data
   const teamRecords = teams.map((t) => ({
     rosterId: t.rosterId,
     displayName: t.displayName,
@@ -28,6 +29,10 @@ export default async function RecordsPage() {
     pointsAgainst: t.pointsAgainst,
   }));
 
+  const champions = computeChampions(scores);
+  const allTimeStandings = computeAllTimeStandings(scores, champions);
+  const milestones = computeMilestones(scores);
+
   return (
     <RecordsClient
       matchupsArray={matchupsArray}
@@ -35,6 +40,9 @@ export default async function RecordsPage() {
       teamRecords={teamRecords}
       season={season}
       currentWeek={currentWeek}
+      champions={champions}
+      allTimeStandings={allTimeStandings}
+      milestones={milestones}
     />
   );
 }

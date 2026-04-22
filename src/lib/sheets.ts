@@ -28,6 +28,36 @@ async function fetchSheet(tab: string, range: string): Promise<string[][]> {
   return data.values || [];
 }
 
+// --- Scores (historical game-by-game results) ---
+
+export interface ScoreRow {
+  season: string;
+  week: number;
+  owner: string;
+  opponent: string;
+  points: number;
+  opponentPoints: number;
+  playoffType: string;
+  finalStanding: number;
+}
+
+export async function getScores(): Promise<ScoreRow[]> {
+  const rows = await fetchSheet("Scores", "A2:L5000");
+
+  return rows
+    .filter((row) => row.length >= 6 && row[2])
+    .map((row) => ({
+      season: (row[0] || "").trim(),
+      week: parseInt(row[1] || "0", 10) || 0,
+      owner: (row[2] || "").trim(),
+      opponent: (row[3] || "").trim(),
+      points: parseFloat(row[4] || "0") || 0,
+      opponentPoints: parseFloat(row[5] || "0") || 0,
+      playoffType: (row[6] || "").trim(),
+      finalStanding: parseInt(row[8] || "99", 10) || 99,
+    }));
+}
+
 // --- Contracts ---
 // Joins with Sleeper data via player_id — this is the PRIMARY join key.
 // Do NOT join on player name. For rows where player_id is "#N/A" (Sleeper
