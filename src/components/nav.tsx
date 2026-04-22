@@ -55,7 +55,7 @@ function TeamsDropdown() {
         All Teams
       </Link>
       <div className="border-t border-border my-1" />
-      {ALL_OWNERS.map((owner) => (
+      {[...ALL_OWNERS].sort((a, b) => a.localeCompare(b)).map((owner) => (
         <Link
           key={owner}
           href={`/teams/${encodeURIComponent(owner)}`}
@@ -179,7 +179,7 @@ export function Nav() {
               <div className="mt-2 pt-2 border-t border-border">
                 <p className="px-3 py-1 text-xs text-muted-foreground uppercase tracking-wider">Teams</p>
                 <div className="grid grid-cols-2 gap-1">
-                  {ALL_OWNERS.map((owner) => (
+                  {[...ALL_OWNERS].sort((a, b) => a.localeCompare(b)).map((owner) => (
                     <Link
                       key={owner}
                       href={`/teams/${encodeURIComponent(owner)}`}
