@@ -33,6 +33,9 @@ export function computeChampions(scores: ScoreRow[]): HistoricalChampion[] {
 
   for (const year of seasons) {
     const seasonRows = scores.filter((s) => s.season === year);
+    const hasChampionship = seasonRows.some((s) => s.playoffType === "Championship");
+    if (!hasChampionship) continue;
+
     const bestByOwner = new Map<string, number>();
 
     for (const r of seasonRows) {
