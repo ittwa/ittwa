@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 
 import Link from "next/link";
-import Image from "next/image";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -92,9 +91,9 @@ function transactionLabel(tx: SleeperTransaction): string {
 
 function SectionTick({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2.5">
       <span className="w-1 h-5 rounded-sm shrink-0 bg-gold" />
-      <span className="font-heading font-bold uppercase tracking-widest text-sm">{label}</span>
+      <span className="font-heading text-xl font-extrabold uppercase tracking-widest">{label}</span>
     </div>
   );
 }
@@ -119,26 +118,34 @@ function MatchupsSection({ pairs, week }: { pairs: MatchupPair[]; week: number }
     <Card>
       <CardHeader className="pb-3"><SectionTick label={`Week ${week} Matchups`} /></CardHeader>
       <CardContent className="p-0">
-        <div className="divide-y divide-border">
-          {pairs.map((pair) => {
+        <div>
+          {pairs.map((pair, i) => {
             const t1Winning = pair.team1.points >= pair.team2.points;
             return (
-              <div key={pair.matchupId} className="flex items-center justify-between px-6 py-3 gap-4">
-                <div className={`flex-1 text-right text-sm font-medium truncate ${pair.completed && t1Winning ? "text-foreground" : "text-muted-foreground"}`}>
+              <div
+                key={pair.matchupId}
+                className="grid items-center gap-3 px-5 py-2.5"
+                style={{
+                  gridTemplateColumns: "1fr auto 1fr",
+                  borderTop: i > 0 ? "1px solid var(--border)" : undefined,
+                  background: i % 2 === 1 ? "rgba(22,22,22,0.3)" : undefined,
+                }}
+              >
+                <span className={`text-right text-[13px] truncate ${pair.completed && t1Winning ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
                   {pair.team1.displayName}
-                </div>
-                <div className="flex items-center gap-2 shrink-0 font-mono text-sm tabular-nums">
-                  <span className={pair.completed && t1Winning ? "text-foreground font-semibold" : "text-muted-foreground"}>
+                </span>
+                <div className="flex items-center gap-2 font-mono text-[13px]">
+                  <span className={pair.completed && t1Winning ? "text-foreground font-bold" : "text-muted-foreground"}>
                     {pair.team1.points > 0 ? pair.team1.points.toFixed(2) : "—"}
                   </span>
-                  <span className="text-muted-foreground text-xs">vs</span>
-                  <span className={pair.completed && !t1Winning ? "text-foreground font-semibold" : "text-muted-foreground"}>
+                  <span className="text-muted-foreground text-[10px] font-medium">VS</span>
+                  <span className={pair.completed && !t1Winning ? "text-foreground font-bold" : "text-muted-foreground"}>
                     {pair.team2.points > 0 ? pair.team2.points.toFixed(2) : "—"}
                   </span>
                 </div>
-                <div className={`flex-1 text-left text-sm font-medium truncate ${pair.completed && !t1Winning ? "text-foreground" : "text-muted-foreground"}`}>
+                <span className={`text-[13px] truncate ${pair.completed && !t1Winning ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
                   {pair.team2.displayName}
-                </div>
+                </span>
               </div>
             );
           })}
@@ -166,7 +173,7 @@ function StandingsSection({ standings }: { standings: StandingsEntry[] }) {
     <Card>
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
         <SectionTick label="Standings" />
-        <Link href="/standings" className="text-xs text-ittwa hover:underline font-medium">Full Standings →</Link>
+        <Link href="/standings" className="text-xs text-gold hover:underline font-semibold">Full Standings →</Link>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
@@ -187,9 +194,11 @@ function StandingsSection({ standings }: { standings: StandingsEntry[] }) {
                   className={entry.rank <= 3 ? "bg-ittwa/5" : ""}
                 >
                   <td className="px-6 py-2.5">
-                    <span className={`font-semibold tabular-nums ${entry.rank <= 3 ? "text-ittwa" : "text-muted-foreground"}`}>
-                      {entry.rank}
-                    </span>
+                    {entry.rank <= 3 ? (
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-ittwa text-white text-xs font-bold">{entry.rank}</span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded border border-border text-muted-foreground text-xs font-medium">{entry.rank}</span>
+                    )}
                   </td>
                   <td className="px-2 py-2.5 font-medium truncate max-w-[140px]">{entry.displayName}</td>
                   <td className="px-2 py-2.5 text-center tabular-nums text-muted-foreground">
@@ -221,7 +230,7 @@ function PowerRankingsSection({ rankings }: { rankings: PowerRankingEntry[] }) {
       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <SectionTick label="Power Rankings" />
-          <Link href="/power-rankings" className="text-xs text-ittwa hover:underline font-medium">Full Rankings →</Link>
+          <Link href="/power-rankings" className="text-xs text-gold hover:underline font-semibold">Full Rankings →</Link>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground italic">Not enough data yet. Check back after week 1. Or don&apos;t.</p>
@@ -234,7 +243,7 @@ function PowerRankingsSection({ rankings }: { rankings: PowerRankingEntry[] }) {
     <Card>
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
         <SectionTick label="Power Rankings" />
-        <Link href="/power-rankings" className="text-xs text-ittwa hover:underline font-medium">Full Rankings →</Link>
+        <Link href="/power-rankings" className="text-xs text-gold hover:underline font-semibold">Full Rankings →</Link>
       </CardHeader>
       <CardContent className="p-0">
         <div className="divide-y divide-border">
@@ -247,7 +256,11 @@ function PowerRankingsSection({ rankings }: { rankings: PowerRankingEntry[] }) {
               entry.rankChange < 0 ? "text-ittwa" : "text-muted-foreground";
 
             return (
-              <div key={entry.rosterId} className="flex items-center gap-3 px-6 py-3">
+              <div
+                key={entry.rosterId}
+                className="flex items-center gap-3 px-6 py-3"
+                style={{ background: entry.rank === 1 ? "rgba(253,74,72,0.1)" : undefined }}
+              >
                 {entry.rank <= 3 ? (
                   <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-ittwa text-white text-xs font-bold shrink-0">{entry.rank}</span>
                 ) : (
@@ -351,43 +364,41 @@ export default async function HomePage() {
   return (
     <div className="space-y-8">
       {/* ── Hero ────────────────────────────────────────────────────────────── */}
-      <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 rounded-xl border border-border bg-card p-6">
-        {/* Left: identity */}
-        <div className="flex items-center gap-5">
-          <Image
-            src="https://www.ittwa.com/badge.png"
-            alt="ITTWA League Logo"
-            width={64}
-            height={64}
-            className="rounded-xl border border-border shadow-md shrink-0"
-            unoptimized
-          />
-          <div>
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h1 className="font-heading text-5xl font-black uppercase tracking-tight leading-none text-foreground">
+      <section className="pb-6 mb-7 border-b border-border">
+        <div className="flex items-center gap-4">
+          <div
+            className="w-[60px] h-[60px] rounded-lg shrink-0 flex items-center justify-center"
+            style={{ background: "rgba(232,184,75,0.13)", border: "2px solid #E8B84B" }}
+          >
+            <span className="font-heading font-black text-xl text-gold">IW</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2.5 mb-1">
+              <h1 className="font-heading text-4xl font-black uppercase tracking-wider leading-none">
                 ITTWA
               </h1>
-              <span className="inline-flex items-center rounded-md bg-gold/20 text-gold border border-gold/40 px-2 py-0.5 text-xs font-medium">
+              <span className="text-[11px] font-bold tracking-widest px-2 py-0.5 bg-ittwa text-white rounded-sm">
                 {season}
               </span>
+              <span className="text-[11px] font-semibold text-muted-foreground">
+                · WEEK {weekToShow}
+              </span>
             </div>
-            <p className="text-sm text-muted-foreground">Contract dynasty league · Est. 2014</p>
+            <p className="text-[13px] text-muted-foreground">
+              Contract dynasty league · Founded 2014 · 12 owners
+            </p>
           </div>
-        </div>
-
-        {/* Right: stat counters */}
-        <div className="flex gap-8 sm:gap-6">
-          <div className="text-center">
-            <p className="font-heading text-3xl font-black text-gold tabular-nums">{tradeCount}</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Trades</p>
-          </div>
-          <div className="text-center">
-            <p className="font-heading text-3xl font-black text-gold tabular-nums">{txnCount}</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Transactions</p>
-          </div>
-          <div className="text-center">
-            <p className="font-heading text-3xl font-black text-gold tabular-nums">{seasonCount}</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Seasons</p>
+          <div className="hidden sm:flex gap-6 shrink-0">
+            {[
+              [String(tradeCount), "Trades"],
+              [String(txnCount), "FA Moves"],
+              [String(seasonCount), "Seasons"],
+            ].map(([val, lbl]) => (
+              <div key={lbl} className="text-center">
+                <p className="font-heading text-[28px] font-extrabold text-gold leading-none">{val}</p>
+                <p className="text-[10px] text-muted-foreground font-semibold tracking-widest uppercase mt-0.5">{lbl}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
