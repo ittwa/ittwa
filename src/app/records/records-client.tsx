@@ -473,7 +473,84 @@ export function RecordsClient({
 
         {showCurrentSeason && (
           <>
-            {/* TODO: CurrentSeasonView */}
+            {/* Current Season View */}
+            <div>
+              <SectionLabel label="Game Records" />
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: "Highest Single-Game Score", value: highestScore.points.toFixed(2), detail: `${highestScore.name} · Week ${highestScore.week}`, color: "#E8B84B" },
+                  { label: "Lowest Single-Game Score", value: lowestScore.points.toFixed(2), detail: `${lowestScore.name} · Week ${lowestScore.week}`, color: "#FD4A48" },
+                  { label: "Longest Win Streak", value: `${streaks.longestWin.count}W`, detail: streaks.longestWin.name, color: "#4ade80" },
+                  { label: "Longest Losing Streak", value: `${streaks.longestLoss.count}L`, detail: streaks.longestLoss.name, color: "#FD4A48" },
+                ].map((r) => (
+                  <RCard key={r.label} className="p-5">
+                    <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-2.5">{r.label}</div>
+                    <div className="font-heading text-[42px] font-black leading-none" style={{ color: r.color }}>{r.value}</div>
+                    <div className="text-xs text-muted-foreground mt-2">{r.detail}</div>
+                  </RCard>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <SectionLabel label="Season Leaders" />
+              <RCard>
+                {[
+                  { label: "Most Points For", name: sortedByPF[0]?.displayName, value: sortedByPF[0]?.pointsFor.toFixed(1), colorType: "gold" },
+                  { label: "Best Record", name: sortedByWins[0]?.displayName, value: `${sortedByWins[0]?.wins}–${sortedByWins[0]?.losses}`, colorType: "emerald" },
+                  { label: "Worst Record", name: sortedByLosses[0]?.displayName, value: `${sortedByLosses[0]?.wins}–${sortedByLosses[0]?.losses}`, colorType: "red" },
+                  { label: "Most Points Against", name: sortedByPA[0]?.displayName, value: sortedByPA[0]?.pointsAgainst.toFixed(1), colorType: "muted" },
+                  { label: "Fewest Points For", name: sortedByPF[sortedByPF.length - 1]?.displayName, value: sortedByPF[sortedByPF.length - 1]?.pointsFor.toFixed(1), colorType: "red" },
+                ].map((row, i, arr) => (
+                  <div key={row.label} className={cn("flex items-center justify-between px-5 py-3", i < arr.length - 1 ? "border-b border-border/50" : "")}>
+                    <div>
+                      <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-0.5">{row.label}</div>
+                      <div className="text-sm font-medium">{row.name ?? "—"}</div>
+                    </div>
+                    <span
+                      className="font-heading text-2xl font-extrabold"
+                      style={{ color: row.colorType === "gold" ? "#E8B84B" : row.colorType === "emerald" ? "#4ade80" : row.colorType === "red" ? "#FD4A48" : "#777" }}
+                    >
+                      {row.value ?? "—"}
+                    </span>
+                  </div>
+                ))}
+              </RCard>
+            </div>
+
+            <div>
+              <SectionLabel label="Season Standings" />
+              <RCard>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr>
+                        {["#", "Owner", "W", "L", "Win%", "PF", "PA"].map((h, i) => (
+                          <th key={h} className={cn("px-3.5 py-2.5 text-[10px] font-bold tracking-widest uppercase text-muted-foreground border-b border-border bg-secondary", i === 0 ? "text-center w-10" : i >= 2 ? (i >= 5 ? "text-right" : "text-center") : "text-left")}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedByWins.map((t, i) => {
+                        const total = t.wins + t.losses;
+                        const pct = total > 0 ? (t.wins / total * 100).toFixed(1) : "0.0";
+                        return (
+                          <tr key={t.rosterId} className="border-b border-border/50 last:border-0" style={{ background: i === 0 ? "rgba(232,184,75,0.04)" : i % 2 === 1 ? "rgba(22,22,22,0.3)" : undefined }}>
+                            <td className="px-3.5 py-2.5 text-center font-mono text-[11px] text-muted-foreground">{i + 1}</td>
+                            <td className="px-3.5 py-2.5 text-[13px] font-medium">{t.displayName}</td>
+                            <td className="px-3.5 py-2.5 text-center font-mono text-[13px] text-emerald-400 font-semibold">{t.wins}</td>
+                            <td className="px-3.5 py-2.5 text-center font-mono text-[13px] text-red-400">{t.losses}</td>
+                            <td className="px-3.5 py-2.5 text-center font-mono text-[13px]">{pct}%</td>
+                            <td className="px-3.5 py-2.5 text-right font-mono text-[13px] text-muted-foreground">{t.pointsFor.toFixed(1)}</td>
+                            <td className="px-3.5 py-2.5 text-right font-mono text-[13px] text-muted-foreground">{t.pointsAgainst.toFixed(1)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </RCard>
+            </div>
           </>
         )}
 
