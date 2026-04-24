@@ -479,7 +479,90 @@ export function RecordsClient({
 
         {!showAllTime && !showCurrentSeason && (
           <>
-            {/* TODO: PastSeasonView */}
+            {/* Past Season View */}
+            {selectedChamp && (
+              <div>
+                <SectionLabel label="Trophy Room" />
+                <RCard>
+                  <div
+                    className="grid items-center gap-0 px-4 py-2 border-b border-border bg-secondary"
+                    style={{ gridTemplateColumns: "56px 1fr 1fr 1fr" }}
+                  >
+                    {["Year", "Champion", "Runner-Up", "3rd Place"].map((h, i) => (
+                      <span key={h} className={cn("text-[10px] font-bold tracking-widest uppercase text-muted-foreground", i === 0 ? "text-center" : "text-left")}>{h}</span>
+                    ))}
+                  </div>
+                  <div className="grid items-center gap-0 px-4 py-2.5" style={{ gridTemplateColumns: "56px 1fr 1fr 1fr" }}>
+                    <span className="font-mono text-[13px] font-bold text-gold text-center">{selectedChamp.year}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">🏆</span>
+                      <span className="text-[13px] font-semibold">{selectedChamp.champion}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">🥈</span>
+                      <span className="text-[13px] text-[#aaa]">{selectedChamp.runnerUp}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">🥉</span>
+                      <span className="text-[13px] text-muted-foreground">{selectedChamp.third}</span>
+                    </div>
+                  </div>
+                </RCard>
+              </div>
+            )}
+
+            {selectedSummary && (
+              <>
+                <div>
+                  <SectionLabel label="Game Records" />
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "Season High Score", ...selectedSummary.highScore, color: "#E8B84B" },
+                      { label: "Season Low Score", ...selectedSummary.lowScore, color: "#FD4A48" },
+                    ].map((r) => (
+                      <RCard key={r.label} className="p-5">
+                        <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-2.5">{r.label}</div>
+                        <div className="font-heading text-[42px] font-black leading-none" style={{ color: r.color }}>{r.value}</div>
+                        <div className="text-xs text-muted-foreground mt-2">{r.detail}</div>
+                      </RCard>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <SectionLabel label={`${activeTab} Season Leaders`} />
+                  <RCard>
+                    {selectedSummary.leaders.map((row, i, arr) => (
+                      <div
+                        key={row.label}
+                        className={cn("flex items-center justify-between px-5 py-3", i < arr.length - 1 ? "border-b border-border/50" : "")}
+                      >
+                        <div>
+                          <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-0.5">{row.label}</div>
+                          <div className="text-sm font-medium">{row.name}</div>
+                        </div>
+                        {row.value && (
+                          <span
+                            className="font-heading text-2xl font-extrabold"
+                            style={{ color: row.colorType === "gold" ? "#E8B84B" : row.colorType === "emerald" ? "#4ade80" : "#FD4A48" }}
+                          >
+                            {row.value}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </RCard>
+                </div>
+              </>
+            )}
+
+            {!selectedChamp && !selectedSummary && (
+              <RCard className="py-8">
+                <p className="text-sm text-muted-foreground italic text-center">
+                  No records found for {activeTab}.
+                </p>
+              </RCard>
+            )}
           </>
         )}
       </div>
