@@ -311,7 +311,28 @@ export function RecordsClient({
                 ))}
               </RCard>
             </div>
-            {/* TODO: GameRecords */}
+            {/* Game Records */}
+            <div>
+              <SectionLabel label="Game Records" />
+              <div className="grid grid-cols-2 gap-3">
+                {gameRecords.map((r) => (
+                  <RCard key={r.label} className="p-5">
+                    <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-2.5">
+                      {r.label}
+                    </div>
+                    <div
+                      className="font-heading text-[42px] font-black leading-none"
+                      style={{
+                        color: r.colorType === "gold" ? "#E8B84B" : r.colorType === "red" ? "#FD4A48" : "#777",
+                      }}
+                    >
+                      {r.value}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">{r.detail}</div>
+                  </RCard>
+                ))}
+              </div>
+            </div>
             {/* TODO: SeasonRecords */}
             {/* TODO: AllTimeStandings */}
             {/* TODO: Milestones */}
