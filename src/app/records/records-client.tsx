@@ -421,7 +421,26 @@ export function RecordsClient({
                 </div>
               </RCard>
             </div>
-            {/* TODO: Milestones */}
+            {/* Notable Milestones */}
+            <div>
+              <SectionLabel label="Notable Milestones" />
+              <div className="grid grid-cols-3 gap-3">
+                {milestones.map((m) => (
+                  <RCard key={m.label} className="p-4">
+                    <div className="text-[22px] mb-2">{m.icon}</div>
+                    <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-1.5">
+                      {m.label}
+                    </div>
+                    <div className="font-heading text-[28px] font-black leading-none">
+                      {m.value}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                      {m.detail}
+                    </div>
+                  </RCard>
+                ))}
+              </div>
+            </div>
             {/* TODO: ChampionshipCount */}
           </>
         )}
