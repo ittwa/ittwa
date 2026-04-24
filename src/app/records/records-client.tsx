@@ -441,7 +441,33 @@ export function RecordsClient({
                 ))}
               </div>
             </div>
-            {/* TODO: ChampionshipCount */}
+            {/* Championship Count */}
+            <div>
+              <SectionLabel label="Championship Count" />
+              <RCard>
+                {ringCounts.filter((r) => r.count > 0).map((t, i, arr) => (
+                  <div
+                    key={t.name}
+                    className={cn("flex items-center gap-4 px-5 py-3", i < arr.length - 1 ? "border-b border-border/50" : "")}
+                    style={{ background: i === 0 ? "rgba(232,184,75,0.05)" : undefined }}
+                  >
+                    <span className="font-mono text-xs text-muted-foreground min-w-[20px]">{i + 1}</span>
+                    <span className={cn("flex-1 text-[13px]", i === 0 ? "font-semibold" : "")}>{t.name}</span>
+                    <div className="flex gap-1">
+                      {Array(t.count).fill(0).map((_, j) => (
+                        <span key={j} className="text-base">🏆</span>
+                      ))}
+                    </div>
+                    <div className="w-20 h-1 rounded-sm" style={{ background: "#222" }}>
+                      <div className="h-full rounded-sm bg-gold" style={{ width: `${(t.count / maxRings) * 100}%` }} />
+                    </div>
+                    <span className="font-heading text-[22px] font-extrabold text-gold min-w-[24px] text-right">
+                      {t.count}
+                    </span>
+                  </div>
+                ))}
+              </RCard>
+            </div>
           </>
         )}
 
