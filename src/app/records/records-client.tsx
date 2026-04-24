@@ -236,7 +236,81 @@ export function RecordsClient({
       <div className="flex flex-col gap-9">
         {showAllTime && (
           <>
-            {/* TODO: TrophyRoom */}
+            {/* Trophy Room */}
+            <div>
+              <SectionLabel label="Trophy Room" />
+              <div className="grid grid-cols-3 gap-3 mb-5">
+                {[
+                  { idx: 0, medal: "🥇", color: "text-gold", size: "text-7xl", bg: "rgba(232,184,75,0.07)", border: "rgba(232,184,75,0.25)" },
+                  { idx: 1, medal: "🥈", color: "text-slate-400", size: "text-5xl", bg: undefined, border: undefined },
+                  { idx: 2, medal: "🥉", color: "text-orange-400", size: "text-4xl", bg: undefined, border: undefined },
+                ].map(({ idx, medal, color, size, bg, border }) => (
+                  <RCard
+                    key={idx}
+                    className="py-5 px-4 text-center"
+                    style={{
+                      background: bg || undefined,
+                      borderColor: border || undefined,
+                    }}
+                  >
+                    <div className="text-3xl mb-2">{medal}</div>
+                    <div className={cn("font-heading font-black leading-none", size, color)}>
+                      {ringLeaders[idx]?.rings ?? 0}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground tracking-widest uppercase mt-0.5">
+                      Championship{ringLeaders[idx]?.rings !== 1 ? "s" : ""}
+                    </div>
+                    <div className="text-sm font-semibold mt-2">{ringLeaders[idx]?.owner}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      {ringLeaders[idx]?.playoffs} playoff appearances
+                    </div>
+                  </RCard>
+                ))}
+              </div>
+
+              <RCard>
+                <div
+                  className="grid gap-0 px-4 py-2 border-b border-border bg-secondary"
+                  style={{ gridTemplateColumns: "56px 1fr 1fr 1fr" }}
+                >
+                  {["Year", "Champion", "Runner-Up", "3rd Place"].map((h, i) => (
+                    <span
+                      key={h}
+                      className={cn(
+                        "text-[10px] font-bold tracking-widest uppercase text-muted-foreground",
+                        i === 0 ? "text-center" : "text-left"
+                      )}
+                    >
+                      {h}
+                    </span>
+                  ))}
+                </div>
+                {champions.map((row, i) => (
+                  <div
+                    key={row.year}
+                    className="grid items-center gap-0 px-4 py-2.5 border-b border-border/50 last:border-0"
+                    style={{
+                      gridTemplateColumns: "56px 1fr 1fr 1fr",
+                      background: i % 2 === 1 ? "rgba(22,22,22,0.3)" : undefined,
+                    }}
+                  >
+                    <span className="font-mono text-[13px] font-bold text-gold text-center">{row.year}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">🏆</span>
+                      <span className="text-[13px] font-semibold">{row.champion}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">🥈</span>
+                      <span className="text-[13px] text-[#aaa]">{row.runnerUp}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">🥉</span>
+                      <span className="text-[13px] text-muted-foreground">{row.third}</span>
+                    </div>
+                  </div>
+                ))}
+              </RCard>
+            </div>
             {/* TODO: GameRecords */}
             {/* TODO: SeasonRecords */}
             {/* TODO: AllTimeStandings */}
