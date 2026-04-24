@@ -164,8 +164,74 @@ export function RecordsClient({
 
   return (
     <div className="space-y-8">
-      {/* TODO: PageHeader */}
-      {/* TODO: YearFilter */}
+      {/* Page Header */}
+      <div className="border-b border-border pb-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-1.5">
+              <div className="w-1 h-7 bg-gold rounded-sm" />
+              <h1 className="font-heading text-4xl font-black uppercase tracking-wider">
+                Records
+              </h1>
+            </div>
+            <p className="text-sm text-muted-foreground ml-4">
+              {showAllTime
+                ? `All-time records across ${champions.length} seasons · `
+                : `${activeTab} season records · `}
+              <span className="text-gold">
+                {showAllTime ? `${allTimeStandings.length} owners` : `Week ${currentWeek}`}
+              </span>
+            </p>
+          </div>
+          {showAllTime && (
+            <div className="flex gap-4">
+              {[
+                [String(champions.length), "Seasons"],
+                [String(allTimeStandings.length), "Owners"],
+                [String(maxRings), `${ringCounts[0]?.name} Rings`],
+              ].map(([val, lbl]) => (
+                <div key={lbl} className="text-right">
+                  <div className="font-heading text-[28px] font-extrabold text-gold leading-none">
+                    {val}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground font-semibold tracking-widest uppercase mt-0.5">
+                    {lbl}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Year Filter */}
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5" style={{ scrollbarWidth: "none" }}>
+        <button
+          onClick={() => setActiveTab("all-time")}
+          className={cn(
+            "px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition-all border",
+            showAllTime
+              ? "bg-gold/10 border-gold/40 text-gold font-bold"
+              : "bg-secondary border-border text-muted-foreground hover:text-foreground"
+          )}
+        >
+          All Time
+        </button>
+        {yearTabs.map((y) => (
+          <button
+            key={y}
+            onClick={() => setActiveTab(y)}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition-all border",
+              activeTab === y
+                ? "bg-gold/10 border-gold/40 text-gold font-bold"
+                : "bg-secondary border-border text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {y}
+          </button>
+        ))}
+      </div>
 
       <div className="flex flex-col gap-9">
         {showAllTime && (
