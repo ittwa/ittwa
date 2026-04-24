@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { getTeamsData, buildRosterOwnerMap } from "@/lib/data";
 import { getScores } from "@/lib/sheets";
-import { computeChampions, computeAllTimeStandings, computeMilestones } from "@/lib/historical";
+import { computeChampions, computeAllTimeStandings, computeMilestones, computeGameRecords, computeSeasonRecords, computeSeasonSummaries } from "@/lib/historical";
 import { RecordsClient } from "./records-client";
 import { SleeperMatchup } from "@/types/sleeper";
 
@@ -32,6 +32,10 @@ export default async function RecordsPage() {
   const champions = computeChampions(scores);
   const allTimeStandings = computeAllTimeStandings(scores, champions);
   const milestones = computeMilestones(scores);
+  const gameRecords = computeGameRecords(scores);
+  const seasonRecords = computeSeasonRecords(scores);
+  const seasonSummaries = computeSeasonSummaries(scores);
+  const availableSeasons = [...new Set(scores.map((s) => s.season))].filter(Boolean).sort().reverse();
 
   return (
     <RecordsClient
@@ -43,6 +47,10 @@ export default async function RecordsPage() {
       champions={champions}
       allTimeStandings={allTimeStandings}
       milestones={milestones}
+      gameRecords={gameRecords}
+      seasonRecords={seasonRecords}
+      seasonSummaries={seasonSummaries}
+      availableSeasons={availableSeasons}
     />
   );
 }
