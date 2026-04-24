@@ -355,7 +355,72 @@ export function RecordsClient({
                 ))}
               </div>
             </div>
-            {/* TODO: AllTimeStandings */}
+            {/* All-Time Standings */}
+            <div>
+              <SectionLabel label="All-Time Standings" />
+              <RCard>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr>
+                        <th className="px-3.5 py-2.5 text-left text-[10px] font-bold tracking-widest uppercase text-muted-foreground border-b border-border bg-secondary">Owner</th>
+                        {(["wins","losses","winPct","pf","rings","playoffs"] as SortKey[]).map((k) => {
+                          const labels: Record<string, string> = { wins: "W", losses: "L", winPct: "Win%", pf: "PF", rings: "Rings", playoffs: "Playoffs" };
+                          const aligns: Record<string, string> = { pf: "text-right", wins: "text-center", losses: "text-center", winPct: "text-center", rings: "text-center", playoffs: "text-center" };
+                          const active = sortKey === k;
+                          return (
+                            <th
+                              key={k}
+                              onClick={() => onSort(k)}
+                              className={cn("px-3.5 py-2.5 text-[10px] font-bold tracking-widest uppercase cursor-pointer select-none border-b border-border bg-secondary whitespace-nowrap", active ? "text-gold" : "text-muted-foreground", aligns[k])}
+                            >
+                              {labels[k]}{active && <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>}
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedAllTime.map((t, i) => {
+                        const total = t.wins + t.losses;
+                        const pct = total > 0 ? (t.wins / total * 100).toFixed(1) : "0.0";
+                        return (
+                          <tr
+                            key={t.owner}
+                            style={{ background: i === 0 ? "rgba(232,184,75,0.04)" : i % 2 === 1 ? "rgba(22,22,22,0.3)" : undefined }}
+                            className="border-b border-border/50 last:border-0"
+                          >
+                            <td className="px-3.5 py-2.5">
+                              <div className="flex items-center gap-2.5">
+                                <span className="text-[11px] text-muted-foreground font-mono min-w-[16px]">{i + 1}</span>
+                                <span className={cn("text-[13px]", i === 0 ? "font-semibold" : "")}>{t.owner}</span>
+                              </div>
+                            </td>
+                            <td className="px-3.5 py-2.5 text-center font-mono text-[13px] text-emerald-400 font-semibold">{t.wins}</td>
+                            <td className="px-3.5 py-2.5 text-center font-mono text-[13px] text-red-400">{t.losses}</td>
+                            <td className="px-3.5 py-2.5 text-center font-mono text-[13px]">{pct}%</td>
+                            <td className="px-3.5 py-2.5 text-right font-mono text-[13px] text-muted-foreground">{t.pf.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td>
+                            <td className="px-3.5 py-2.5 text-center">
+                              {t.rings > 0 ? (
+                                <span className="font-heading text-lg font-extrabold text-gold">{"🏆".repeat(t.rings)}</span>
+                              ) : <span className="text-muted-foreground text-xs">—</span>}
+                            </td>
+                            <td className="px-3.5 py-2.5 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <span className="font-mono text-[13px]">{t.playoffs}</span>
+                                <div className="w-10 h-1 rounded-sm" style={{ background: "#222" }}>
+                                  <div className="h-full rounded-sm bg-gold" style={{ width: `${(t.playoffs / maxPlayoffs) * 100}%` }} />
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </RCard>
+            </div>
             {/* TODO: Milestones */}
             {/* TODO: ChampionshipCount */}
           </>
