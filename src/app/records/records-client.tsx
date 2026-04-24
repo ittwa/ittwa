@@ -333,7 +333,28 @@ export function RecordsClient({
                 ))}
               </div>
             </div>
-            {/* TODO: SeasonRecords */}
+            {/* Season Records */}
+            <div>
+              <SectionLabel label="Season Records" />
+              <div className="grid grid-cols-3 gap-3">
+                {seasonRecords.map((r) => (
+                  <RCard key={r.label} className="p-4">
+                    <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-2">
+                      {r.label}
+                    </div>
+                    <div
+                      className="font-heading text-[30px] font-black leading-none"
+                      style={{
+                        color: r.colorType === "gold" ? "#E8B84B" : r.colorType === "red" ? "#FD4A48" : r.colorType === "emerald" ? "#4ade80" : "#777",
+                      }}
+                    >
+                      {r.value}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-2">{r.detail}</div>
+                  </RCard>
+                ))}
+              </div>
+            </div>
             {/* TODO: AllTimeStandings */}
             {/* TODO: Milestones */}
             {/* TODO: ChampionshipCount */}
