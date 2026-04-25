@@ -86,9 +86,9 @@ function sortRoster(players: RosterPlayer[]): RosterPlayer[] {
 
 function SectionTick({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2.5">
       <span className="w-1 h-5 rounded-sm shrink-0 bg-gold" />
-      <span className="font-heading font-bold uppercase tracking-widest text-sm">{label}</span>
+      <span className="font-heading text-xl font-extrabold uppercase tracking-widest">{label}</span>
     </div>
   );
 }
@@ -182,10 +182,10 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   return (
     <div className="space-y-6">
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-xl border border-border bg-card">
+      <div className="relative overflow-hidden border-b border-border">
         {/* Division gradient stripe */}
         <div
-          className="h-1.5"
+          className="h-1"
           style={{ background: `linear-gradient(90deg, ${divisionColor} 0%, transparent 60%)` }}
         />
 
@@ -204,60 +204,53 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
               <Badge variant={getDivisionVariant(team.division)}>{team.division}</Badge>
               <Badge variant="outline">#{team.rank} Overall</Badge>
             </div>
-            <h1 className="font-heading font-black uppercase tracking-tight leading-none mb-4 text-5xl sm:text-7xl">
+            <h1 className="font-heading font-black uppercase tracking-[0.01em] leading-none text-5xl sm:text-[64px]">
               {team.displayName.toUpperCase()}
             </h1>
-            <div className="flex items-center gap-4">
-              <span className="font-heading text-2xl sm:text-3xl font-bold tracking-wide">
-                <span className="text-emerald-400">{team.wins}</span>
-                <span className="text-muted-foreground mx-2">—</span>
-                <span className="text-red-400">{team.losses}</span>
-                {team.ties > 0 && <span className="text-muted-foreground ml-1">({team.ties}T)</span>}
-              </span>
-              <span className="text-sm text-muted-foreground">Week {currentWeek} · {season}</span>
+            <div className="flex items-center gap-3.5 mt-[18px]">
+              <div className="flex items-baseline gap-1">
+                <span className="font-heading text-[32px] font-extrabold text-emerald-400">{team.wins}</span>
+                <span className="font-heading text-xl font-semibold text-muted-foreground">-</span>
+                <span className="font-heading text-[32px] font-extrabold text-red-400">{team.losses}</span>
+                {team.ties > 0 && <span className="font-heading text-xl text-muted-foreground ml-1">({team.ties}T)</span>}
+              </div>
+              <span className="font-heading text-sm font-semibold text-muted-foreground tracking-wide pl-2.5 border-l border-border whitespace-nowrap uppercase">Week {currentWeek} · {season}</span>
             </div>
           </div>
 
           {/* Right: stat boxes */}
-          <div className="hidden sm:flex flex-col gap-2 shrink-0">
-            <div className="flex gap-2">
-              {[
-                { label: "Salary", value: `$${rosterSalary.toFixed(0)}`, sub: "of $270", color: "text-gold" },
-                { label: "Years", value: String(rosterYears), sub: "of 60", color: "" },
-              ].map((s) => (
-                <div key={s.label} className="rounded-lg border border-border/50 bg-background/50 p-3 text-center min-w-[80px]">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{s.label}</p>
-                  <p className={`font-heading text-2xl font-black ${s.color}`}>{s.value}</p>
-                  <p className="text-xs text-muted-foreground">{s.sub}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              {[
-                { label: "Roster", value: String(rosterPlayers.length), sub: "players", color: "" },
-                { label: "Picks", value: String(ownerDraftPicks.length), sub: "active", color: "" },
-              ].map((s) => (
-                <div key={s.label} className="rounded-lg border border-border/50 bg-background/50 p-3 text-center min-w-[80px]">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{s.label}</p>
-                  <p className={`font-heading text-2xl font-black ${s.color}`}>{s.value}</p>
-                  <p className="text-xs text-muted-foreground">{s.sub}</p>
-                </div>
-              ))}
-            </div>
+          <div className="hidden sm:flex gap-0.5 items-stretch shrink-0">
+            {[
+              { label: "Salary Used", value: `$${rosterSalary.toFixed(0)}`, sub: "of $270", pct: rosterSalary / 270, color: "#FD4A48" },
+              { label: "Years Used", value: String(rosterYears), sub: "of 60", pct: rosterYears / 60, color: "#E8B84B" },
+              { label: "Roster Size", value: String(rosterPlayers.length), sub: "players", pct: null as number | null, color: divisionColor },
+              { label: "Draft Picks", value: String(ownerDraftPicks.length), sub: "on hand", pct: null as number | null, color: divisionColor },
+            ].map((s) => (
+              <div key={s.label} className="rounded-lg border border-border bg-secondary px-5 py-4 min-w-[110px] flex flex-col gap-1.5">
+                <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground">{s.label}</span>
+                <span className="font-heading text-[34px] font-extrabold leading-none" style={{ color: s.color }}>{s.value}</span>
+                <span className="text-[11px] text-muted-foreground">{s.sub}</span>
+                {s.pct !== null && (
+                  <div className="h-[3px] bg-border rounded-sm mt-0.5">
+                    <div className="h-full rounded-sm" style={{ width: `${s.pct * 100}%`, backgroundColor: s.color }} />
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Mobile-only stat row */}
-        <div className="sm:hidden flex gap-3 px-6 pb-6 overflow-x-auto">
+        <div className="sm:hidden flex gap-2 px-6 pb-6 overflow-x-auto">
           {[
-            { label: "Salary", value: `$${rosterSalary.toFixed(0)}`, color: "text-gold" },
-            { label: "Years", value: String(rosterYears), color: "" },
-            { label: "Roster", value: String(rosterPlayers.length), color: "" },
-            { label: "Picks", value: String(ownerDraftPicks.length), color: "" },
+            { label: "Salary", value: `$${rosterSalary.toFixed(0)}`, color: "#FD4A48" },
+            { label: "Years", value: String(rosterYears), color: "#E8B84B" },
+            { label: "Roster", value: String(rosterPlayers.length), color: divisionColor },
+            { label: "Picks", value: String(ownerDraftPicks.length), color: divisionColor },
           ].map((s) => (
-            <div key={s.label} className="rounded-lg border border-border/50 bg-background/50 px-4 py-2 text-center shrink-0">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{s.label}</p>
-              <p className={`font-heading text-xl font-black ${s.color}`}>{s.value}</p>
+            <div key={s.label} className="rounded-lg border border-border bg-secondary px-4 py-2 text-center shrink-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{s.label}</p>
+              <p className="font-heading text-xl font-extrabold" style={{ color: s.color }}>{s.value}</p>
             </div>
           ))}
         </div>
@@ -331,9 +324,18 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
               </tbody>
             </table>
           </div>
+          <div className="flex items-center gap-4 px-4 py-2.5 border-t border-border bg-secondary">
+            <span className="text-[10px] font-semibold tracking-[0.06em] uppercase text-muted-foreground">Salary scale</span>
+            <div className="flex items-center gap-1">
+              <div className="w-8 h-[3px] rounded-sm" style={{ background: "linear-gradient(90deg, #E8B84B, #FD4A48)" }} />
+              <span className="text-[10px] text-muted-foreground">{`$1 → $${maxRosterSalary}`}</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground ml-auto">Total: <span className="text-ittwa font-semibold">{`$${rosterSalary.toFixed(0)}`}</span> / $270</span>
+          </div>
         </CardContent>
       </Card>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* ── Draft Picks ──────────────────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-3">
@@ -359,7 +361,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                       <td className="px-4 py-2 font-medium">{dp.player}</td>
                       <td className="px-4 py-2 text-muted-foreground">{dp.dpOriginalOwner || "—"}</td>
                       <td className="px-4 py-2 text-right tabular-nums">
-                        {dp.salary > 0 ? `$${dp.salary.toFixed(1)}` : <span className="text-muted-foreground">—</span>}
+                        {dp.salary > 0 ? <span className="text-gold">{`$${dp.salary.toFixed(1)}`}</span> : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="px-4 py-2 text-center tabular-nums">
                         {dp.years > 0 ? dp.years : <span className="text-muted-foreground">—</span>}
@@ -372,6 +374,56 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
           )}
         </CardContent>
       </Card>
+
+      {/* ── Schedule ─────────────────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <SectionTick label="Season Schedule" />
+            <span className="font-heading text-lg font-bold text-muted-foreground">
+              <span className="text-emerald-400">{schedule.filter(g => g.completed && g.myScore > g.oppScore).length}W</span>
+              {" – "}
+              <span className="text-ittwa">{schedule.filter(g => g.completed && g.myScore < g.oppScore).length}L</span>
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-card text-muted-foreground">
+                  <th className="px-4 py-2 text-center font-medium w-12">Wk</th>
+                  <th className="px-4 py-2 text-left font-medium">Opponent</th>
+                  <th className="px-4 py-2 text-center font-medium">Score</th>
+                  <th className="px-4 py-2 text-center font-medium w-10"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {schedule.map((g) => {
+                  const won = g.completed && g.myScore > g.oppScore;
+                  const lost = g.completed && g.myScore < g.oppScore;
+                  return (
+                    <tr key={g.week} className="border-b border-border/50" style={{ background: won ? "rgba(74,222,128,0.03)" : lost ? "rgba(253,74,72,0.03)" : undefined }}>
+                      <td className="px-4 py-2 text-center text-muted-foreground tabular-nums">W{g.week}</td>
+                      <td className="px-4 py-2">{g.opponent}</td>
+                      <td className="px-4 py-2 text-center tabular-nums">
+                        {g.completed ? `${g.myScore.toFixed(2)} – ${g.oppScore.toFixed(2)}` : "—"}
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        {won && <span className="text-emerald-400 font-bold">W</span>}
+                        {lost && <span className="text-red-400 font-bold">L</span>}
+                        {g.completed && !won && !lost && <span className="text-muted-foreground">T</span>}
+                        {!g.completed && <span className="text-muted-foreground">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+      </div>
 
       {/* ── Cap Hits ─────────────────────────────────────────────────────────── */}
       <Card>
@@ -411,48 +463,6 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
               </table>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* ── Schedule ─────────────────────────────────────────────────────────── */}
-      <Card>
-        <CardHeader className="pb-3">
-          <SectionTick label="Season Schedule" />
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-card text-muted-foreground">
-                  <th className="px-4 py-2 text-center font-medium w-16">Week</th>
-                  <th className="px-4 py-2 text-left font-medium">Opponent</th>
-                  <th className="px-4 py-2 text-center font-medium">Score</th>
-                  <th className="px-4 py-2 text-center font-medium w-12">Result</th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedule.map((g) => {
-                  const won = g.completed && g.myScore > g.oppScore;
-                  const lost = g.completed && g.myScore < g.oppScore;
-                  return (
-                    <tr key={g.week} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
-                      <td className="px-4 py-2 text-center text-muted-foreground">{g.week}</td>
-                      <td className="px-4 py-2">{g.opponent}</td>
-                      <td className="px-4 py-2 text-center tabular-nums">
-                        {g.completed ? `${g.myScore.toFixed(2)} - ${g.oppScore.toFixed(2)}` : "—"}
-                      </td>
-                      <td className="px-4 py-2 text-center">
-                        {won && <span className="text-emerald-400 font-semibold">W</span>}
-                        {lost && <span className="text-red-400 font-semibold">L</span>}
-                        {g.completed && !won && !lost && <span className="text-muted-foreground">T</span>}
-                        {!g.completed && <span className="text-muted-foreground">—</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
         </CardContent>
       </Card>
 
