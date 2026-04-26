@@ -9,6 +9,7 @@ import {
   buildRosterOwnerMap,
   getDisplayName,
   getNFLPlayers,
+  getLeagueHistory,
 } from "./sleeper";
 import { getContracts, getCapHits } from "./sheets";
 import { getActiveContractsForSeason, enrichContract, filterActiveContracts, getLatestActiveContracts } from "./contracts";
@@ -201,6 +202,7 @@ export {
   getDrafts,
   buildRosterOwnerMap,
   getNFLPlayers,
+  getLeagueHistory,
   getContracts,
   getCapHits,
   getActiveContractsForSeason,
