@@ -8,9 +8,10 @@ import {
   getDrafts,
   buildRosterOwnerMap,
   getDisplayName,
+  getNFLPlayers,
 } from "./sleeper";
 import { getContracts, getCapHits } from "./sheets";
-import { getActiveContractsForSeason, enrichContract, filterActiveContracts } from "./contracts";
+import { getActiveContractsForSeason, enrichContract, filterActiveContracts, getLatestActiveContracts } from "./contracts";
 import { calculateStandings, calculateStreak } from "./standings";
 import { calculatePowerRankings, calculateRankChanges } from "./power-rankings";
 import { LEAGUE_ID, OWNER_DIVISION, DIVISION_NUMBER_MAP } from "./config";
@@ -199,11 +200,13 @@ export {
   getAllTransactions,
   getDrafts,
   buildRosterOwnerMap,
+  getNFLPlayers,
   getContracts,
   getCapHits,
   getActiveContractsForSeason,
   enrichContract,
   filterActiveContracts,
+  getLatestActiveContracts,
   calculateStandings,
   calculatePowerRankings,
   calculateRankChanges,

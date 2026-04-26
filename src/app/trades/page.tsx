@@ -1,35 +1,88 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-import { getAllTransactions, getNFLState, buildRosterOwnerMap } from "@/lib/data";
+import {
+  getAllTransactions,
+  getNFLState,
+  buildRosterOwnerMap,
+  getNFLPlayers,
+  getContracts,
+  getLatestActiveContracts,
+} from "@/lib/data";
 import { TradesClient } from "./trades-client";
+import type { EnrichedTrade, TradeItem } from "./trades-client";
 
 export const revalidate = 300;
 
 export default async function TradesPage() {
-  const [txns, nflState, rosterOwnerMap] = await Promise.all([
+  const [txns, nflState, rosterOwnerMap, players, rawContracts] = await Promise.all([
     getAllTransactions(),
     getNFLState(),
     buildRosterOwnerMap(),
+    getNFLPlayers(),
+    getContracts(),
   ]);
 
-  const trades = txns
+  const contracts = getLatestActiveContracts(rawContracts);
+  const contractMap = new Map<string, { salary: number; years: number }>();
+  for (const c of contracts) {
+    if (c.playerId && c.playerId !== "#N/A" && c.playerId !== "N/A" && c.playerId !== "") {
+      contractMap.set(c.playerId, { salary: c.salary, years: c.years });
+    }
+  }
+
+  const season = nflState.season;
+
+  const trades: EnrichedTrade[] = txns
     .filter((t) => t.type === "trade" && t.status === "complete")
     .sort((a, b) => b.created - a.created)
-    .map((t) => ({
-      id: t.transaction_id,
-      created: t.created,
-      week: t.week,
-      rosterIds: t.roster_ids,
-      adds: t.adds || {},
-      drops: t.drops || {},
-      draftPicks: t.draft_picks || [],
-    }));
+    .map((t) => {
+      const sideMap = new Map<number, TradeItem[]>();
+      for (const rid of t.roster_ids) {
+        sideMap.set(rid, []);
+      }
 
-  return (
-    <TradesClient
-      trades={trades}
-      rosterOwnerMap={rosterOwnerMap}
-      season={nflState.season}
-    />
-  );
+      if (t.adds) {
+        for (const [playerId, rosterId] of Object.entries(t.adds)) {
+          const player = players[playerId];
+          const contract = contractMap.get(playerId);
+          const item: TradeItem = {
+            type: "player" as const,
+            name: player
+              ? player.full_name || `${player.first_name} ${player.last_name}`
+              : `Unknown (${playerId})`,
+            pos: player?.position || "??",
+            nflTeam: player?.team || "FA",
+            sleeperId: playerId,
+            salary: contract?.salary ?? 0,
+            years: contract?.years ?? 0,
+          };
+          sideMap.get(Number(rosterId))?.push(item);
+        }
+      }
+
+      if (t.draft_picks) {
+        for (const pick of t.draft_picks) {
+          const origOwner =
+            rosterOwnerMap[pick.previous_owner_id] || `Team ${pick.previous_owner_id}`;
+          const item: TradeItem = {
+            type: "pick" as const,
+            name: `${pick.season} Round ${pick.round} (via ${origOwner})`,
+            round: pick.round,
+            pickSeason: pick.season,
+            originalOwner: origOwner,
+          };
+          sideMap.get(pick.owner_id)?.push(item);
+        }
+      }
+
+      const sides = t.roster_ids.map((rid) => ({
+        owner: rosterOwnerMap[rid] || `Team ${rid}`,
+        rosterId: rid,
+        received: sideMap.get(rid) || [],
+      }));
+
+      return { id: t.transaction_id, created: t.created, week: t.week, season, sides };
+    });
+
+  return <TradesClient trades={trades} season={season} />;
 }
