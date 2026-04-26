@@ -188,7 +188,7 @@ function TradeCard({ trade }: { trade: EnrichedTrade }) {
     day: "numeric",
     year: "numeric",
   });
-  const weekLabel = trade.week === 0 ? "Off-Season" : `Week ${trade.week}`;
+  const weekLabel = trade.week < 1 ? "Off-Season" : `Week ${trade.week}`;
 
   return (
     <div className="bg-[#111111] border border-[#1f1f1f] rounded-xl overflow-hidden">
@@ -199,7 +199,7 @@ function TradeCard({ trade }: { trade: EnrichedTrade }) {
       >
         <div className="flex items-center gap-3">
           <span className="font-mono text-[11px] font-semibold text-[#555] tracking-[0.06em]">
-            #{trade.id.slice(-6)}
+            #{trade.id}
           </span>
           <div className="flex items-center gap-1">
             {trade.sides.map((s, i) => (
