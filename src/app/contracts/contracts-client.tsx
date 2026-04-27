@@ -4,12 +4,17 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { ContractWithValue } from "@/types/contracts";
 import { getPositionColors } from "@/lib/ui-utils";
 
+export interface ContractEntry extends ContractWithValue {
+  rosterSeason: string;
+}
+
 type SortKey = "player" | "position" | "owner" | "salary" | "years" | "contractStartYear";
 type SortDir = "asc" | "desc";
 
 interface ContractsClientProps {
-  contracts: ContractWithValue[];
+  contracts: ContractEntry[];
   season: string;
+  availableSeasons: string[];
 }
 
 const YEAR_COLORS: Record<number, { text: string; bg: string; border: string }> = {
@@ -115,12 +120,15 @@ function SeasonFilter({ selected, onChange, allSeasons, currentSeason }: {
     else onChange([...selected, s]);
   };
 
-  const label = selected.length === 0
+  const label = selected.length === allSeasons.length
     ? "All Seasons"
     : selected.length === 1
       ? `${selected[0]} Season`
-      : `${selected.length} Seasons`;
-  const isActive = selected.length > 0 && selected.length < allSeasons.length;
+      : selected.length === 0
+        ? "No Season"
+        : `${selected.length} Seasons`;
+  const isDefault = selected.length === 1 && selected[0] === currentSeason;
+  const isActive = !isDefault && selected.length < allSeasons.length;
 
   return (
     <div ref={ref} className="relative">
@@ -165,7 +173,7 @@ function SeasonFilter({ selected, onChange, allSeasons, currentSeason }: {
           })}
           <div className="border-t border-[#1f1f1f] my-1" />
           <button
-            onClick={() => { onChange([]); setOpen(false); }}
+            onClick={() => { onChange([...allSeasons]); setOpen(false); }}
             className="w-full bg-transparent border-none cursor-pointer text-xs text-[#555] py-1 px-2 text-left rounded"
           >
             Show all seasons
@@ -296,13 +304,13 @@ function SortTh({ label, field, sortKey, sortDir, onSort, align = "left" }: {
   );
 }
 
-export function ContractsClient({ contracts, season }: ContractsClientProps) {
+export function ContractsClient({ contracts, season, availableSeasons }: ContractsClientProps) {
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("");
   const [yearsFilter, setYearsFilter] = useState("");
   const [salaryFilter, setSalaryFilter] = useState("");
-  const [seasonFilter, setSeasonFilter] = useState<string[]>([]);
+  const [seasonFilter, setSeasonFilter] = useState<string[]>([season]);
   const [ftOnly, setFtOnly] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("salary");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -310,7 +318,7 @@ export function ContractsClient({ contracts, season }: ContractsClientProps) {
   const positions = useMemo(() => [...new Set(contracts.map((c) => c.position))].sort(), [contracts]);
   const owners = useMemo(() => [...new Set(contracts.map((c) => c.owner))].sort(), [contracts]);
   const yearsOptions = useMemo(() => [...new Set(contracts.map((c) => c.years))].sort((a, b) => a - b), [contracts]);
-  const allStartYears = useMemo(() => [...new Set(contracts.map((c) => c.contractStartYear).filter(Boolean))].sort().reverse(), [contracts]);
+  const allSeasons = availableSeasons;
   const maxSalary = useMemo(() => Math.max(...contracts.map((c) => c.salary), 1), [contracts]);
 
   const posRanks = useMemo(() => {
@@ -330,7 +338,7 @@ export function ContractsClient({ contracts, season }: ContractsClientProps) {
       const q = search.toLowerCase();
       result = result.filter((c) => c.player.toLowerCase().includes(q));
     }
-    if (seasonFilter.length > 0) result = result.filter((c) => seasonFilter.includes(c.contractStartYear));
+    if (seasonFilter.length > 0) result = result.filter((c) => seasonFilter.includes(c.rosterSeason));
     if (posFilter) result = result.filter((c) => c.position === posFilter);
     if (ownerFilter) result = result.filter((c) => c.owner === ownerFilter);
     if (salaryFilter) {
@@ -356,8 +364,9 @@ export function ContractsClient({ contracts, season }: ContractsClientProps) {
     return result;
   }, [contracts, search, seasonFilter, posFilter, ownerFilter, salaryFilter, yearsFilter, ftOnly, sortKey, sortDir]);
 
+  const seasonFilterActive = !(seasonFilter.length === 1 && seasonFilter[0] === season);
   const activeFilters = [
-    seasonFilter.length > 0 && seasonFilter.length < allStartYears.length,
+    seasonFilterActive,
     ownerFilter, posFilter, salaryFilter, yearsFilter, ftOnly,
   ].filter(Boolean).length;
 
@@ -367,15 +376,15 @@ export function ContractsClient({ contracts, season }: ContractsClientProps) {
   }
 
   function clearAll() {
-    setSearch(""); setSeasonFilter([]); setOwnerFilter("");
+    setSearch(""); setSeasonFilter([season]); setOwnerFilter("");
     setPosFilter(""); setSalaryFilter(""); setYearsFilter(""); setFtOnly(false);
   }
 
-  const seasonLabel = seasonFilter.length === 0
+  const seasonLabel = seasonFilter.length === allSeasons.length
     ? "All Seasons"
     : seasonFilter.length === 1
       ? `${seasonFilter[0]} Season`
-      : `${seasonFilter.join(", ")} Seasons`;
+      : `${seasonFilter.length} Seasons`;
 
   return (
     <div>
@@ -396,7 +405,7 @@ export function ContractsClient({ contracts, season }: ContractsClientProps) {
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-5 items-center">
         <SearchInput value={search} onChange={setSearch} />
-        <SeasonFilter selected={seasonFilter} onChange={setSeasonFilter} allSeasons={allStartYears} currentSeason={season} />
+        <SeasonFilter selected={seasonFilter} onChange={setSeasonFilter} allSeasons={allSeasons} currentSeason={season} />
         <FilterSelect value={ownerFilter} onChange={setOwnerFilter} placeholder="All Owners"
           options={owners.map((o) => ({ value: o, label: o }))} />
         <FilterSelect value={posFilter} onChange={setPosFilter} placeholder="All Positions"
