@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { ContractWithValue } from "@/types/contracts";
-import { resolveOwnerName } from "@/lib/contracts";
 import { getPositionColors } from "@/lib/ui-utils";
 
 type SortKey = "player" | "position" | "owner" | "salary" | "years" | "contractStartYear";
@@ -399,7 +398,7 @@ export function ContractsClient({ contracts, season }: ContractsClientProps) {
         <SearchInput value={search} onChange={setSearch} />
         <SeasonFilter selected={seasonFilter} onChange={setSeasonFilter} allSeasons={allStartYears} currentSeason={season} />
         <FilterSelect value={ownerFilter} onChange={setOwnerFilter} placeholder="All Owners"
-          options={owners.map((o) => ({ value: o, label: resolveOwnerName(o) }))} />
+          options={owners.map((o) => ({ value: o, label: o }))} />
         <FilterSelect value={posFilter} onChange={setPosFilter} placeholder="All Positions"
           options={positions.map((p) => ({ value: p, label: p }))} />
         <SalaryFilterSelect value={salaryFilter} onChange={setSalaryFilter} />
@@ -451,7 +450,7 @@ export function ContractsClient({ contracts, season }: ContractsClientProps) {
                     <td className="px-3 py-2">
                       <PosBadge pos={c.position} rank={posRanks[c.player]} />
                     </td>
-                    <td className="px-3 py-2 text-[13px] text-[#888] whitespace-nowrap">{resolveOwnerName(c.owner)}</td>
+                    <td className="px-3 py-2 text-[13px] text-[#888] whitespace-nowrap">{c.owner}</td>
                     <td className="px-3 py-2 text-right">
                       {c.isMidSeasonPickup ? (
                         <span className="text-[#555] text-xs">—</span>
