@@ -108,6 +108,184 @@ function PosBadge({ pos }: { pos: string }) {
   );
 }
 
+// ── Sidebar Components ───────────────────────────────────────────────────────
+
+function SidebarCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="bg-[#111] border border-[#222] rounded-lg p-[18px]" style={{ boxShadow: "0 0 0 1px #222" }}>
+      {children}
+    </div>
+  );
+}
+
+function ChartLabel({ label, subtitle }: { label: string; subtitle?: string }) {
+  return (
+    <div className="mb-3">
+      <span className="text-[11px] font-bold tracking-[0.07em] uppercase text-[#666] font-heading">{label}</span>
+      {subtitle && <span className="text-[10px] text-[#666] ml-2">{subtitle}</span>}
+    </div>
+  );
+}
+
+function PositionDonut({ picks }: { picks: DraftPick[] }) {
+  const positions = ["QB", "RB", "WR", "TE"] as const;
+  const counts: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
+  for (const p of picks) {
+    if (counts[p.position] !== undefined) counts[p.position]++;
+  }
+  const total = picks.length;
+
+  const cx = 64, cy = 64, r = 52, inner = 32;
+  let angle = -Math.PI / 2;
+  const slices = positions.map((pos) => {
+    const cnt = counts[pos] || 0;
+    const sweep = (cnt / total) * 2 * Math.PI;
+    const x1 = cx + r * Math.cos(angle);
+    const y1 = cy + r * Math.sin(angle);
+    const x2 = cx + r * Math.cos(angle + sweep);
+    const y2 = cy + r * Math.sin(angle + sweep);
+    const xi1 = cx + inner * Math.cos(angle);
+    const yi1 = cy + inner * Math.sin(angle);
+    const xi2 = cx + inner * Math.cos(angle + sweep);
+    const yi2 = cy + inner * Math.sin(angle + sweep);
+    const large = sweep > Math.PI ? 1 : 0;
+    const path = `M${xi1},${yi1} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} L${xi2},${yi2} A${inner},${inner} 0 ${large},0 ${xi1},${yi1} Z`;
+    angle += sweep;
+    const pct = Math.round((cnt / total) * 100);
+    return { pos, cnt, path, pct };
+  });
+
+  return (
+    <div className="flex items-center gap-4">
+      <svg width={128} height={128} className="flex-shrink-0">
+        {slices.map((s) => (
+          <path key={s.pos} d={s.path} fill={POS_COLORS[s.pos]?.text || "#94a3b8"} opacity={0.85} />
+        ))}
+        <text x={cx} y={cy + 5} textAnchor="middle" fill="#f5f5f5" fontSize={13} fontWeight={800} fontFamily="'Barlow Condensed', sans-serif">{total}</text>
+        <text x={cx} y={cy + 17} textAnchor="middle" fill="#666" fontSize={8} fontFamily="'Inter', sans-serif">PICKS</text>
+      </svg>
+      <div className="flex flex-col gap-[7px] flex-1">
+        {slices.map((s) => {
+          const pc = POS_COLORS[s.pos] || POS_COLORS.K;
+          return (
+            <div key={s.pos} className="flex items-center gap-2">
+              <span className="text-[9px] font-bold font-heading tracking-[0.06em] min-w-[22px]" style={{ color: pc.text }}>{s.pos}</span>
+              <div className="flex-1 h-[5px] rounded-[3px] bg-[#222] overflow-hidden">
+                <div className="h-full rounded-[3px] transition-[width] duration-500" style={{ width: `${s.pct}%`, background: pc.text, opacity: 0.8 }} />
+              </div>
+              <span className="text-[10px] font-bold font-heading min-w-[20px] text-right" style={{ color: pc.text }}>{s.cnt}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RoundPositionBars({ roundData }: { roundData: { round: number; counts: Record<string, number>; total: number }[] }) {
+  const positions = ["QB", "RB", "WR", "TE"] as const;
+
+  return (
+    <div>
+      <div className="flex flex-col gap-2">
+        {roundData.map(({ round: r, counts, total }) => {
+          let offset = 0;
+          const segments = positions.map((pos) => {
+            const pct = total > 0 ? (counts[pos] / total) * 100 : 0;
+            const x = offset;
+            offset += pct;
+            return { pos, pct, x };
+          });
+
+          return (
+            <div key={r} className="flex items-center gap-2">
+              <span className="text-[10px] font-extrabold text-[#666] font-heading min-w-[28px]">RD {r}</span>
+              <div className="flex-1 h-7 rounded-[5px] overflow-hidden relative bg-[#222]">
+                <svg width="100%" height={28} className="absolute top-0 left-0">
+                  {segments.map((s) => s.pct > 0 ? (
+                    <rect key={s.pos} x={`${s.x}%`} y={0} width={`${s.pct}%`} height={28} fill={POS_COLORS[s.pos]?.text || "#94a3b8"} opacity={0.75} />
+                  ) : null)}
+                </svg>
+                {segments.map((s) => s.pct >= 12 ? (
+                  <div
+                    key={s.pos}
+                    className="absolute top-0 flex items-center h-7 text-[9px] font-extrabold font-heading opacity-70 pointer-events-none"
+                    style={{ left: `${s.x + s.pct / 2}%`, transform: "translateX(-50%)", color: "#000" }}
+                  >
+                    {s.pos}
+                  </div>
+                ) : null)}
+              </div>
+              <span className="text-[10px] text-[#666] font-mono min-w-[16px] text-right">{total}</span>
+            </div>
+          );
+        })}
+      </div>
+      {/* Legend */}
+      <div className="flex gap-2.5 mt-2.5 flex-wrap">
+        {positions.map((pos) => {
+          const pc = POS_COLORS[pos] || POS_COLORS.K;
+          return (
+            <div key={pos} className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-sm" style={{ background: pc.text, opacity: 0.75 }} />
+              <span className="text-[9px] text-[#666] font-semibold">{pos}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PicksByOwnerChart({ data }: { data: { name: string; cnt: number; division: string }[] }) {
+  const max = Math.max(...data.map((d) => d.cnt), 1);
+
+  return (
+    <div className="flex flex-col gap-[5px]">
+      {data.map(({ name, cnt, division }) => {
+        const dc = division ? divColors(division) : null;
+        const barColor = dc ? dc.text : "#FD4A48";
+        return (
+          <div key={name} className="flex items-center gap-2">
+            <OwnerAvatar name={name} division={division} size={20} />
+            <span className="text-[10px] text-[#666] min-w-[68px] truncate">{name.split(" ")[0]}</span>
+            <div className="flex-1 h-1.5 rounded-[3px] bg-[#222] overflow-hidden">
+              <div className="h-full rounded-[3px] transition-[width] duration-500" style={{ width: `${(cnt / max) * 100}%`, background: barColor, opacity: 0.8 }} />
+            </div>
+            <span className="text-[10px] font-bold font-heading text-[#f5f5f5] min-w-[14px] text-right">{cnt}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TradedPicksChart({ data }: { data: { name: string; cnt: number; division: string }[] }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {data.map(({ name, cnt, division }) => {
+        const dc = division ? divColors(division) : null;
+        return (
+          <div key={name} className="flex items-center gap-2">
+            <OwnerAvatar name={name} division={division} size={22} />
+            <span className="text-[11px] text-[#f5f5f5] flex-1 truncate">{name.split(" ")[0]}</span>
+            <div className="flex gap-[3px]">
+              {Array.from({ length: cnt }).map((_, i) => (
+                <div
+                  key={i}
+                  className="w-2.5 h-2.5 rounded-sm"
+                  style={{ background: dc ? dc.text : "#e8b84b", opacity: 0.8 }}
+                />
+              ))}
+            </div>
+            <span className="text-[10px] font-bold font-heading text-[#f5f5f5] min-w-[14px] text-right">{cnt}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export function DraftsClient({ drafts }: DraftsClientProps) {
@@ -384,8 +562,35 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
           </div>
         </div>
 
-        {/* TODO: Sidebar charts */}
+        {/* Sidebar charts */}
         <div className="flex flex-col gap-4">
+          {/* Position Mix donut */}
+          <SidebarCard>
+            <ChartLabel label="Position Mix" />
+            <PositionDonut picks={draft.picks} />
+          </SidebarCard>
+
+          {/* Positions by Round */}
+          <SidebarCard>
+            <ChartLabel label="Positions by Round" />
+            <RoundPositionBars roundData={roundData} />
+          </SidebarCard>
+
+          {/* Picks by Owner */}
+          <SidebarCard>
+            <ChartLabel label="Picks by Owner" />
+            <PicksByOwnerChart data={picksPerOwner} />
+          </SidebarCard>
+
+          {/* Pick Trades */}
+          <SidebarCard>
+            <ChartLabel label="Pick Trades" subtitle={tradedPicks.length > 0 ? `${tradedPicks.length} picks changed hands` : undefined} />
+            {tradedPicks.length === 0 ? (
+              <span className="text-[12px] text-[#666] italic">No picks were traded this draft.</span>
+            ) : (
+              <TradedPicksChart data={tradedByOwner} />
+            )}
+          </SidebarCard>
         </div>
       </div>
     </div>
