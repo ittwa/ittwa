@@ -214,10 +214,49 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
 
   if (!draft) return null;
 
+  const draftTypeLabel = draft.type === "snake" ? "Startup" : "Rookie";
+
   return (
     <div>
-      {/* TODO: Page Header */}
-      {/* TODO: Season Filter */}
+      {/* Page header */}
+      <div className="pb-5 border-b border-[#222] mb-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-1 h-5 bg-[#E8B84B] rounded-sm" />
+              <h1 className="font-heading text-xl font-extrabold tracking-[0.06em] uppercase">Draft History</h1>
+            </div>
+            <span
+              className="text-[11px] font-semibold px-2.5 py-[2px] rounded tracking-[0.04em]"
+              style={{ background: "rgba(253,74,72,0.1)", color: "#FD4A48", border: "1px solid rgba(253,74,72,0.3)" }}
+            >
+              {draftTypeLabel} · {draft.rounds} Rounds · {draft.picks.length} Picks
+            </span>
+          </div>
+
+          {/* Season filter */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-[#666] font-semibold tracking-[0.06em] uppercase mr-1">Season</span>
+            {seasons.map((yr) => (
+              <button
+                key={yr}
+                onClick={() => setSelectedSeason(yr)}
+                className="px-3.5 py-1.5 rounded-md cursor-pointer text-[13px] font-heading tracking-[0.04em]"
+                style={{
+                  background: selectedSeason === yr ? "#FD4A48" : "transparent",
+                  border: `1px solid ${selectedSeason === yr ? "#FD4A48" : "#222"}`,
+                  color: selectedSeason === yr ? "#fff" : "#666",
+                  fontWeight: selectedSeason === yr ? 700 : 500,
+                  transition: "all 0.15s",
+                }}
+              >
+                {yr}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* TODO: Two-column layout - Draft Grid + Sidebar */}
     </div>
   );
