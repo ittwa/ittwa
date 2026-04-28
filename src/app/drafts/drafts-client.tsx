@@ -257,7 +257,137 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
         </div>
       </div>
 
-      {/* TODO: Two-column layout - Draft Grid + Sidebar */}
+      {/* Two-column layout */}
+      <div className="grid gap-5" style={{ gridTemplateColumns: "1fr 280px" }}>
+        {/* Draft Grid */}
+        <div className="bg-[#111] border border-[#222] rounded-[10px] overflow-hidden" style={{ boxShadow: "0 0 0 1px #222" }}>
+          <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 220px)" }}>
+            <div style={{ minWidth: `${200 + 160 * draft.rounds}px` }}>
+              {/* Grid header row */}
+              <div
+                className="sticky top-0 z-10"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: `200px ${Array(draft.rounds).fill("160px").join(" ")}`,
+                  borderBottom: "2px solid #222",
+                  background: "#090909",
+                }}
+              >
+                <div className="px-4 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-[#666] border-r border-[#222]">
+                  Original Owner
+                </div>
+                {Array.from({ length: draft.rounds }, (_, i) => i + 1).map((r) => (
+                  <div
+                    key={r}
+                    className="py-2.5 text-center text-[10px] font-bold tracking-[0.08em] uppercase text-[#666]"
+                    style={{ borderRight: r < draft.rounds ? "1px solid #222" : "none" }}
+                  >
+                    <span className="font-heading text-[13px] font-extrabold text-[#f5f5f5]">RD {r}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Slot rows */}
+              {slotData.map(({ slot, ownerName, division }) => {
+                const isEven = slot % 2 === 0;
+                const dc = division ? divColors(division) : null;
+
+                return (
+                  <div
+                    key={slot}
+                    className="hover:!bg-[rgba(253,74,72,0.1)] transition-colors"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: `200px ${Array(draft.rounds).fill("160px").join(" ")}`,
+                      borderBottom: "1px solid #222",
+                      background: isEven ? "transparent" : "rgba(22,22,22,0.4)",
+                    }}
+                  >
+                    {/* Owner cell */}
+                    <div
+                      className="px-3.5 py-2.5 border-r border-[#222] flex items-center gap-2.5 sticky left-0 z-[1]"
+                      style={{ background: isEven ? "#111" : "#161616" }}
+                    >
+                      <OwnerAvatar name={ownerName} division={division} size={32} />
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-heading text-[10px] font-extrabold text-[#666] min-w-[14px]">{slot}</span>
+                          <span className="text-[12px] font-semibold text-[#f5f5f5] truncate">{ownerName}</span>
+                        </div>
+                        {dc && (
+                          <span
+                            className="text-[9px] font-semibold tracking-[0.05em] px-1.5 py-[1px] rounded-[3px] self-start"
+                            style={{ background: dc.bg, color: dc.text, border: `1px solid ${dc.border}` }}
+                          >
+                            {division}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Pick cells */}
+                    {Array.from({ length: draft.rounds }, (_, i) => i + 1).map((r) => {
+                      const pick = pickLookup[r]?.[slot];
+                      const originalOwner = draft.slotToOwner[slot];
+                      const traded = pick && originalOwner && pick.ownerName !== originalOwner;
+                      const numTeams = draft.numTeams || 12;
+                      const isSnake = draft.type === "snake";
+                      const pickNum = isSnake && r % 2 === 0 ? (numTeams - slot + 1) : slot;
+
+                      return (
+                        <div
+                          key={r}
+                          className="px-3 py-2.5 flex flex-col justify-center gap-1 relative"
+                          style={{
+                            borderRight: r < draft.rounds ? "1px solid #222" : "none",
+                            minHeight: 66,
+                          }}
+                        >
+                          {pick ? (
+                            <div className="flex gap-2 items-start">
+                              <PlayerAvatar name={pick.playerName} pos={pick.position} size={36} />
+                              <div className="flex flex-col gap-[3px] min-w-0 flex-1">
+                                <div className="flex items-center gap-[5px]">
+                                  <PosBadge pos={pick.position} />
+                                  <span className="text-[9px] font-medium text-[#666] font-mono">
+                                    {r}.{String(pickNum).padStart(2, "0")}
+                                  </span>
+                                </div>
+                                <span className="text-[11px] font-semibold text-[#f5f5f5] leading-[1.3] line-clamp-2">
+                                  {pick.playerName}
+                                </span>
+                                <span className="text-[10px] text-[#666]">{pick.team}</span>
+                                {traded && (
+                                  <div
+                                    className="inline-flex items-center gap-1 mt-0.5 self-start px-1.5 py-[2px] rounded"
+                                    style={{ background: "rgba(232,184,75,0.13)", border: "1px solid rgba(232,184,75,0.35)" }}
+                                  >
+                                    <OwnerAvatar name={pick.ownerName} division={pick.ownerDivision} size={14} />
+                                    <span className="text-[8px] text-[#e8b84b] font-bold tracking-[0.03em]">traded to</span>
+                                    <span className="text-[9px] text-[#e8b84b] font-semibold">
+                                      {pick.ownerName.split(" ")[0]}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-[#666] italic">—</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* TODO: Sidebar charts */}
+        <div className="flex flex-col gap-4">
+        </div>
+      </div>
     </div>
   );
 }
