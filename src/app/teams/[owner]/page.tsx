@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap } from "@/lib/data";
 import { getLatestActiveContracts } from "@/lib/contracts";
 import { getNFLPlayers } from "@/lib/sleeper";
-import { OWNER_LAST_NAME_MAP, AUCTION_DATE } from "@/lib/config";
+import { OWNER_LAST_NAME_MAP, AUCTION_DATE, SALARY_CAP } from "@/lib/config";
 import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha, getPositionVariant, getSalaryBarColor } from "@/lib/ui-utils";
 import { ContractWithValue } from "@/types/contracts";
 import { SleeperPlayersMap } from "@/types/sleeper";
@@ -142,6 +142,17 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   const rosterYears = rosterPlayers.reduce((sum, p) => sum + (p.years ?? 0), 0) + draftPickYears;
   const maxRosterSalary = Math.max(...rosterPlayers.map((p) => p.salary ?? 0), 1);
 
+  const seasonStarted = allMatchups.size > 0;
+  const capHitYear = seasonStarted ? currentSeasonNum + 1 : currentSeasonNum;
+
+  const ownerCapHitRows = capHits.filter((ch) => ch.owner.toLowerCase() === ownerLastName.toLowerCase());
+  const capHitTotal = ownerCapHitRows.reduce((sum, ch) => sum + (ch.yearlyHits[capHitYear] ?? 0), 0);
+
+  const capSpaceSalary = seasonStarted
+    ? rosterPlayers.filter((p) => (p.years ?? 0) > 1).reduce((sum, p) => sum + (p.salary ?? 0), 0)
+    : rosterSalary;
+  const capSpace = SALARY_CAP - capSpaceSalary - capHitTotal;
+
   const isBeforeAuction = new Date() < AUCTION_DATE;
   const displaySeason = isBeforeAuction ? currentSeasonNum : currentSeasonNum + 1;
   const ownerCapHits = capHits.filter((ch) => {
@@ -221,8 +232,10 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
           {/* Right: stat boxes */}
           <div className="hidden sm:flex gap-0.5 items-stretch shrink-0">
             {[
-              { label: "Salary Used", value: `$${rosterSalary.toFixed(0)}`, sub: "of $270", pct: rosterSalary / 270, color: "#FD4A48" },
+              { label: "Salary Used", value: `$${rosterSalary.toFixed(0)}`, sub: `of $${SALARY_CAP}`, pct: rosterSalary / SALARY_CAP, color: "#FD4A48" },
               { label: "Years Used", value: String(rosterYears), sub: "of 60", pct: rosterYears / 60, color: "#E8B84B" },
+              { label: "Cap Hit", value: `$${capHitTotal.toFixed(0)}`, sub: `${capHitYear} dead cap`, pct: null as number | null, color: "#fb923c" },
+              { label: "Cap Space", value: `$${capSpace.toFixed(0)}`, sub: `${capHitYear} avail`, pct: null as number | null, color: capSpace >= 0 ? "#4ade80" : "#FD4A48" },
               { label: "Roster Size", value: String(rosterPlayers.length), sub: "players", pct: null as number | null, color: divisionColor },
               { label: "Draft Picks", value: String(ownerDraftPicks.length), sub: "on hand", pct: null as number | null, color: divisionColor },
             ].map((s) => (
@@ -245,6 +258,8 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
           {[
             { label: "Salary", value: `$${rosterSalary.toFixed(0)}`, color: "#FD4A48" },
             { label: "Years", value: String(rosterYears), color: "#E8B84B" },
+            { label: "Cap Hit", value: `$${capHitTotal.toFixed(0)}`, color: "#fb923c" },
+            { label: "Cap Space", value: `$${capSpace.toFixed(0)}`, color: capSpace >= 0 ? "#4ade80" : "#FD4A48" },
             { label: "Roster", value: String(rosterPlayers.length), color: divisionColor },
             { label: "Picks", value: String(ownerDraftPicks.length), color: divisionColor },
           ].map((s) => (
