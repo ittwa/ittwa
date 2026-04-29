@@ -3,10 +3,11 @@ export const dynamic = 'force-dynamic';
 import { notFound } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap } from "@/lib/data";
-import { getLatestActiveContracts } from "@/lib/contracts";
+import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap, getLatestActiveContracts } from "@/lib/data";
 import { getNFLPlayers } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP, AUCTION_DATE, SALARY_CAP } from "@/lib/config";
+import { TradeCard } from "@/components/trade-card";
+import type { EnrichedTrade, TradeItem } from "@/components/trade-card";
 import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha, getPositionVariant, getSalaryBarColor } from "@/lib/ui-utils";
 import { ContractWithValue } from "@/types/contracts";
 import { SleeperPlayersMap } from "@/types/sleeper";
@@ -176,14 +177,72 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
     schedule.push({ week: w, opponent: oppName, myScore: myMatchup.points, oppScore: oppMatchup?.points ?? 0, completed });
   }
 
-  // Trades
-  let trades: { date: string; rosterIds: number[]; type: string }[] = [];
+  // Trades — build enriched trade cards
+  const contractMap = new Map<string, { salary: number; years: number }>();
+  for (const c of allActiveContracts) {
+    if (c.playerId && c.playerId !== "#N/A" && c.playerId !== "N/A" && c.playerId !== "") {
+      contractMap.set(c.playerId, { salary: c.salary, years: c.years });
+    }
+  }
+
+  let enrichedTrades: EnrichedTrade[] = [];
   try {
     const txns = await getAllTransactions();
-    trades = txns
-      .filter((t) => t.type === "trade" && t.status === "complete" && t.roster_ids.includes(team.rosterId))
-      .sort((a, b) => b.created - a.created)
-      .map((t) => ({ date: new Date(t.created).toLocaleDateString("en-US", { month: "short", day: "numeric" }), rosterIds: t.roster_ids, type: t.type }));
+    const completedTrades = txns
+      .filter((t) => t.type === "trade" && t.status === "complete")
+      .sort((a, b) => a.created - b.created);
+
+    let counter = 0;
+    for (const t of completedTrades) {
+      counter++;
+      if (!t.roster_ids.includes(team.rosterId)) continue;
+
+      const tradeId = `${season}${String(counter).padStart(2, "0")}`;
+      const sideMap = new Map<number, TradeItem[]>();
+      for (const rid of t.roster_ids) sideMap.set(rid, []);
+
+      if (t.adds) {
+        for (const [playerId, rosterId] of Object.entries(t.adds)) {
+          const player = nflPlayers[playerId];
+          const contract = contractMap.get(playerId);
+          const item: TradeItem = {
+            type: "player" as const,
+            name: player ? (player.full_name || `${player.first_name} ${player.last_name}`) : `Unknown (${playerId})`,
+            pos: player?.position || "??",
+            nflTeam: player?.team || "FA",
+            sleeperId: playerId,
+            salary: contract?.salary ?? 0,
+            years: contract?.years ?? 0,
+          };
+          sideMap.get(Number(rosterId))?.push(item);
+        }
+      }
+
+      if (t.draft_picks) {
+        for (const pick of t.draft_picks) {
+          const origOwner = rosterOwnerMap[pick.previous_owner_id] || `Team ${pick.previous_owner_id}`;
+          const item: TradeItem = {
+            type: "pick" as const,
+            name: `${pick.season} Round ${pick.round} (via ${origOwner})`,
+            round: pick.round,
+            pickSeason: pick.season,
+            originalOwner: origOwner,
+          };
+          sideMap.get(pick.owner_id)?.push(item);
+        }
+      }
+
+      const sides = t.roster_ids.map((rid) => ({
+        owner: rosterOwnerMap[rid] || `Team ${rid}`,
+        rosterId: rid,
+        received: sideMap.get(rid) || [],
+      }));
+
+      const week = t.week < 1 ? -1 : t.week;
+      enrichedTrades.push({ id: tradeId, created: t.created, week, season, sides });
+    }
+
+    enrichedTrades.sort((a, b) => b.created - a.created);
   } catch {}
 
   // Hero helpers
@@ -482,30 +541,26 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
       </Card>
 
       {/* ── Trade History ─────────────────────────────────────────────────────── */}
-      <Card>
-        <CardHeader className="pb-3">
+      <div>
+        <div className="mb-4">
           <SectionTick label="Trade History" />
-        </CardHeader>
-        <CardContent>
-          {trades.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">
-              No trades this season. Either everyone is happy or nobody has leverage.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {trades.map((t, i) => (
-                <div key={i} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
-                  <Badge variant="ittwa">Trade</Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {t.rosterIds.map((id) => rosterOwnerMap[id] || `Team ${id}`).join(" ↔ ")}
-                  </span>
-                  <span className="ml-auto text-xs text-muted-foreground tabular-nums">{t.date}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+        {enrichedTrades.length === 0 ? (
+          <Card>
+            <CardContent>
+              <p className="text-sm text-muted-foreground italic">
+                No trades this season. Either everyone is happy or nobody has leverage.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-3.5">
+            {enrichedTrades.map((trade) => (
+              <TradeCard key={trade.id} trade={trade} defaultExpanded={false} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
