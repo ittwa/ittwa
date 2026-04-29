@@ -191,7 +191,7 @@ function TradeCard({ trade }: { trade: EnrichedTrade }) {
   const weekLabel = trade.week < 1 ? "Off-Season" : `Week ${trade.week}`;
 
   return (
-    <div className="bg-[#111111] border border-[#1f1f1f] rounded-xl overflow-hidden">
+    <div id={trade.id} className="bg-[#111111] border border-[#1f1f1f] rounded-xl overflow-hidden scroll-mt-20">
       <div
         onClick={() => setExpanded((e) => !e)}
         className="flex items-center justify-between px-5 py-3.5 cursor-pointer bg-[#161616] select-none"

@@ -11,9 +11,10 @@ import {
   calculatePowerRankings,
   buildRosterOwnerMap,
   getNFLState,
+  getNFLPlayers,
 } from "@/lib/data";
 import { getDivisionVariant } from "@/lib/ui-utils";
-import { SleeperTransaction, MatchupPair } from "@/types/sleeper";
+import { SleeperTransaction, SleeperPlayersMap, MatchupPair } from "@/types/sleeper";
 import { StandingsEntry } from "@/lib/standings";
 import { PowerRankingEntry } from "@/lib/power-rankings";
 
@@ -27,6 +28,7 @@ async function fetchDashboardData(): Promise<{
   standings: StandingsEntry[];
   powerRankings: PowerRankingEntry[];
   transactions: SleeperTransaction[];
+  nflPlayers: SleeperPlayersMap;
 }> {
   let leagueName = "ITTWA";
   let currentWeek = 1;
@@ -35,6 +37,7 @@ async function fetchDashboardData(): Promise<{
   let standings: StandingsEntry[] = [];
   let powerRankings: PowerRankingEntry[] = [];
   let transactions: SleeperTransaction[] = [];
+  let nflPlayers: SleeperPlayersMap = {};
 
   try {
     const [teamsData, nflState] = await Promise.all([
@@ -59,21 +62,23 @@ async function fetchDashboardData(): Promise<{
     }
 
     const weekToShow = Math.max(currentWeek - 1, 1);
-    const [pairs, txns, ownerMap] = await Promise.all([
+    const [pairs, txns, ownerMap, playersData] = await Promise.all([
       getMatchupPairs(weekToShow).catch(() => [] as MatchupPair[]),
       getAllTransactions().catch(() => [] as SleeperTransaction[]),
       buildRosterOwnerMap().catch(() => ({} as Record<number, string>)),
+      getNFLPlayers().catch(() => ({} as SleeperPlayersMap)),
     ]);
 
     matchupPairs = pairs;
     transactions = txns;
+    nflPlayers = playersData;
     standings = calculateStandings(teamsData.teams, teamsData.allMatchups);
     powerRankings = calculatePowerRankings(teamsData.allMatchups, rosterInfo);
   } catch (err) {
     console.error("[dashboard] data fetch error:", err);
   }
 
-  return { leagueName, currentWeek, season, matchupPairs, standings, powerRankings, transactions };
+  return { leagueName, currentWeek, season, matchupPairs, standings, powerRankings, transactions, nflPlayers };
 }
 
 function formatDate(timestampMs: number): string {
@@ -293,9 +298,13 @@ function PowerRankingsSection({ rankings }: { rankings: PowerRankingEntry[] }) {
 function TransactionsSection({
   transactions,
   rosterOwnerMap,
+  nflPlayers,
+  season,
 }: {
   transactions: SleeperTransaction[];
   rosterOwnerMap: Record<number, string>;
+  nflPlayers: SleeperPlayersMap;
+  season: string;
 }) {
   const filtered = transactions
     .filter((tx) => tx.status === "complete" && (tx.type === "trade" || (tx.adds !== null && Object.keys(tx.adds).length > 0)))
@@ -308,6 +317,15 @@ function TransactionsSection({
     if (type === "waiver") return "bg-red-950/60 text-red-400 border border-red-800";
     return "bg-secondary text-secondary-foreground border border-border";
   };
+
+  // Build trade index to generate trade IDs matching the Trades page logic
+  const tradeIndex = new Map<string, string>();
+  const trades = transactions
+    .filter((tx) => tx.type === "trade" && tx.status === "complete")
+    .sort((a, b) => a.created - b.created);
+  trades.forEach((tx, i) => {
+    tradeIndex.set(tx.transaction_id, `${season}${String(i + 1).padStart(2, "0")}`);
+  });
 
   if (filtered.length === 0) {
     return (
@@ -326,16 +344,63 @@ function TransactionsSection({
       <CardContent className="p-0">
         <div className="divide-y divide-border">
           {filtered.map((tx) => {
+            const isTrade = tx.type === "trade";
             const teams = tx.roster_ids.map((id) => rosterOwnerMap[id] || `Team ${id}`).join(" · ");
-            return (
-              <div key={tx.transaction_id} className="flex items-center justify-between gap-3 px-6 py-3">
+
+            // Single-player transaction info
+            const addedPlayerIds = tx.adds ? Object.keys(tx.adds) : [];
+            const isSinglePlayer = !isTrade && addedPlayerIds.length === 1;
+            const singlePlayer = isSinglePlayer ? nflPlayers[addedPlayerIds[0]] : null;
+            const singlePlayerId = isSinglePlayer ? addedPlayerIds[0] : null;
+            const playerName = singlePlayer
+              ? (singlePlayer.full_name || `${singlePlayer.first_name} ${singlePlayer.last_name}`)
+              : null;
+            const ownerRosterId = isSinglePlayer && tx.adds ? tx.adds[addedPlayerIds[0]] : null;
+            const ownerName = ownerRosterId != null ? (rosterOwnerMap[ownerRosterId] || teams) : teams;
+
+            const tradeId = isTrade ? tradeIndex.get(tx.transaction_id) : null;
+            const tradeHref = tradeId ? `/trades#${tradeId}` : undefined;
+
+            const rowContent = (
+              <div className="flex items-center justify-between gap-3 px-6 py-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${txBadgeClass(tx.type)}`}>
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium shrink-0 ${txBadgeClass(tx.type)}`}>
                     {transactionLabel(tx)}
                   </span>
-                  <span className="text-sm text-muted-foreground truncate">{teams}</span>
+                  {isSinglePlayer && singlePlayerId ? (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-full overflow-hidden bg-card border border-border shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`https://sleepercdn.com/content/nfl/players/thumb/${singlePlayerId}.jpg`}
+                          alt={playerName || ""}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-medium truncate">{playerName}</span>
+                        <span className="text-xs text-muted-foreground truncate">{ownerName}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground truncate">{teams}</span>
+                  )}
                 </div>
                 <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{formatDate(tx.created)}</span>
+              </div>
+            );
+
+            if (isTrade && tradeHref) {
+              return (
+                <Link key={tx.transaction_id} href={tradeHref} className="block hover:bg-accent/30 transition-colors">
+                  {rowContent}
+                </Link>
+              );
+            }
+
+            return (
+              <div key={tx.transaction_id}>
+                {rowContent}
               </div>
             );
           })}
@@ -348,7 +413,7 @@ function TransactionsSection({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function HomePage() {
-  const { leagueName, currentWeek, season, matchupPairs, standings, powerRankings, transactions } =
+  const { leagueName, currentWeek, season, matchupPairs, standings, powerRankings, transactions, nflPlayers } =
     await fetchDashboardData();
 
   const rosterOwnerMap: Record<number, string> = {};
@@ -411,7 +476,7 @@ export default async function HomePage() {
         </div>
         <div className="space-y-6">
           <StandingsSection standings={standings} />
-          <TransactionsSection transactions={transactions} rosterOwnerMap={rosterOwnerMap} />
+          <TransactionsSection transactions={transactions} rosterOwnerMap={rosterOwnerMap} nflPlayers={nflPlayers} season={season} />
         </div>
       </div>
     </div>
