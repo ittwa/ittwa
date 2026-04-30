@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description:
     "Contract dynasty fantasy football league, founded 2014. 12 teams, too many opinions.",
   icons: {
-    icon: "https://www.ittwa.com/badge.png",
+    icon: "/logo.svg",
   },
 };
 

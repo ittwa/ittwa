@@ -79,11 +79,10 @@ export function Nav() {
         <div className="flex h-14 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="https://www.ittwa.com/badge.png"
+              src="/logo.svg"
               alt="ITTWA"
               width={32}
               height={32}
-              className="rounded"
               unoptimized
             />
             <span className="font-bold text-lg hidden sm:inline">ITTWA</span>

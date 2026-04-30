@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <clipPath id="ball">
+      <path d="M 5,50 Q 50,-8 95,50 Q 50,108 5,50 Z" transform="rotate(-40 50 50)"/>
+    </clipPath>
+  </defs>
+  <!-- Football body -->
+  <path d="M 5,50 Q 50,-8 95,50 Q 50,108 5,50 Z" transform="rotate(-40 50 50)" fill="#FD4A48"/>
+  <!-- Lace stripes (perpendicular to long axis, clipped to football) -->
+  <g clip-path="url(#ball)">
+    <rect x="19" y="-15" width="13" height="130" fill="white" transform="rotate(-40 50 50)"/>
+    <rect x="68" y="-15" width="13" height="130" fill="white" transform="rotate(-40 50 50)"/>
+  </g>
+  <!-- ITTWA text -->
+  <text x="50" y="52" fill="white"
+        font-family="Impact, 'Arial Narrow', Arial, sans-serif"
+        font-weight="bold" font-size="13" letter-spacing="1"
+        text-anchor="middle" dominant-baseline="middle">ITTWA</text>
+</svg>
