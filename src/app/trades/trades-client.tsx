@@ -2,9 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { TradeCard } from "@/components/trade-card";
-import type { EnrichedTrade, TradeItem, TradeSideData, TradePlayerItem, TradePickItem } from "@/components/trade-card";
-
-export type { EnrichedTrade, TradeItem, TradeSideData, TradePlayerItem, TradePickItem };
+import type { EnrichedTrade } from "@/components/trade-card";
 
 interface TradesClientProps {
   trades: EnrichedTrade[];
@@ -61,8 +59,12 @@ export function TradesClient({ trades, season }: TradesClientProps) {
     });
   }, [trades, ownerFilter, seasonFilter]);
 
-  const totalPlayers = filtered.flatMap((t) => t.sides.flatMap((s) => s.received)).filter((i) => i.type === "player").length;
-  const totalPicks = filtered.flatMap((t) => t.sides.flatMap((s) => s.received)).filter((i) => i.type === "pick").length;
+  const { totalPlayers, totalPicks } = useMemo(() => {
+    let players = 0, picks = 0;
+    for (const t of filtered) for (const s of t.sides) for (const item of s.received)
+      item.type === "player" ? players++ : picks++;
+    return { totalPlayers: players, totalPicks: picks };
+  }, [filtered]);
 
   return (
     <div>

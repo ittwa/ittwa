@@ -3,8 +3,6 @@
 import { useState, Fragment } from "react";
 import { getPositionColors } from "@/lib/ui-utils";
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
 export interface TradePlayerItem {
   type: "player";
   name: string;
@@ -38,8 +36,6 @@ export interface EnrichedTrade {
   season: string;
   sides: TradeSideData[];
 }
-
-// ── Helper Components ────────────────────────────────────────────────────────
 
 function PosBadge({ pos }: { pos: string }) {
   const pc = getPositionColors(pos);
@@ -164,21 +160,18 @@ function TradeSide({ side, isLeft }: { side: TradeSideData; isLeft: boolean }) {
 
 function TradeArrows() {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 flex-shrink-0 px-1">
-      <div className="flex flex-col gap-1.5">
-        <span className="text-lg text-[#FD4A48] leading-none">→</span>
-        <span className="text-lg text-[#4ade80] leading-none" style={{ transform: "scaleX(-1)", display: "inline-block" }}>→</span>
-      </div>
+    <div className="flex flex-col items-center justify-center gap-1.5 flex-shrink-0 px-1">
+      <span className="text-lg text-[#FD4A48] leading-none">→</span>
+      <span className="text-lg text-[#4ade80] leading-none" style={{ transform: "scaleX(-1)", display: "inline-block" }}>→</span>
     </div>
   );
 }
 
-// ── TradeCard ─────────────────────────────────────────────────────────────────
-
 export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTrade; defaultExpanded?: boolean }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const playerCount = trade.sides.flatMap((s) => s.received).filter((i) => i.type === "player").length;
-  const pickCount = trade.sides.flatMap((s) => s.received).filter((i) => i.type === "pick").length;
+  let playerCount = 0, pickCount = 0;
+  for (const s of trade.sides) for (const item of s.received)
+    item.type === "player" ? playerCount++ : pickCount++;
 
   const date = new Date(trade.created).toLocaleDateString("en-US", {
     month: "short",
@@ -252,29 +245,21 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
               {trade.sides.map((side, si) => {
                 const otherSide = trade.sides[1 - si];
                 if (!otherSide) return null;
-                const salaryIn = side.received
-                  .filter((i): i is TradePlayerItem => i.type === "player")
-                  .reduce((s, i) => s + i.salary, 0);
-                const salaryOut = otherSide.received
-                  .filter((i): i is TradePlayerItem => i.type === "player")
-                  .reduce((s, i) => s + i.salary, 0);
-                const salaryNet = salaryIn - salaryOut;
-                const picksIn = side.received.filter((i) => i.type === "pick").length;
-                const picksOut = otherSide.received.filter((i) => i.type === "pick").length;
-                const picksNet = picksIn - picksOut;
-                const yearsIn = side.received
-                  .filter((i): i is TradePlayerItem => i.type === "player")
-                  .reduce((s, i) => s + i.years, 0);
-                const yearsOut = otherSide.received
-                  .filter((i): i is TradePlayerItem => i.type === "player")
-                  .reduce((s, i) => s + i.years, 0);
-                const yearsNet = yearsIn - yearsOut;
+                const agg = (items: TradeItem[]) => {
+                  let salary = 0, years = 0, picks = 0;
+                  for (const i of items) i.type === "player" ? (salary += i.salary, years += i.years) : picks++;
+                  return { salary, years, picks };
+                };
+                const inn = agg(side.received), out = agg(otherSide.received);
+                const salaryNet = inn.salary - out.salary;
+                const yearsNet = inn.years - out.years;
+                const picksNet = inn.picks - out.picks;
                 const salaryColor = salaryNet > 0 ? "#f87171" : salaryNet < 0 ? "#4ade80" : "#555";
                 const picksColor = picksNet > 0 ? "#E8B84B" : picksNet < 0 ? "#f87171" : "#555";
                 const yearsColor = yearsNet > 0 ? "#f87171" : yearsNet < 0 ? "#4ade80" : "#555";
-                const hasSalary = salaryIn > 0 || salaryOut > 0;
-                const hasYears = yearsIn > 0 || yearsOut > 0;
-                const hasPicks = picksIn > 0 || picksOut > 0;
+                const hasSalary = inn.salary > 0 || out.salary > 0;
+                const hasYears = inn.years > 0 || out.years > 0;
+                const hasPicks = inn.picks > 0 || out.picks > 0;
                 return (
                   <div key={side.owner} className="flex-1 bg-[#090909] border border-[#1f1f1f] rounded-lg px-3 py-2 flex items-center justify-between gap-3">
                     <span className="text-[11px] font-semibold text-[#777] whitespace-nowrap">{side.owner}</span>

@@ -7,7 +7,8 @@ import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTrans
 import { getNFLPlayers } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP, AUCTION_DATE, SALARY_CAP } from "@/lib/config";
 import { TradeCard } from "@/components/trade-card";
-import type { EnrichedTrade, TradeItem } from "@/components/trade-card";
+import type { EnrichedTrade } from "@/components/trade-card";
+import { buildContractLookup, enrichTrades } from "@/lib/trade-utils";
 import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha, getPositionVariant, getSalaryBarColor } from "@/lib/ui-utils";
 import { ContractWithValue } from "@/types/contracts";
 import { SleeperPlayersMap } from "@/types/sleeper";
@@ -98,12 +99,13 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   const { owner: rawOwner } = await params;
   const ownerName = decodeURIComponent(rawOwner);
 
-  const [teamsData, contracts, capHits, rosterOwnerMap, nflPlayers] = await Promise.all([
+  const [teamsData, contracts, capHits, rosterOwnerMap, nflPlayers, allTxns] = await Promise.all([
     getTeamsData(),
     getContracts(),
     getCapHits(),
     buildRosterOwnerMap(),
     getNFLPlayers(),
+    getAllTransactions().catch(() => [] as Awaited<ReturnType<typeof getAllTransactions>>),
   ]);
 
   const { teams, season, currentWeek, allMatchups } = teamsData;
@@ -132,12 +134,13 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
       return a.player.localeCompare(b.player);
     });
 
-  const draftPickSalary = ownerDraftPicks
-    .filter((p) => parseInt(p.season, 10) === currentSeasonNum)
-    .reduce((sum, p) => sum + p.salary, 0);
-  const draftPickYears = ownerDraftPicks
-    .filter((p) => parseInt(p.season, 10) === currentSeasonNum)
-    .reduce((sum, p) => sum + p.years, 0);
+  let draftPickSalary = 0, draftPickYears = 0;
+  for (const p of ownerDraftPicks) {
+    if (parseInt(p.season, 10) === currentSeasonNum) {
+      draftPickSalary += p.salary;
+      draftPickYears += p.years;
+    }
+  }
 
   const rosterSalary = rosterPlayers.reduce((sum, p) => sum + (p.salary ?? 0), 0) + draftPickSalary;
   const rosterYears = rosterPlayers.reduce((sum, p) => sum + (p.years ?? 0), 0) + draftPickYears;
@@ -156,13 +159,12 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
 
   const isBeforeAuction = new Date() < AUCTION_DATE;
   const displaySeason = isBeforeAuction ? currentSeasonNum : currentSeasonNum + 1;
-  const ownerCapHits = capHits.filter((ch) => {
-    if (ch.owner !== ownerLastName) return false;
-    return Object.entries(ch.yearlyHits).some(([year, value]) => {
+  const ownerCapHits = ownerCapHitRows.filter((ch) =>
+    Object.entries(ch.yearlyHits).some(([year, value]) => {
       const y = parseInt(year, 10);
       return (isBeforeAuction ? y >= currentSeasonNum : y > currentSeasonNum) && value > 0;
-    });
-  });
+    })
+  );
 
   // Schedule
   const schedule: { week: number; opponent: string; myScore: number; oppScore: number; completed: boolean }[] = [];
@@ -177,73 +179,12 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
     schedule.push({ week: w, opponent: oppName, myScore: myMatchup.points, oppScore: oppMatchup?.points ?? 0, completed });
   }
 
-  // Trades — build enriched trade cards
-  const contractMap = new Map<string, { salary: number; years: number }>();
-  for (const c of allActiveContracts) {
-    if (c.playerId && c.playerId !== "#N/A" && c.playerId !== "N/A" && c.playerId !== "") {
-      contractMap.set(c.playerId, { salary: c.salary, years: c.years });
-    }
-  }
-
-  let enrichedTrades: EnrichedTrade[] = [];
-  try {
-    const txns = await getAllTransactions();
-    const completedTrades = txns
-      .filter((t) => t.type === "trade" && t.status === "complete")
-      .sort((a, b) => a.created - b.created);
-
-    let counter = 0;
-    for (const t of completedTrades) {
-      counter++;
-      if (!t.roster_ids.includes(team.rosterId)) continue;
-
-      const tradeId = `${season}${String(counter).padStart(2, "0")}`;
-      const sideMap = new Map<number, TradeItem[]>();
-      for (const rid of t.roster_ids) sideMap.set(rid, []);
-
-      if (t.adds) {
-        for (const [playerId, rosterId] of Object.entries(t.adds)) {
-          const player = nflPlayers[playerId];
-          const contract = contractMap.get(playerId);
-          const item: TradeItem = {
-            type: "player" as const,
-            name: player ? (player.full_name || `${player.first_name} ${player.last_name}`) : `Unknown (${playerId})`,
-            pos: player?.position || "??",
-            nflTeam: player?.team || "FA",
-            sleeperId: playerId,
-            salary: contract?.salary ?? 0,
-            years: contract?.years ?? 0,
-          };
-          sideMap.get(Number(rosterId))?.push(item);
-        }
-      }
-
-      if (t.draft_picks) {
-        for (const pick of t.draft_picks) {
-          const origOwner = rosterOwnerMap[pick.previous_owner_id] || `Team ${pick.previous_owner_id}`;
-          const item: TradeItem = {
-            type: "pick" as const,
-            name: `${pick.season} Round ${pick.round} (via ${origOwner})`,
-            round: pick.round,
-            pickSeason: pick.season,
-            originalOwner: origOwner,
-          };
-          sideMap.get(pick.owner_id)?.push(item);
-        }
-      }
-
-      const sides = t.roster_ids.map((rid) => ({
-        owner: rosterOwnerMap[rid] || `Team ${rid}`,
-        rosterId: rid,
-        received: sideMap.get(rid) || [],
-      }));
-
-      const week = t.week < 1 ? -1 : t.week;
-      enrichedTrades.push({ id: tradeId, created: t.created, week, season, sides });
-    }
-
-    enrichedTrades.sort((a, b) => b.created - a.created);
-  } catch {}
+  const contractMap = buildContractLookup(allActiveContracts);
+  const counter = { value: 0 };
+  const allEnrichedTrades = enrichTrades(allTxns, rosterOwnerMap, contractMap, nflPlayers, season, counter);
+  const enrichedTrades = allEnrichedTrades
+    .filter((t) => t.sides.some((s) => s.rosterId === team.rosterId))
+    .sort((a, b) => b.created - a.created);
 
   // Hero helpers
   const divisionColor = getDivisionColor(team.division);
