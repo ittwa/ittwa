@@ -112,7 +112,7 @@ function PosBadge({ pos }: { pos: string }) {
 
 function SidebarCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-[#111] border border-[#222] rounded-lg p-[18px]" style={{ boxShadow: "0 0 0 1px #222" }}>
+    <div className="bg-card border border-border rounded-lg p-[18px]">
       {children}
     </div>
   );
@@ -121,8 +121,8 @@ function SidebarCard({ children }: { children: React.ReactNode }) {
 function ChartLabel({ label, subtitle }: { label: string; subtitle?: string }) {
   return (
     <div className="mb-3">
-      <span className="text-[11px] font-bold tracking-[0.07em] uppercase text-[#666] font-heading">{label}</span>
-      {subtitle && <span className="text-[10px] text-[#666] ml-2">{subtitle}</span>}
+      <span className="text-[11px] font-bold tracking-[0.07em] uppercase text-muted-foreground font-heading">{label}</span>
+      {subtitle && <span className="text-[10px] text-muted-foreground ml-2">{subtitle}</span>}
     </div>
   );
 }
@@ -161,8 +161,8 @@ function PositionDonut({ picks }: { picks: DraftPick[] }) {
         {slices.map((s) => (
           <path key={s.pos} d={s.path} fill={POS_COLORS[s.pos]?.text || "#94a3b8"} opacity={0.85} />
         ))}
-        <text x={cx} y={cy + 5} textAnchor="middle" fill="#f5f5f5" fontSize={13} fontWeight={800} fontFamily="'Barlow Condensed', sans-serif">{total}</text>
-        <text x={cx} y={cy + 17} textAnchor="middle" fill="#666" fontSize={8} fontFamily="'Inter', sans-serif">PICKS</text>
+        <text x={cx} y={cy + 5} textAnchor="middle" fill="var(--foreground)" fontSize={13} fontWeight={800} fontFamily="'Barlow Condensed', sans-serif">{total}</text>
+        <text x={cx} y={cy + 17} textAnchor="middle" fill="var(--muted-foreground)" fontSize={8} fontFamily="'Inter', sans-serif">PICKS</text>
       </svg>
       <div className="flex flex-col gap-[7px] flex-1">
         {slices.map((s) => {
@@ -170,7 +170,7 @@ function PositionDonut({ picks }: { picks: DraftPick[] }) {
           return (
             <div key={s.pos} className="flex items-center gap-2">
               <span className="text-[9px] font-bold font-heading tracking-[0.06em] min-w-[22px]" style={{ color: pc.text }}>{s.pos}</span>
-              <div className="flex-1 h-[5px] rounded-[3px] bg-[#222] overflow-hidden">
+              <div className="flex-1 h-[5px] rounded-[3px] bg-border overflow-hidden">
                 <div className="h-full rounded-[3px] transition-[width] duration-500" style={{ width: `${s.pct}%`, background: pc.text, opacity: 0.8 }} />
               </div>
               <span className="text-[10px] font-bold font-heading min-w-[20px] text-right" style={{ color: pc.text }}>{s.cnt}</span>
@@ -199,8 +199,8 @@ function RoundPositionBars({ roundData }: { roundData: { round: number; counts: 
 
           return (
             <div key={r} className="flex items-center gap-2">
-              <span className="text-[10px] font-extrabold text-[#666] font-heading min-w-[28px]">RD {r}</span>
-              <div className="flex-1 h-7 rounded-[5px] overflow-hidden relative bg-[#222]">
+              <span className="text-[10px] font-extrabold text-muted-foreground font-heading min-w-[28px]">RD {r}</span>
+              <div className="flex-1 h-7 rounded-[5px] overflow-hidden relative bg-border">
                 <svg width="100%" height={28} className="absolute top-0 left-0">
                   {segments.map((s) => s.pct > 0 ? (
                     <rect key={s.pos} x={`${s.x}%`} y={0} width={`${s.pct}%`} height={28} fill={POS_COLORS[s.pos]?.text || "#94a3b8"} opacity={0.75} />
@@ -216,7 +216,7 @@ function RoundPositionBars({ roundData }: { roundData: { round: number; counts: 
                   </div>
                 ) : null)}
               </div>
-              <span className="text-[10px] text-[#666] font-mono min-w-[16px] text-right">{total}</span>
+              <span className="text-[10px] text-muted-foreground font-mono min-w-[16px] text-right">{total}</span>
             </div>
           );
         })}
@@ -228,7 +228,7 @@ function RoundPositionBars({ roundData }: { roundData: { round: number; counts: 
           return (
             <div key={pos} className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-sm" style={{ background: pc.text, opacity: 0.75 }} />
-              <span className="text-[9px] text-[#666] font-semibold">{pos}</span>
+              <span className="text-[9px] text-muted-foreground font-semibold">{pos}</span>
             </div>
           );
         })}
@@ -248,11 +248,11 @@ function PicksByOwnerChart({ data }: { data: { name: string; cnt: number; divisi
         return (
           <div key={name} className="flex items-center gap-2">
             <OwnerAvatar name={name} division={division} size={20} />
-            <span className="text-[10px] text-[#666] min-w-[68px] truncate">{name.split(" ")[0]}</span>
-            <div className="flex-1 h-1.5 rounded-[3px] bg-[#222] overflow-hidden">
+            <span className="text-[10px] text-muted-foreground min-w-[68px] truncate">{name.split(" ")[0]}</span>
+            <div className="flex-1 h-1.5 rounded-[3px] bg-border overflow-hidden">
               <div className="h-full rounded-[3px] transition-[width] duration-500" style={{ width: `${(cnt / max) * 100}%`, background: barColor, opacity: 0.8 }} />
             </div>
-            <span className="text-[10px] font-bold font-heading text-[#f5f5f5] min-w-[14px] text-right">{cnt}</span>
+            <span className="text-[10px] font-bold font-heading text-foreground min-w-[14px] text-right">{cnt}</span>
           </div>
         );
       })}
@@ -268,7 +268,7 @@ function TradedPicksChart({ data }: { data: { name: string; cnt: number; divisio
         return (
           <div key={name} className="flex items-center gap-2">
             <OwnerAvatar name={name} division={division} size={22} />
-            <span className="text-[11px] text-[#f5f5f5] flex-1 truncate">{name.split(" ")[0]}</span>
+            <span className="text-[11px] text-foreground flex-1 truncate">{name.split(" ")[0]}</span>
             <div className="flex gap-[3px]">
               {Array.from({ length: cnt }).map((_, i) => (
                 <div
@@ -278,7 +278,7 @@ function TradedPicksChart({ data }: { data: { name: string; cnt: number; divisio
                 />
               ))}
             </div>
-            <span className="text-[10px] font-bold font-heading text-[#f5f5f5] min-w-[14px] text-right">{cnt}</span>
+            <span className="text-[10px] font-bold font-heading text-foreground min-w-[14px] text-right">{cnt}</span>
           </div>
         );
       })}
@@ -397,7 +397,7 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
   return (
     <div>
       {/* Page header */}
-      <div className="pb-5 border-b border-[#222] mb-6">
+      <div className="pb-5 border-b border-border mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2.5">
@@ -414,7 +414,7 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
 
           {/* Season filter */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-[#666] font-semibold tracking-[0.06em] uppercase mr-1">Season</span>
+            <span className="text-[11px] text-muted-foreground font-semibold tracking-[0.06em] uppercase mr-1">Season</span>
             {seasons.map((yr) => (
               <button
                 key={yr}
@@ -422,8 +422,8 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
                 className="px-3.5 py-1.5 rounded-md cursor-pointer text-[13px] font-heading tracking-[0.04em]"
                 style={{
                   background: selectedSeason === yr ? "#FD4A48" : "transparent",
-                  border: `1px solid ${selectedSeason === yr ? "#FD4A48" : "#222"}`,
-                  color: selectedSeason === yr ? "#fff" : "#666",
+                  border: `1px solid ${selectedSeason === yr ? "#FD4A48" : "var(--border)"}`,
+                  color: selectedSeason === yr ? "#fff" : "var(--muted-foreground)",
                   fontWeight: selectedSeason === yr ? 700 : 500,
                   transition: "all 0.15s",
                 }}
@@ -438,7 +438,7 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
       {/* Two-column layout */}
       <div className="grid gap-5" style={{ gridTemplateColumns: "1fr 280px" }}>
         {/* Draft Grid */}
-        <div className="bg-[#111] border border-[#222] rounded-[10px] overflow-hidden" style={{ boxShadow: "0 0 0 1px #222" }}>
+        <div className="bg-card border border-border rounded-[10px] overflow-hidden">
           <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 220px)" }}>
             <div style={{ minWidth: `${200 + 160 * draft.rounds}px` }}>
               {/* Grid header row */}
@@ -447,20 +447,20 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
                 style={{
                   display: "grid",
                   gridTemplateColumns: `200px ${Array(draft.rounds).fill("160px").join(" ")}`,
-                  borderBottom: "2px solid #222",
-                  background: "#090909",
+                  borderBottom: "2px solid var(--border)",
+                  background: "var(--background)",
                 }}
               >
-                <div className="px-4 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-[#666] border-r border-[#222]">
+                <div className="px-4 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground border-r border-border">
                   Original Owner
                 </div>
                 {Array.from({ length: draft.rounds }, (_, i) => i + 1).map((r) => (
                   <div
                     key={r}
-                    className="py-2.5 text-center text-[10px] font-bold tracking-[0.08em] uppercase text-[#666]"
-                    style={{ borderRight: r < draft.rounds ? "1px solid #222" : "none" }}
+                    className="py-2.5 text-center text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground"
+                    style={{ borderRight: r < draft.rounds ? "1px solid var(--border)" : "none" }}
                   >
-                    <span className="font-heading text-[13px] font-extrabold text-[#f5f5f5]">RD {r}</span>
+                    <span className="font-heading text-[13px] font-extrabold text-foreground">RD {r}</span>
                   </div>
                 ))}
               </div>
@@ -477,20 +477,20 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
                     style={{
                       display: "grid",
                       gridTemplateColumns: `200px ${Array(draft.rounds).fill("160px").join(" ")}`,
-                      borderBottom: "1px solid #222",
-                      background: isEven ? "transparent" : "rgba(22,22,22,0.4)",
+                      borderBottom: "1px solid var(--border)",
+                      background: isEven ? "transparent" : "var(--secondary)",
                     }}
                   >
                     {/* Owner cell */}
                     <div
-                      className="px-3.5 py-2.5 border-r border-[#222] flex items-center gap-2.5 sticky left-0 z-[1]"
-                      style={{ background: isEven ? "#111" : "#161616" }}
+                      className="px-3.5 py-2.5 border-r border-border flex items-center gap-2.5 sticky left-0 z-[1]"
+                      style={{ background: isEven ? "var(--card)" : "var(--secondary)" }}
                     >
                       <OwnerAvatar name={ownerName} division={division} size={32} />
                       <div className="flex flex-col gap-0.5 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-heading text-[10px] font-extrabold text-[#666] min-w-[14px]">{slot}</span>
-                          <span className="text-[12px] font-semibold text-[#f5f5f5] truncate">{ownerName}</span>
+                          <span className="font-heading text-[10px] font-extrabold text-muted-foreground min-w-[14px]">{slot}</span>
+                          <span className="text-[12px] font-semibold text-foreground truncate">{ownerName}</span>
                         </div>
                         {dc && (
                           <span
@@ -517,7 +517,7 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
                           key={r}
                           className="px-3 py-2.5 flex flex-col justify-center gap-1 relative"
                           style={{
-                            borderRight: r < draft.rounds ? "1px solid #222" : "none",
+                            borderRight: r < draft.rounds ? "1px solid var(--border)" : "none",
                             minHeight: 66,
                           }}
                         >
@@ -527,14 +527,14 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
                               <div className="flex flex-col gap-[3px] min-w-0 flex-1">
                                 <div className="flex items-center gap-[5px]">
                                   <PosBadge pos={pick.position} />
-                                  <span className="text-[9px] font-medium text-[#666] font-mono">
+                                  <span className="text-[9px] font-medium text-muted-foreground font-mono">
                                     {r}.{String(pickNum).padStart(2, "0")}
                                   </span>
                                 </div>
-                                <span className="text-[11px] font-semibold text-[#f5f5f5] leading-[1.3] line-clamp-2">
+                                <span className="text-[11px] font-semibold text-foreground leading-[1.3] line-clamp-2">
                                   {pick.playerName}
                                 </span>
-                                <span className="text-[10px] text-[#666]">{pick.team}</span>
+                                <span className="text-[10px] text-muted-foreground">{pick.team}</span>
                                 {traded && (
                                   <div
                                     className="inline-flex items-center gap-1 mt-0.5 self-start px-1.5 py-[2px] rounded"
@@ -550,7 +550,7 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
                               </div>
                             </div>
                           ) : (
-                            <span className="text-[11px] text-[#666] italic">—</span>
+                            <span className="text-[11px] text-muted-foreground italic">—</span>
                           )}
                         </div>
                       );
@@ -586,7 +586,7 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
           <SidebarCard>
             <ChartLabel label="Pick Trades" subtitle={tradedPicks.length > 0 ? `${tradedPicks.length} picks changed hands` : undefined} />
             {tradedPicks.length === 0 ? (
-              <span className="text-[12px] text-[#666] italic">No picks were traded this draft.</span>
+              <span className="text-[12px] text-muted-foreground italic">No picks were traded this draft.</span>
             ) : (
               <TradedPicksChart data={tradedByOwner} />
             )}

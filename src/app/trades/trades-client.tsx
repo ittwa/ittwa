@@ -18,9 +18,9 @@ function FilterSelect({ value, onChange, options }: { value: string; onChange: (
         onChange={(e) => onChange(e.target.value)}
         className="appearance-none pr-7 pl-3 py-1.5 text-[13px] rounded-lg"
         style={{
-          background: active ? "rgba(232,184,75,0.1)" : "#161616",
-          border: `1px solid ${active ? "rgba(232,184,75,0.35)" : "#1f1f1f"}`,
-          color: active ? "#E8B84B" : "#777",
+          background: active ? "rgba(232,184,75,0.1)" : "var(--secondary)",
+          border: `1px solid ${active ? "rgba(232,184,75,0.35)" : "var(--border)"}`,
+          color: active ? "#E8B84B" : "var(--muted-foreground)",
           fontWeight: active ? 600 : 400,
         }}
       >
@@ -28,7 +28,7 @@ function FilterSelect({ value, onChange, options }: { value: string; onChange: (
           <option key={o} value={o}>{o}</option>
         ))}
       </select>
-      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[10px]" style={{ color: active ? "#E8B84B" : "#555" }}>
+      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[10px]" style={{ color: active ? "#E8B84B" : "var(--muted-foreground)" }}>
         ▼
       </span>
     </div>
@@ -69,17 +69,17 @@ export function TradesClient({ trades, season }: TradesClientProps) {
   return (
     <div>
       {/* Page header */}
-      <div className="pb-6 border-b border-[#1f1f1f] mb-6">
+      <div className="pb-6 border-b border-border mb-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-3 mb-1.5">
               <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
               <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Trades</h1>
             </div>
-            <p className="text-[13px] text-[#555] ml-4">
+            <p className="text-[13px] text-muted-foreground ml-4">
               {seasonFilter} season
               {ownerFilter !== "All Teams" && (
-                <span> · <span className="text-[#e8e8e8]">{ownerFilter}</span></span>
+                <span> · <span className="text-foreground">{ownerFilter}</span></span>
               )}
             </p>
           </div>
@@ -89,7 +89,7 @@ export function TradesClient({ trades, season }: TradesClientProps) {
             ).map(([val, lbl]) => (
               <div key={lbl} className="text-right">
                 <div className="font-heading text-[30px] font-extrabold text-[#E8B84B] leading-none">{val}</div>
-                <div className="text-[10px] text-[#555] font-semibold tracking-[0.06em] uppercase mt-0.5">{lbl}</div>
+                <div className="text-[10px] text-muted-foreground font-semibold tracking-[0.06em] uppercase mt-0.5">{lbl}</div>
               </div>
             ))}
           </div>
@@ -112,7 +112,7 @@ export function TradesClient({ trades, season }: TradesClientProps) {
 
       {/* Trade list */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16 text-[#555] italic">
+        <div className="text-center py-16 text-muted-foreground italic">
           No trades found for the selected filters.
         </div>
       ) : (

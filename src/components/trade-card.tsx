@@ -67,8 +67,8 @@ function PlayerHeadshot({ sleeperId, name, pos, size = 44 }: { sleeperId: string
 
   return (
     <div
-      className="rounded-lg flex-shrink-0 overflow-hidden bg-[#161616]"
-      style={{ width: size, height: size, border: "1px solid #1f1f1f" }}
+      className="rounded-lg flex-shrink-0 overflow-hidden bg-secondary border border-border"
+      style={{ width: size, height: size }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -94,34 +94,33 @@ function PlayerCard({ item }: { item: TradeItem }) {
           style={{ background: "rgba(232,184,75,0.1)", border: "1px solid rgba(232,184,75,0.25)" }}
         >
           <span className="font-heading text-lg font-black leading-none" style={{ color: roundColor }}>R{item.round}</span>
-          <span className="text-[9px] font-semibold text-[#555]">{item.pickSeason}</span>
+          <span className="text-[9px] font-semibold text-muted-foreground">{item.pickSeason}</span>
         </div>
         <div className="min-w-0">
-          <div className="text-[13px] font-semibold text-[#e8e8e8] leading-tight">{item.name}</div>
-          <div className="text-[11px] text-[#555] mt-0.5">Draft Pick · via {item.originalOwner}</div>
+          <div className="text-[13px] font-semibold text-foreground leading-tight">{item.name}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">Draft Pick · via {item.originalOwner}</div>
         </div>
       </div>
     );
   }
 
-  const salaryColor = item.salary >= 50 ? "#FD4A48" : item.salary >= 20 ? "#E8B84B" : "#e8e8e8";
+  const salaryColor = item.salary >= 50 ? "#FD4A48" : item.salary >= 20 ? "#E8B84B" : undefined;
   return (
     <div
-      className="flex items-center gap-2.5 p-2.5 rounded-lg bg-[#161616]"
-      style={{ border: "1px solid #1f1f1f" }}
+      className="flex items-center gap-2.5 p-2.5 rounded-lg bg-secondary border border-border"
     >
       <PlayerHeadshot sleeperId={item.sleeperId} name={item.name} pos={item.pos} size={44} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5">
           <PosBadge pos={item.pos} />
-          <span className="text-[10px] text-[#555] font-mono">{item.nflTeam}</span>
+          <span className="text-[10px] text-muted-foreground font-mono">{item.nflTeam}</span>
         </div>
-        <div className="text-[13px] font-semibold text-[#e8e8e8] leading-tight truncate">{item.name}</div>
+        <div className="text-[13px] font-semibold text-foreground leading-tight truncate">{item.name}</div>
       </div>
       {item.salary > 0 && (
         <div className="text-right flex-shrink-0">
-          <div className="font-mono text-xs font-bold" style={{ color: salaryColor }}>${item.salary.toFixed(1)}</div>
-          <div className="text-[10px] text-[#555] mt-0.5">{item.years}yr{item.years !== 1 ? "s" : ""}</div>
+          <div className="font-mono text-xs font-bold" style={salaryColor ? { color: salaryColor } : undefined}>${item.salary.toFixed(1)}</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">{item.years}yr{item.years !== 1 ? "s" : ""}</div>
         </div>
       )}
     </div>
@@ -142,8 +141,8 @@ function TradeSide({ side, isLeft }: { side: TradeSideData; isLeft: boolean }) {
             </span>
           </div>
           <div style={{ textAlign: isLeft ? "left" : "right" }}>
-            <div className="text-sm font-bold text-[#e8e8e8]">{side.owner}</div>
-            <div className="text-[11px] text-[#555]">
+            <div className="text-sm font-bold text-foreground">{side.owner}</div>
+            <div className="text-[11px] text-muted-foreground">
               received {side.received.length} item{side.received.length !== 1 ? "s" : ""}
             </div>
           </div>
@@ -181,22 +180,22 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
   const weekLabel = trade.week < 1 ? "Off-Season" : `Week ${trade.week}`;
 
   return (
-    <div id={trade.id} className="bg-[#111111] border border-[#1f1f1f] rounded-xl overflow-hidden scroll-mt-20">
+    <div id={trade.id} className="bg-card border border-border rounded-xl overflow-hidden scroll-mt-20">
       <div
         onClick={() => setExpanded((e) => !e)}
-        className="flex items-center justify-between px-5 py-3.5 cursor-pointer bg-[#161616] select-none"
-        style={{ borderBottom: expanded ? "1px solid #1f1f1f" : "none" }}
+        className="flex items-center justify-between px-5 py-3.5 cursor-pointer bg-secondary select-none"
+        style={{ borderBottom: expanded ? "1px solid var(--border)" : "none" }}
       >
         <div className="flex items-center gap-3">
-          <span className="font-mono text-[11px] font-semibold text-[#555] tracking-[0.06em]">
+          <span className="font-mono text-[11px] font-semibold text-muted-foreground tracking-[0.06em]">
             #{trade.id}
           </span>
           <div className="flex items-center gap-1">
             {trade.sides.map((s, i) => (
               <Fragment key={s.owner}>
-                <span className="text-[13px] font-semibold text-[#e8e8e8]">{s.owner}</span>
+                <span className="text-[13px] font-semibold text-foreground">{s.owner}</span>
                 {i < trade.sides.length - 1 && (
-                  <span className="text-[11px] text-[#555] mx-0.5">↔</span>
+                  <span className="text-[11px] text-muted-foreground mx-0.5">↔</span>
                 )}
               </Fragment>
             ))}
@@ -222,11 +221,11 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
         </div>
         <div className="flex items-center gap-3.5">
           <div className="text-right">
-            <div className="text-xs text-[#777] font-mono">{date}</div>
-            <div className="text-[10px] text-[#555] mt-0.5">{weekLabel}</div>
+            <div className="text-xs text-muted-foreground font-mono">{date}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">{weekLabel}</div>
           </div>
           <span
-            className="text-xs text-[#555] transition-transform duration-200"
+            className="text-xs text-muted-foreground transition-transform duration-200"
             style={{ transform: expanded ? "rotate(180deg)" : "none" }}
           >▼</span>
         </div>
@@ -240,7 +239,7 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
             {trade.sides[1] && <TradeSide side={trade.sides[1]} isLeft={false} />}
           </div>
 
-          <div className="mt-3.5 pt-3 border-t border-[#1f1f1f] flex items-center justify-between gap-3">
+          <div className="mt-3.5 pt-3 border-t border-border flex items-center justify-between gap-3">
             <div className="flex gap-2 flex-1">
               {trade.sides.map((side, si) => {
                 const otherSide = trade.sides[1 - si];
@@ -254,19 +253,19 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
                 const salaryNet = inn.salary - out.salary;
                 const yearsNet = inn.years - out.years;
                 const picksNet = inn.picks - out.picks;
-                const salaryColor = salaryNet > 0 ? "#f87171" : salaryNet < 0 ? "#4ade80" : "#555";
-                const picksColor = picksNet > 0 ? "#E8B84B" : picksNet < 0 ? "#f87171" : "#555";
-                const yearsColor = yearsNet > 0 ? "#f87171" : yearsNet < 0 ? "#4ade80" : "#555";
+                const salaryColor = salaryNet > 0 ? "#f87171" : salaryNet < 0 ? "#4ade80" : "var(--muted-foreground)";
+                const picksColor = picksNet > 0 ? "#E8B84B" : picksNet < 0 ? "#f87171" : "var(--muted-foreground)";
+                const yearsColor = yearsNet > 0 ? "#f87171" : yearsNet < 0 ? "#4ade80" : "var(--muted-foreground)";
                 const hasSalary = inn.salary > 0 || out.salary > 0;
                 const hasYears = inn.years > 0 || out.years > 0;
                 const hasPicks = inn.picks > 0 || out.picks > 0;
                 return (
-                  <div key={side.owner} className="flex-1 bg-[#090909] border border-[#1f1f1f] rounded-lg px-3 py-2 flex items-center justify-between gap-3">
-                    <span className="text-[11px] font-semibold text-[#777] whitespace-nowrap">{side.owner}</span>
+                  <div key={side.owner} className="flex-1 bg-background border border-border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
+                    <span className="text-[11px] font-semibold text-muted-foreground whitespace-nowrap">{side.owner}</span>
                     <div className="flex gap-3 items-center">
                       {hasSalary && (
                         <div className="text-right">
-                          <div className="text-[9px] text-[#555] font-bold tracking-[0.06em] uppercase mb-0.5">Salary</div>
+                          <div className="text-[9px] text-muted-foreground font-bold tracking-[0.06em] uppercase mb-0.5">Salary</div>
                           <span className="font-mono text-[13px] font-bold" style={{ color: salaryColor }}>
                             {salaryNet > 0 ? "+" : ""}{salaryNet.toFixed(1)}
                           </span>
@@ -274,7 +273,7 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
                       )}
                       {hasYears && (
                         <div className="text-right">
-                          <div className="text-[9px] text-[#555] font-bold tracking-[0.06em] uppercase mb-0.5">Years</div>
+                          <div className="text-[9px] text-muted-foreground font-bold tracking-[0.06em] uppercase mb-0.5">Years</div>
                           <span className="font-mono text-[13px] font-bold" style={{ color: yearsColor }}>
                             {yearsNet > 0 ? "+" : ""}{yearsNet}
                           </span>
@@ -282,7 +281,7 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
                       )}
                       {hasPicks && (
                         <div className="text-right">
-                          <div className="text-[9px] text-[#555] font-bold tracking-[0.06em] uppercase mb-0.5">Picks</div>
+                          <div className="text-[9px] text-muted-foreground font-bold tracking-[0.06em] uppercase mb-0.5">Picks</div>
                           <span className="font-mono text-[13px] font-bold" style={{ color: picksColor }}>
                             {picksNet > 0 ? "+" : ""}{picksNet}
                           </span>

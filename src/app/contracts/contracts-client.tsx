@@ -18,7 +18,7 @@ interface ContractsClientProps {
 }
 
 const YEAR_COLORS: Record<number, { text: string; bg: string; border: string }> = {
-  1: { text: "#666", bg: "transparent", border: "#2a2a2a" },
+  1: { text: "var(--muted-foreground)", bg: "transparent", border: "var(--border)" },
   2: { text: "#E8B84B", bg: "rgba(232,184,75,0.1)", border: "rgba(232,184,75,0.25)" },
   3: { text: "#fb923c", bg: "rgba(251,146,60,0.1)", border: "rgba(251,146,60,0.25)" },
   4: { text: "#FD4A48", bg: "rgba(253,74,72,0.1)", border: "rgba(253,74,72,0.25)" },
@@ -91,7 +91,7 @@ function SalaryCell({ salary, maxSalary }: { salary: number; maxSalary: number }
       <span className="font-mono text-[13px] font-semibold" style={{ color: isHigh ? "#FD4A48" : undefined }}>
         ${salary.toFixed(1)}
       </span>
-      <div className="w-14 h-[2.5px] bg-[#222] rounded-sm">
+      <div className="w-14 h-[2.5px] bg-border rounded-sm">
         <div className="h-full rounded-sm" style={{ width: `${pct * 100}%`, background: barColor }} />
       </div>
     </div>
@@ -136,19 +136,19 @@ function SeasonFilter({ selected, onChange, allSeasons, currentSeason }: {
         onClick={() => setOpen(!open)}
         className="appearance-none pr-8 pl-3 py-1.5 text-[13px] rounded-lg whitespace-nowrap relative cursor-pointer"
         style={{
-          background: isActive ? "rgba(232,184,75,0.08)" : "#161616",
-          border: `1px solid ${isActive ? "rgba(232,184,75,0.35)" : "#1f1f1f"}`,
-          color: isActive ? "#E8B84B" : "#888",
+          background: isActive ? "rgba(232,184,75,0.08)" : "var(--secondary)",
+          border: `1px solid ${isActive ? "rgba(232,184,75,0.35)" : "var(--border)"}`,
+          color: isActive ? "#E8B84B" : "var(--muted-foreground)",
           fontWeight: isActive ? 600 : 400,
         }}
       >
         {label}
-        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none" style={{ color: isActive ? "#E8B84B" : "#555" }}>▼</span>
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none" style={{ color: isActive ? "#E8B84B" : "var(--muted-foreground)" }}>▼</span>
       </button>
       {open && (
         <div
-          className="absolute top-[calc(100%+4px)] left-0 z-[200] min-w-[148px] rounded-[10px] p-1.5"
-          style={{ background: "#141414", border: "1px solid #1f1f1f", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}
+          className="absolute top-[calc(100%+4px)] left-0 z-[200] min-w-[148px] rounded-[10px] p-1.5 bg-popover border border-border"
+          style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.25)" }}
         >
           {allSeasons.map((s) => {
             const checked = selected.includes(s);
@@ -161,20 +161,20 @@ function SeasonFilter({ selected, onChange, allSeasons, currentSeason }: {
               >
                 <div
                   className="w-3.5 h-3.5 rounded flex-shrink-0 flex items-center justify-center"
-                  style={{ border: `2px solid ${checked ? "#E8B84B" : "#333"}`, background: checked ? "#E8B84B" : "transparent" }}
+                  style={{ border: `2px solid ${checked ? "#E8B84B" : "var(--border)"}`, background: checked ? "#E8B84B" : "transparent" }}
                 >
                   {checked && <span className="text-black text-[9px] leading-none font-extrabold">✓</span>}
                 </div>
                 <input type="checkbox" checked={checked} onChange={() => toggle(s)} className="hidden" />
-                <span className="text-[13px]" style={{ color: checked ? "#E8B84B" : "#f0f0f0", fontWeight: checked ? 600 : 400 }}>{s}</span>
+                <span className="text-[13px]" style={{ color: checked ? "#E8B84B" : "var(--foreground)", fontWeight: checked ? 600 : 400 }}>{s}</span>
                 {isCurrent && <span className="text-[9px] font-bold text-[#FD4A48] tracking-[0.05em] ml-auto">NOW</span>}
               </label>
             );
           })}
-          <div className="border-t border-[#1f1f1f] my-1" />
+          <div className="border-t border-border my-1" />
           <button
             onClick={() => { onChange([...allSeasons]); setOpen(false); }}
-            className="w-full bg-transparent border-none cursor-pointer text-xs text-[#555] py-1 px-2 text-left rounded"
+            className="w-full bg-transparent border-none cursor-pointer text-xs text-muted-foreground py-1 px-2 text-left rounded"
           >
             Show all seasons
           </button>
@@ -200,9 +200,9 @@ function SalaryFilterSelect({ value, onChange }: { value: string; onChange: (v: 
         onChange={(e) => onChange(e.target.value)}
         className="appearance-none pr-7 pl-3 py-1.5 text-[13px] rounded-lg"
         style={{
-          background: isActive ? "rgba(232,184,75,0.08)" : "#161616",
-          border: `1px solid ${isActive ? "rgba(232,184,75,0.35)" : "#1f1f1f"}`,
-          color: isActive ? "#E8B84B" : "#888",
+          background: isActive ? "rgba(232,184,75,0.08)" : "var(--secondary)",
+          border: `1px solid ${isActive ? "rgba(232,184,75,0.35)" : "var(--border)"}`,
+          color: isActive ? "#E8B84B" : "var(--muted-foreground)",
           fontWeight: isActive ? 600 : 400,
         }}
       >
@@ -210,7 +210,7 @@ function SalaryFilterSelect({ value, onChange }: { value: string; onChange: (v: 
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
-      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[10px]" style={{ color: isActive ? "#E8B84B" : "#555" }}>▼</span>
+      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[10px]" style={{ color: isActive ? "#E8B84B" : "var(--muted-foreground)" }}>▼</span>
     </div>
   );
 }
@@ -229,9 +229,9 @@ function FilterSelect({ value, onChange, options, placeholder }: {
         onChange={(e) => onChange(e.target.value)}
         className="appearance-none pr-7 pl-3 py-1.5 text-[13px] rounded-lg"
         style={{
-          background: active ? "rgba(232,184,75,0.08)" : "#161616",
-          border: `1px solid ${active ? "rgba(232,184,75,0.35)" : "#1f1f1f"}`,
-          color: active ? "#E8B84B" : "#888",
+          background: active ? "rgba(232,184,75,0.08)" : "var(--secondary)",
+          border: `1px solid ${active ? "rgba(232,184,75,0.35)" : "var(--border)"}`,
+          color: active ? "#E8B84B" : "var(--muted-foreground)",
           fontWeight: active ? 600 : 400,
         }}
       >
@@ -240,7 +240,7 @@ function FilterSelect({ value, onChange, options, placeholder }: {
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
-      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[10px]" style={{ color: active ? "#E8B84B" : "#555" }}>▼</span>
+      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[10px]" style={{ color: active ? "#E8B84B" : "var(--muted-foreground)" }}>▼</span>
     </div>
   );
 }
@@ -248,13 +248,13 @@ function FilterSelect({ value, onChange, options, placeholder }: {
 function SearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <div className="relative">
-      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#555] text-[13px]">⌕</span>
+      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-[13px]">⌕</span>
       <input
         type="text"
         placeholder="Search player…"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-[#161616] border border-[#1f1f1f] rounded-lg py-1.5 pl-[30px] pr-3 text-[13px] text-[#f0f0f0] w-[180px]"
+        className="bg-secondary border border-border rounded-lg py-1.5 pl-[30px] pr-3 text-[13px] text-foreground w-[180px]"
       />
     </div>
   );
@@ -266,15 +266,15 @@ function CheckFilter({ label, checked, onChange }: { label: string; checked: boo
       onClick={() => onChange(!checked)}
       className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] cursor-pointer"
       style={{
-        background: checked ? "rgba(253,74,72,0.1)" : "#161616",
-        border: `1px solid ${checked ? "rgba(253,74,72,0.35)" : "#1f1f1f"}`,
-        color: checked ? "#FD4A48" : "#888",
+        background: checked ? "rgba(253,74,72,0.1)" : "var(--secondary)",
+        border: `1px solid ${checked ? "rgba(253,74,72,0.35)" : "var(--border)"}`,
+        color: checked ? "#FD4A48" : "var(--muted-foreground)",
         fontWeight: checked ? 600 : 400,
       }}
     >
       <span
         className="w-3.5 h-3.5 rounded flex-shrink-0 flex items-center justify-center"
-        style={{ border: `2px solid ${checked ? "#FD4A48" : "#555"}`, background: checked ? "#FD4A48" : "transparent" }}
+        style={{ border: `2px solid ${checked ? "#FD4A48" : "var(--border)"}`, background: checked ? "#FD4A48" : "transparent" }}
       >
         {checked && <span className="text-white text-[9px] leading-none">✓</span>}
       </span>
@@ -295,8 +295,8 @@ function SortTh({ label, field, sortKey, sortDir, onSort, align = "left" }: {
   return (
     <th
       onClick={() => onSort(field)}
-      className="px-3 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase whitespace-nowrap cursor-pointer select-none bg-[#161616] border-b border-[#1f1f1f]"
-      style={{ color: active ? "#E8B84B" : "#555", textAlign: align }}
+      className="px-3 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase whitespace-nowrap cursor-pointer select-none bg-secondary border-b border-border"
+      style={{ color: active ? "#E8B84B" : "var(--muted-foreground)", textAlign: align }}
     >
       {label}
       {active && <span className="ml-1 opacity-80">{sortDir === "asc" ? "↑" : "↓"}</span>}
@@ -389,13 +389,13 @@ export function ContractsClient({ contracts, season, availableSeasons }: Contrac
   return (
     <div>
       {/* Page header */}
-      <div className="pb-6 border-b border-[#1f1f1f] mb-6">
+      <div className="pb-6 border-b border-border mb-6">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
           <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Contracts</h1>
         </div>
-        <p className="text-[13px] text-[#555] ml-4">
-          {seasonLabel} · <span className="text-[#f0f0f0] font-medium">{filtered.length}</span> of {contracts.length} active contracts
+        <p className="text-[13px] text-muted-foreground ml-4">
+          {seasonLabel} · <span className="text-foreground font-medium">{filtered.length}</span> of {contracts.length} active contracts
           {activeFilters > 0 && (
             <span className="text-[#E8B84B] font-semibold ml-2">· {activeFilters} filter{activeFilters > 1 ? "s" : ""} active</span>
           )}
@@ -422,7 +422,7 @@ export function ContractsClient({ contracts, season, availableSeasons }: Contrac
       </div>
 
       {/* Table */}
-      <div className="bg-[#111111] border border-[#1f1f1f] rounded-[10px] overflow-hidden">
+      <div className="bg-card border border-border rounded-[10px] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
@@ -433,13 +433,13 @@ export function ContractsClient({ contracts, season, availableSeasons }: Contrac
                 <SortTh label="Salary" field="salary" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
                 <SortTh label="Yrs" field="years" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="center" />
                 <SortTh label="Season" field="contractStartYear" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="center" />
-                <th className="px-3 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-[#555] text-center border-b border-[#1f1f1f] bg-[#161616] whitespace-nowrap">Tags</th>
+                <th className="px-3 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground text-center border-b border-border bg-secondary whitespace-nowrap">Tags</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-[#555] italic text-sm">
+                  <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground italic text-sm">
                     No contracts match your filters.
                   </td>
                 </tr>
@@ -447,8 +447,8 @@ export function ContractsClient({ contracts, season, availableSeasons }: Contrac
                 filtered.map((c, i) => (
                   <tr
                     key={`${c.playerId}-${i}`}
-                    className="border-b border-[#1f1f1f] last:border-b-0 hover:bg-[#181818] transition-colors"
-                    style={i % 2 === 1 ? { backgroundColor: "rgba(22,22,22,0.5)" } : undefined}
+                    className="border-b border-border last:border-b-0 hover:bg-accent transition-colors"
+                    style={i % 2 === 1 ? { backgroundColor: "var(--secondary)" } : undefined}
                   >
                     <td className="px-3 py-2 pl-4">
                       <div className="flex items-center gap-2.5">
@@ -459,10 +459,10 @@ export function ContractsClient({ contracts, season, availableSeasons }: Contrac
                     <td className="px-3 py-2">
                       <PosBadge pos={c.position} rank={posRanks[c.player]} />
                     </td>
-                    <td className="px-3 py-2 text-[13px] text-[#888] whitespace-nowrap">{c.owner}</td>
+                    <td className="px-3 py-2 text-[13px] text-muted-foreground whitespace-nowrap">{c.owner}</td>
                     <td className="px-3 py-2 text-right">
                       {c.isMidSeasonPickup ? (
-                        <span className="text-[#555] text-xs">—</span>
+                        <span className="text-muted-foreground text-xs">—</span>
                       ) : (
                         <SalaryCell salary={c.salary} maxSalary={maxSalary} />
                       )}
@@ -470,7 +470,7 @@ export function ContractsClient({ contracts, season, availableSeasons }: Contrac
                     <td className="px-3 py-2 text-center">
                       <YearBadge years={c.years} />
                     </td>
-                    <td className="px-3 py-2 text-center text-xs text-[#555] font-mono">{c.contractStartYear || "—"}</td>
+                    <td className="px-3 py-2 text-center text-xs text-muted-foreground font-mono">{c.contractStartYear || "—"}</td>
                     <td className="px-3 py-2 pr-4 text-center">
                       <div className="flex items-center justify-center gap-1">
                         {c.franchiseTag && (
@@ -485,7 +485,7 @@ export function ContractsClient({ contracts, season, availableSeasons }: Contrac
                             style={{ background: "rgba(167,139,250,0.1)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.3)" }}
                           >5YT{c.fifthYearTagAmount ? ` ${c.fifthYearTagAmount}` : ""}</span>
                         )}
-                        {!c.franchiseTag && !c.fifthYearTag && <span className="text-[11px] text-[#555]">—</span>}
+                        {!c.franchiseTag && !c.fifthYearTag && <span className="text-[11px] text-muted-foreground">—</span>}
                       </div>
                     </td>
                   </tr>
@@ -496,20 +496,20 @@ export function ContractsClient({ contracts, season, availableSeasons }: Contrac
         </div>
 
         {/* Footer legend */}
-        <div className="px-4 py-3 border-t border-[#1f1f1f] bg-[#161616] flex items-center justify-between gap-3 flex-wrap">
+        <div className="px-4 py-3 border-t border-border bg-secondary flex items-center justify-between gap-3 flex-wrap">
           <div className="flex gap-4 items-center">
             {(["QB", "RB", "WR", "TE", "K", "DEF"] as const).map((pos) => {
               const pc = getPositionColors(pos);
               return (
                 <div key={pos} className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-sm" style={{ background: pc.bg, border: `1px solid ${pc.border}` }} />
-                  <span className="text-[10px] text-[#555] font-semibold">{pos}</span>
+                  <span className="text-[10px] text-muted-foreground font-semibold">{pos}</span>
                 </div>
               );
             })}
           </div>
           <div className="flex gap-3 items-center">
-            <span className="text-[10px] text-[#555] font-semibold tracking-[0.06em] uppercase">Yrs:</span>
+            <span className="text-[10px] text-muted-foreground font-semibold tracking-[0.06em] uppercase">Yrs:</span>
             {([1, 2, 3, "4+"] as const).map((y, idx) => {
               const yc = yearColor(typeof y === "string" ? 4 : y);
               return (
@@ -520,7 +520,7 @@ export function ContractsClient({ contracts, season, availableSeasons }: Contrac
                   >
                     <span className="text-[8px] font-bold" style={{ color: yc.text }}>{y}</span>
                   </div>
-                  <span className="text-[10px] text-[#555]">{["Short", "Medium", "Long", "Multi"][idx]}</span>
+                  <span className="text-[10px] text-muted-foreground">{["Short", "Medium", "Long", "Multi"][idx]}</span>
                 </div>
               );
             })}
