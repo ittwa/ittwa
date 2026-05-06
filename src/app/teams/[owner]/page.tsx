@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap, getLatestActiveContracts } from "@/lib/data";
 import { getNFLPlayers } from "@/lib/sleeper";
-import { OWNER_LAST_NAME_MAP, AUCTION_DATE, SALARY_CAP } from "@/lib/config";
+import { OWNER_LAST_NAME_MAP, AUCTION_DATE, SALARY_CAP, ROSTER_SIZE } from "@/lib/config";
 import { TradeCard } from "@/components/trade-card";
 import type { EnrichedTrade } from "@/components/trade-card";
 import { buildContractLookup, enrichTrades } from "@/lib/trade-utils";
@@ -236,7 +236,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
               { label: "Years Used", value: String(rosterYears), sub: "of 60", pct: rosterYears / 60, color: "#E8B84B" },
               { label: "Cap Hit", value: `$${capHitTotal.toFixed(0)}`, sub: `${capHitYear} dead cap`, pct: null as number | null, color: "#fb923c" },
               { label: "Cap Space", value: `$${capSpace.toFixed(0)}`, sub: `${capHitYear} avail`, pct: null as number | null, color: capSpace >= 0 ? "#4ade80" : "#FD4A48" },
-              { label: "Roster Size", value: String(rosterPlayers.length), sub: "players", pct: null as number | null, color: divisionColor },
+              { label: "Roster Size", value: String(rosterPlayers.length), sub: "players", pct: rosterPlayers.length / ROSTER_SIZE, color: divisionColor },
               { label: "Draft Picks", value: String(ownerDraftPicks.length), sub: "on hand", pct: null as number | null, color: divisionColor },
             ].map((s) => (
               <div key={s.label} className="rounded-lg border border-border bg-secondary px-5 py-4 min-w-[110px] flex flex-col gap-1.5">
