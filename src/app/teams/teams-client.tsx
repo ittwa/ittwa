@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { SALARY_CAP, YEARS_CAP } from "@/lib/config";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,19 +31,14 @@ export interface TeamDirectoryEntry {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const SALARY_CAP = 270;
-const YEARS_CAP = 60;
-
 const ACCENT = "#FD4A48";
 const ACCENT_DIM = "rgba(253,74,72,0.12)";
 const GOLD = "#E8B84B";
-const GOLD_DIM = "rgba(232,184,75,0.12)";
 const EMERALD = "#4ade80";
 const ROSE = "#f87171";
 const CARD = "var(--card)";
 const CARD_BORDER = "var(--border)";
 const SURFACE = "var(--secondary)";
-const HOVER_BG = "var(--secondary)";
 const MUTED = "#555";
 const MUTED_TEXT = "#777";
 const TEXT = "var(--foreground)";
@@ -65,6 +61,7 @@ const POS_COLORS: Record<string, string> = {
 };
 
 const DIV_ORDER = ["Concussion", "Hey Arnold", "Replacements", "Dark Knight Rises"];
+const LIST_COLS = "32px 44px 1fr 130px 80px 60px 90px 90px 60px 90px";
 
 type ViewMode = "grid" | "list";
 type GroupBy = "division" | "none";
@@ -77,6 +74,10 @@ function getDivColor(division: string) {
 function initials(name: string): string {
   if (name === "HoganLamb") return "HL";
   return name.slice(0, 2).toUpperCase();
+}
+
+function winPct(t: TeamDirectoryEntry): number {
+  return t.wins + t.losses > 0 ? t.wins / (t.wins + t.losses) : 0;
 }
 
 // ── Shared Components ────────────────────────────────────────────────────────
@@ -180,14 +181,15 @@ function OwnerAvatar({ name, division, size = 40 }: { name: string; division: st
   );
 }
 
-function CapBarSmall({ used, cap, color, label }: { used: string; cap: number; color: string; label: string }) {
-  const pct = Math.min(parseFloat(used) / cap, 1);
+function CapBarSmall({ used, cap, color, label }: { used: number; cap: number; color: string; label: string }) {
+  const pct = Math.min(used / cap, 1);
+  const display = Number.isInteger(used) ? String(used) : used.toFixed(1);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
         <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: MUTED, whiteSpace: "nowrap" }}>{label}</span>
         <span style={{ fontFamily: MONO_FONT, fontSize: 10, color: TEXT_DIM, fontWeight: 600, whiteSpace: "nowrap" }}>
-          <span style={{ color }}>{used}</span><span style={{ color: MUTED }}> / {cap}</span>
+          <span style={{ color }}>{display}</span><span style={{ color: MUTED }}> / {cap}</span>
         </span>
       </div>
       <div style={{ height: 3, background: "#1e1e1e", borderRadius: 2, overflow: "hidden" }}>
@@ -214,7 +216,7 @@ function Stat({ label, value, sub, color }: { label: string; value: string; sub?
 function TeamCard({ team }: { team: TeamDirectoryEntry }) {
   const [hover, setHover] = useState(false);
   const d = getDivColor(team.division);
-  const winPct = team.wins + team.losses > 0 ? team.wins / (team.wins + team.losses) : 0;
+  const pct = winPct(team);
   const capUsed = team.capCommit + team.capDead;
 
   return (
@@ -232,10 +234,8 @@ function TeamCard({ team }: { team: TeamDirectoryEntry }) {
         transform: hover ? "translateY(-2px)" : "translateY(0)",
       }}
     >
-      {/* Division accent bar */}
       <div style={{ height: 3, background: `linear-gradient(90deg, ${d.color} 0%, ${d.color}55 60%, transparent 100%)` }} />
 
-      {/* Header row */}
       <div style={{ padding: "16px 16px 14px", display: "flex", alignItems: "flex-start", gap: 12 }}>
         <OwnerAvatar name={team.owner} division={team.division} size={44} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -258,7 +258,6 @@ function TeamCard({ team }: { team: TeamDirectoryEntry }) {
         </div>
       </div>
 
-      {/* Record + streak strip */}
       <div
         style={{
           padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -271,7 +270,7 @@ function TeamCard({ team }: { team: TeamDirectoryEntry }) {
           <span style={{ fontFamily: HEADER_FONT, fontSize: 18, fontWeight: 600, color: MUTED, lineHeight: 1 }}>–</span>
           <span style={{ fontFamily: HEADER_FONT, fontSize: 26, fontWeight: 800, color: ROSE, lineHeight: 1 }}>{team.losses}</span>
           <span style={{ fontFamily: MONO_FONT, fontSize: 10, color: MUTED, marginLeft: 6 }}>
-            {(winPct * 100).toFixed(0)}%
+            {(pct * 100).toFixed(0)}%
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -280,7 +279,6 @@ function TeamCard({ team }: { team: TeamDirectoryEntry }) {
         </div>
       </div>
 
-      {/* Stat grid */}
       <div style={{ padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <Stat label="Points For" value={team.pf.toFixed(1)} color={GOLD} />
         <Stat label="Points Vs" value={team.pa.toFixed(1)} color={MUTED_TEXT} />
@@ -288,13 +286,11 @@ function TeamCard({ team }: { team: TeamDirectoryEntry }) {
         <Stat label="Roster" value={String(team.roster)} sub={`${team.picks} picks`} color={TEXT_DIM} />
       </div>
 
-      {/* Cap bars */}
       <div style={{ padding: "0 16px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
-        <CapBarSmall used={capUsed.toFixed(1)} cap={SALARY_CAP} color={ACCENT} label="Salary $" />
-        <CapBarSmall used={String(team.yearsUsed)} cap={YEARS_CAP} color={GOLD} label="Years" />
+        <CapBarSmall used={capUsed} cap={SALARY_CAP} color={ACCENT} label="Salary $" />
+        <CapBarSmall used={team.yearsUsed} cap={YEARS_CAP} color={GOLD} label="Years" />
       </div>
 
-      {/* Footer: view link */}
       <div
         style={{
           padding: "10px 16px", borderTop: `1px solid ${CARD_BORDER}`,
@@ -320,7 +316,7 @@ function TeamCard({ team }: { team: TeamDirectoryEntry }) {
 
 function TeamRow({ team, rank }: { team: TeamDirectoryEntry; rank: number }) {
   const [hover, setHover] = useState(false);
-  const winPct = team.wins + team.losses > 0 ? team.wins / (team.wins + team.losses) : 0;
+  const pct = winPct(team);
 
   return (
     <Link
@@ -329,11 +325,11 @@ function TeamRow({ team, rank }: { team: TeamDirectoryEntry; rank: number }) {
       onMouseLeave={() => setHover(false)}
       style={{
         display: "grid",
-        gridTemplateColumns: "32px 44px 1fr 130px 80px 60px 90px 90px 60px 90px",
+        gridTemplateColumns: LIST_COLS,
         gap: 12, alignItems: "center", textDecoration: "none",
         padding: "12px 16px",
         borderBottom: `1px solid ${CARD_BORDER}`,
-        background: hover ? HOVER_BG : "transparent",
+        background: hover ? SURFACE : "transparent",
         transition: "background 0.15s",
       }}
     >
@@ -349,7 +345,7 @@ function TeamRow({ team, rank }: { team: TeamDirectoryEntry; rank: number }) {
         <span style={{ color: MUTED }}>–</span>
         <span style={{ color: ROSE }}>{team.losses}</span>
       </span>
-      <span style={{ fontFamily: MONO_FONT, fontSize: 11, color: TEXT_DIM, textAlign: "right" }}>{(winPct * 100).toFixed(1)}%</span>
+      <span style={{ fontFamily: MONO_FONT, fontSize: 11, color: TEXT_DIM, textAlign: "right" }}>{(pct * 100).toFixed(1)}%</span>
       <span style={{ fontFamily: MONO_FONT, fontSize: 12, color: GOLD, textAlign: "right" }}>{team.pf.toFixed(1)}</span>
       <span style={{ fontFamily: MONO_FONT, fontSize: 12, color: MUTED_TEXT, textAlign: "right" }}>{team.pa.toFixed(1)}</span>
       <span style={{ textAlign: "center" }}><StreakBadge streak={team.streak} /></span>
@@ -382,7 +378,7 @@ function ListHeader() {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "32px 44px 1fr 130px 80px 60px 90px 90px 60px 90px",
+        gridTemplateColumns: LIST_COLS,
         gap: 12, alignItems: "center",
         padding: "10px 16px",
         borderBottom: `1px solid ${CARD_BORDER}`,
@@ -459,7 +455,7 @@ function CapBarRow({ team, max, isHover, onHover }: {
       style={{
         display: "grid", gridTemplateColumns: `${LBL_W}px 1fr`, gap: 8, alignItems: "center",
         padding: "3px 4px", borderRadius: 4,
-        background: isHover ? HOVER_BG : "transparent", transition: "background 0.12s",
+        background: isHover ? SURFACE : "transparent", transition: "background 0.12s",
       }}
     >
       <span style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</span>
@@ -485,8 +481,10 @@ function CapBarRow({ team, max, isHover, onHover }: {
 }
 
 function CapChart({ teams, hovered, onHover }: { teams: TeamDirectoryEntry[]; hovered: string | null; onHover: (n: string | null) => void }) {
-  const sorted = [...teams].sort((a, b) => b.capCommit - a.capCommit);
-  const max = Math.max(SALARY_CAP, ...sorted.map((t) => t.capCommit + t.capDead + Math.max(t.capRem, 0)));
+  const { sorted, max } = useMemo(() => {
+    const s = [...teams].sort((a, b) => b.capCommit - a.capCommit);
+    return { sorted: s, max: Math.max(SALARY_CAP, ...s.map((t) => t.capCommit + t.capDead + Math.max(t.capRem, 0))) };
+  }, [teams]);
   return (
     <ChartFrame
       title="Cap Breakdown"
@@ -523,7 +521,7 @@ function RosterRow({ team, maxRoster, isHover, onHover }: {
       style={{
         display: "grid", gridTemplateColumns: `${LBL_W}px 1fr 24px`, gap: 8, alignItems: "center",
         padding: "3px 4px", borderRadius: 4,
-        background: isHover ? HOVER_BG : "transparent", transition: "background 0.12s",
+        background: isHover ? SURFACE : "transparent", transition: "background 0.12s",
       }}
     >
       <span style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</span>
@@ -553,8 +551,10 @@ function RosterRow({ team, maxRoster, isHover, onHover }: {
 }
 
 function RosterChart({ teams, hovered, onHover }: { teams: TeamDirectoryEntry[]; hovered: string | null; onHover: (n: string | null) => void }) {
-  const sorted = [...teams].sort((a, b) => b.roster - a.roster || a.owner.localeCompare(b.owner));
-  const maxRoster = Math.max(...sorted.map((t) => t.roster), 18);
+  const { sorted, maxRoster } = useMemo(() => {
+    const s = [...teams].sort((a, b) => b.roster - a.roster || a.owner.localeCompare(b.owner));
+    return { sorted: s, maxRoster: Math.max(...s.map((t) => t.roster), 18) };
+  }, [teams]);
   return (
     <ChartFrame
       title="Roster Mix"
@@ -593,7 +593,7 @@ function YearsRow({ team, max, isHover, onHover }: {
       style={{
         display: "grid", gridTemplateColumns: `${LBL_W}px 1fr`, gap: 8, alignItems: "center",
         padding: "3px 4px", borderRadius: 4,
-        background: isHover ? HOVER_BG : "transparent", transition: "background 0.12s",
+        background: isHover ? SURFACE : "transparent", transition: "background 0.12s",
       }}
     >
       <span style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</span>
@@ -618,12 +618,17 @@ function YearsRow({ team, max, isHover, onHover }: {
 }
 
 function YearsChart({ teams, hovered, onHover }: { teams: TeamDirectoryEntry[]; hovered: string | null; onHover: (n: string | null) => void }) {
-  const sorted = [...teams].sort((a, b) => b.yearsUsed - a.yearsUsed);
-  const max = Math.max(
-    YEARS_CAP,
-    ...sorted.map((t) => t.yearsUsed + Math.max(t.yearsRem, 0)),
-    ...sorted.map((t) => t.yearsUsed + Math.abs(Math.min(t.yearsRem, 0))),
-  );
+  const { sorted, max } = useMemo(() => {
+    const s = [...teams].sort((a, b) => b.yearsUsed - a.yearsUsed);
+    return {
+      sorted: s,
+      max: Math.max(
+        YEARS_CAP,
+        ...s.map((t) => t.yearsUsed + Math.max(t.yearsRem, 0)),
+        ...s.map((t) => t.yearsUsed + Math.abs(Math.min(t.yearsRem, 0))),
+      ),
+    };
+  }, [teams]);
   return (
     <ChartFrame
       title="Years Allocated"
@@ -651,9 +656,9 @@ function YearsChart({ teams, hovered, onHover }: { teams: TeamDirectoryEntry[]; 
 
 function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
   const [hovered, setHovered] = useState<string | null>(null);
-  const overCap = teams.filter((t) => t.yearsRem < 0);
-  const tightOnSpace = teams.filter((t) => t.capRem < 30);
-  const flush = teams.filter((t) => t.capRem > 80);
+  const overCap = useMemo(() => teams.filter((t) => t.yearsRem < 0), [teams]);
+  const tightOnSpace = useMemo(() => teams.filter((t) => t.capRem < 30), [teams]);
+  const flush = useMemo(() => teams.filter((t) => t.capRem > 80), [teams]);
 
   return (
     <section style={{ marginBottom: 32 }}>
@@ -668,7 +673,6 @@ function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
         }
       />
 
-      {/* Annotation bar */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 14 }}>
         {[
           { label: "Tight on Cap", count: tightOnSpace.length, names: tightOnSpace.map((t) => t.owner).join(" · ") || "—", color: ACCENT, hint: "<$30 remaining" },
@@ -716,23 +720,24 @@ function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
 // ── League Ribbon ────────────────────────────────────────────────────────────
 
 function LeagueRibbon({ teams }: { teams: TeamDirectoryEntry[] }) {
-  const top = [...teams].sort((a, b) => b.wins - a.wins || b.pf - a.pf)[0];
-  const topPF = [...teams].sort((a, b) => b.pf - a.pf)[0];
-  const hot = [...teams]
-    .filter((t) => t.streak.startsWith("W"))
-    .sort((a, b) => parseInt(b.streak.slice(1)) - parseInt(a.streak.slice(1)))[0];
-  const cold = [...teams]
-    .filter((t) => t.streak.startsWith("L"))
-    .sort((a, b) => parseInt(b.streak.slice(1)) - parseInt(a.streak.slice(1)))[0];
-  const mostCapUsed = [...teams].sort((a, b) => (b.capCommit + b.capDead) - (a.capCommit + a.capDead))[0];
-
-  const items = [
-    { label: "Standings Leader", value: top?.owner || "—", sub: top ? `${top.wins}-${top.losses}` : "", color: EMERALD },
-    { label: "Points Leader", value: topPF?.owner || "—", sub: topPF ? `${topPF.pf.toFixed(1)} PF` : "", color: GOLD },
-    { label: "Hottest", value: hot?.owner || "—", sub: hot?.streak || "—", color: ACCENT },
-    { label: "Coldest", value: cold?.owner || "—", sub: cold?.streak || "—", color: ROSE },
-    { label: "Most Cap Used", value: mostCapUsed?.owner || "—", sub: mostCapUsed ? `$${(mostCapUsed.capCommit + mostCapUsed.capDead).toFixed(0)}` : "", color: GOLD },
-  ];
+  const items = useMemo(() => {
+    const top = [...teams].sort((a, b) => b.wins - a.wins || b.pf - a.pf)[0];
+    const topPF = [...teams].sort((a, b) => b.pf - a.pf)[0];
+    const hot = [...teams]
+      .filter((t) => t.streak.startsWith("W"))
+      .sort((a, b) => parseInt(b.streak.slice(1)) - parseInt(a.streak.slice(1)))[0];
+    const cold = [...teams]
+      .filter((t) => t.streak.startsWith("L"))
+      .sort((a, b) => parseInt(b.streak.slice(1)) - parseInt(a.streak.slice(1)))[0];
+    const mostCapUsed = [...teams].sort((a, b) => (b.capCommit + b.capDead) - (a.capCommit + a.capDead))[0];
+    return [
+      { label: "Standings Leader", value: top?.owner || "—", sub: top ? `${top.wins}-${top.losses}` : "", color: EMERALD },
+      { label: "Points Leader", value: topPF?.owner || "—", sub: topPF ? `${topPF.pf.toFixed(1)} PF` : "", color: GOLD },
+      { label: "Hottest", value: hot?.owner || "—", sub: hot?.streak || "—", color: ACCENT },
+      { label: "Coldest", value: cold?.owner || "—", sub: cold?.streak || "—", color: ROSE },
+      { label: "Most Cap Used", value: mostCapUsed?.owner || "—", sub: mostCapUsed ? `$${(mostCapUsed.capCommit + mostCapUsed.capDead).toFixed(0)}` : "", color: GOLD },
+    ];
+  }, [teams]);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 28 }}>
@@ -830,7 +835,6 @@ export function TeamsClient({ teams, season }: { teams: TeamDirectoryEntry[]; se
 
   return (
     <div>
-      {/* Page header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: ACCENT }}>{season} Season</span>
@@ -841,23 +845,18 @@ export function TeamsClient({ teams, season }: { teams: TeamDirectoryEntry[]; se
           <h1 style={{ fontFamily: HEADER_FONT, fontSize: 64, fontWeight: 900, letterSpacing: "0.01em", textTransform: "uppercase", color: TEXT, lineHeight: 1 }}>
             Teams
           </h1>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <span style={{ fontFamily: MONO_FONT, fontSize: 12, color: MUTED_TEXT, whiteSpace: "nowrap" }}>
-              <span style={{ color: TEXT, fontWeight: 700 }}>{teams.length}</span> franchises
-              <span style={{ color: MUTED }}> · </span>
-              <span style={{ color: TEXT, fontWeight: 700 }}>{DIV_ORDER.length}</span> divisions
-            </span>
-          </div>
+          <span style={{ fontFamily: MONO_FONT, fontSize: 12, color: MUTED_TEXT, whiteSpace: "nowrap" }}>
+            <span style={{ color: TEXT, fontWeight: 700 }}>{teams.length}</span> franchises
+            <span style={{ color: MUTED }}> · </span>
+            <span style={{ color: TEXT, fontWeight: 700 }}>{DIV_ORDER.length}</span> divisions
+          </span>
         </div>
       </div>
 
-      {/* League ribbon */}
       <LeagueRibbon teams={teams} />
 
-      {/* League insights */}
       <InsightsBoard teams={teams} />
 
-      {/* Toolbar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Segmented<ViewMode>
@@ -895,7 +894,6 @@ export function TeamsClient({ teams, season }: { teams: TeamDirectoryEntry[]; se
         </div>
       </div>
 
-      {/* Body */}
       {groupBy === "division" && grouped ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
           {Object.entries(grouped).map(([divName, divTeams]) => {
@@ -931,7 +929,6 @@ export function TeamsClient({ teams, season }: { teams: TeamDirectoryEntry[]; se
         </section>
       )}
 
-      {/* Footer note */}
       <div style={{ marginTop: 40, paddingTop: 20, borderTop: `1px solid ${CARD_BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <span style={{ fontSize: 11, color: MUTED, fontFamily: MONO_FONT }}>
           {season} season

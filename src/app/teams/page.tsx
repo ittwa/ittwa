@@ -56,8 +56,31 @@ export default async function TeamsPage() {
     }
   }
 
+  const activeDraftPicks = contracts.filter(
+    (c) =>
+      c.contractStatus.toLowerCase() === "active" &&
+      c.position.toLowerCase() === "draft pick" &&
+      parseInt(c.season, 10) >= currentSeasonNum
+  );
+  const draftPicksByOwner = new Map<string, typeof activeDraftPicks>();
+  for (const dp of activeDraftPicks) {
+    const key = dp.owner.toLowerCase();
+    const arr = draftPicksByOwner.get(key) ?? [];
+    arr.push(dp);
+    draftPicksByOwner.set(key, arr);
+  }
+
+  const capHitsByOwner = new Map<string, typeof capHits>();
+  for (const ch of capHits) {
+    const key = ch.owner.toLowerCase();
+    const arr = capHitsByOwner.get(key) ?? [];
+    arr.push(ch);
+    capHitsByOwner.set(key, arr);
+  }
+
   const entries: TeamDirectoryEntry[] = standings.map((team) => {
     const ownerLastName = getOwnerLastName(team.displayName);
+    const ownerKey = ownerLastName.toLowerCase();
 
     let playerSalary = 0;
     let playerYears = 0;
@@ -78,14 +101,7 @@ export default async function TeamsPage() {
       if (position && position in pos) pos[position]++;
     }
 
-    const draftPicks = contracts.filter(
-      (c) =>
-        c.contractStatus.toLowerCase() === "active" &&
-        c.position.toLowerCase() === "draft pick" &&
-        c.owner.toLowerCase() === ownerLastName.toLowerCase() &&
-        parseInt(c.season, 10) >= currentSeasonNum
-    );
-
+    const draftPicks = draftPicksByOwner.get(ownerKey) ?? [];
     let dpSalary = 0;
     let dpYears = 0;
     for (const dp of draftPicks) {
@@ -97,8 +113,7 @@ export default async function TeamsPage() {
 
     const committed = playerSalary + dpSalary;
     const yearsUsed = playerYears + dpYears;
-    const dead = capHits
-      .filter((ch) => ch.owner.toLowerCase() === ownerLastName.toLowerCase())
+    const dead = (capHitsByOwner.get(ownerKey) ?? [])
       .reduce((s, ch) => s + (ch.yearlyHits[capHitYear] ?? 0), 0);
 
     return {
