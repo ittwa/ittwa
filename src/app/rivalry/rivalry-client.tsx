@@ -856,24 +856,15 @@ export function RivalryClient({ allMatchups, availableSeasons }: RivalryClientPr
   return (
     <div style={{ paddingBottom: 80 }}>
       {/* Page header */}
-      <div style={{ paddingBottom: 20, borderBottom: "1px solid var(--border)", marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+      <div className="pb-6 border-b border-border mb-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
-              <span style={{
-                fontFamily: HEADER_FONT, fontSize: 22, fontWeight: 800,
-                letterSpacing: "0.04em", textTransform: "uppercase" as const, color: "var(--foreground)",
-              }}>Rivalry</span>
-              <span style={{
-                fontSize: 11, fontWeight: 600, padding: "2px 10px", borderRadius: 4,
-                background: ACCENT_DIM, color: ACCENT,
-                border: "1px solid rgba(253,74,72,0.3)", letterSpacing: "0.04em",
-              }}>
-                {totalGames} games · {totalPlayoff} playoff · {activeSeasonsList.length} seasons
-              </span>
+            <div className="flex items-center gap-3 mb-1.5">
+              <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
+              <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Rivalry</h1>
             </div>
-            <p style={{ fontSize: 13, color: "var(--muted-foreground)" }}>
-              Tap any cell in the matrix to dig into a head-to-head matchup. History sourced from Sleeper.
+            <p className="text-[13px] text-muted-foreground ml-4">
+              {totalGames} games · {totalPlayoff} playoff · {activeSeasonsList.length} seasons · History sourced from Sleeper.
             </p>
           </div>
 

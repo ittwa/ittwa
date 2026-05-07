@@ -133,9 +133,12 @@ export default function ConstitutionPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-3xl font-black uppercase tracking-tight">Constitution</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+      <div className="pb-6 border-b border-border">
+        <div className="flex items-center gap-3 mb-1.5">
+          <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
+          <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Constitution</h1>
+        </div>
+        <p className="text-[13px] text-muted-foreground ml-4">
           The governing document of the ITTWA league. Ratified 2014.
         </p>
       </div>

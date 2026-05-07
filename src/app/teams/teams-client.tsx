@@ -835,21 +835,17 @@ export function TeamsClient({ teams, season }: { teams: TeamDirectoryEntry[]; se
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: ACCENT }}>{season} Season</span>
-          <span style={{ height: 12, width: 1, background: CARD_BORDER }} />
-          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: MUTED }}>League Directory</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-          <h1 style={{ fontFamily: HEADER_FONT, fontSize: 64, fontWeight: 900, letterSpacing: "0.01em", textTransform: "uppercase", color: TEXT, lineHeight: 1 }}>
-            Teams
-          </h1>
-          <span style={{ fontFamily: MONO_FONT, fontSize: 12, color: MUTED_TEXT, whiteSpace: "nowrap" }}>
-            <span style={{ color: TEXT, fontWeight: 700 }}>{teams.length}</span> franchises
-            <span style={{ color: MUTED }}> · </span>
-            <span style={{ color: TEXT, fontWeight: 700 }}>{DIV_ORDER.length}</span> divisions
-          </span>
+      <div className="pb-6 border-b border-border mb-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-1.5">
+              <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
+              <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Teams</h1>
+            </div>
+            <p className="text-[13px] text-muted-foreground ml-4">
+              {season} season · {teams.length} franchises · {DIV_ORDER.length} divisions
+            </p>
+          </div>
         </div>
       </div>
 

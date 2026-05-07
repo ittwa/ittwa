@@ -397,19 +397,16 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
   return (
     <div>
       {/* Page header */}
-      <div className="pb-5 border-b border-border mb-6">
+      <div className="pb-6 border-b border-border mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-1 h-5 bg-[#E8B84B] rounded-sm" />
-              <h1 className="font-heading text-xl font-extrabold tracking-[0.06em] uppercase">Draft History</h1>
+          <div>
+            <div className="flex items-center gap-3 mb-1.5">
+              <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
+              <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Draft History</h1>
             </div>
-            <span
-              className="text-[11px] font-semibold px-2.5 py-[2px] rounded tracking-[0.04em]"
-              style={{ background: "rgba(253,74,72,0.1)", color: "#FD4A48", border: "1px solid rgba(253,74,72,0.3)" }}
-            >
+            <p className="text-[13px] text-muted-foreground ml-4">
               {draftTypeLabel} · {draft.rounds} Rounds · {draft.picks.length} Picks
-            </span>
+            </p>
           </div>
 
           {/* Season filter */}

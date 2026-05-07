@@ -23,9 +23,12 @@ export function ScheduleClient({ allPairs, season, currentWeek, teamNames }: Sch
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Schedule</h1>
-        <p className="text-sm text-muted-foreground mt-1">{season} &middot; 13-week regular season</p>
+      <div className="pb-6 border-b border-border">
+        <div className="flex items-center gap-3 mb-1.5">
+          <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
+          <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Schedule</h1>
+        </div>
+        <p className="text-[13px] text-muted-foreground ml-4">{season} &middot; 13-week regular season</p>
       </div>
 
       {/* Controls */}
