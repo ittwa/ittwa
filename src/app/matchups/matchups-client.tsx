@@ -745,15 +745,14 @@ export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playof
   if (matchups.length === 0) {
     return (
       <div style={{ fontFamily: T.bodyFont }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 24, paddingBottom: 16, borderBottom: `1px solid ${T.cardBorder}` }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
-              <span style={{ fontFamily: T.headerFont, fontSize: 32, fontWeight: 900, color: T.text, letterSpacing: "0.02em", textTransform: "uppercase", lineHeight: 1 }}>Matchups</span>
-            </div>
-            <div style={{ fontSize: 13, color: T.muted }}>
-              Live scoring, projected outcomes, and key matchup intel for every game on the slate.
-            </div>
+        <div className="pb-6 border-b border-border mb-6">
+          <div className="flex items-center gap-3 mb-1.5">
+            <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
+            <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Matchups</h1>
           </div>
+          <p className="text-[13px] text-muted-foreground ml-4">
+            Live scoring, projected outcomes, and key matchup intel for every game on the slate.
+          </p>
         </div>
         <WeekSelector week={week} setWeek={setWeek} playoffStart={playoffWeekStart} />
         <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 10, padding: 48, textAlign: "center" }}>
@@ -766,22 +765,14 @@ export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playof
   return (
     <div style={{ fontFamily: T.bodyFont }}>
       {/* Page header */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 24, paddingBottom: 16, borderBottom: `1px solid ${T.cardBorder}` }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
-            <span style={{ fontFamily: T.headerFont, fontSize: 32, fontWeight: 900, color: T.text, letterSpacing: "0.02em", textTransform: "uppercase", lineHeight: 1 }}>Matchups</span>
-            <span style={{
-              fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 4,
-              background: T.accentDim, color: T.accent,
-              border: "1px solid rgba(253,74,72,0.3)", fontFamily: T.bodyFont, letterSpacing: "0.06em",
-            }}>
-              {season} &middot; WK {String(week).padStart(2, "0")}
-            </span>
-          </div>
-          <div style={{ fontSize: 13, color: T.muted }}>
-            Live scoring, projected outcomes, and key matchup intel for every game on the slate.
-          </div>
+      <div className="pb-6 border-b border-border mb-6">
+        <div className="flex items-center gap-3 mb-1.5">
+          <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
+          <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Matchups</h1>
         </div>
+        <p className="text-[13px] text-muted-foreground ml-4">
+          {season} · Week {week} · Live scoring, projected outcomes, and key matchup intel.
+        </p>
       </div>
 
       {/* Week selector */}

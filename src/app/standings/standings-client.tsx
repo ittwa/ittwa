@@ -161,23 +161,23 @@ export function StandingsClient({
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-end justify-between">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <span className="w-1 h-7 rounded-sm bg-gold shrink-0" />
-            <h1 className="font-heading text-4xl font-black uppercase tracking-wide">Standings</h1>
+      <div className="pb-6 border-b border-border">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-1.5">
+              <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
+              <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Standings</h1>
+            </div>
+            <p className="text-[13px] text-muted-foreground ml-4">
+              {season} season · Through week {currentWeek - 1}
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground flex items-center gap-2">
-            <span className="font-mono">{season} season</span>
-            <span className="text-border">·</span>
-            <span>Through week {currentWeek - 1}</span>
-          </p>
-        </div>
-        <div
-          className="px-3 py-1.5 rounded-md text-[11px] font-bold"
-          style={{ background: "rgba(253,74,72,0.12)", color: "#FD4A48", border: "1px solid rgba(253,74,72,0.25)" }}
-        >
-          {standings.length} Teams
+          <div
+            className="px-3 py-1.5 rounded-md text-[11px] font-bold"
+            style={{ background: "rgba(253,74,72,0.12)", color: "#FD4A48", border: "1px solid rgba(253,74,72,0.25)" }}
+          >
+            {standings.length} Teams
+          </div>
         </div>
       </div>
 
