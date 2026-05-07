@@ -102,9 +102,14 @@ export async function getNFLPlayers(): Promise<SleeperPlayersMap> {
   if (playersCache && Date.now() - playersCache.timestamp < PLAYERS_CACHE_MS) {
     return playersCache.data;
   }
-  const data = await fetchSleeper<SleeperPlayersMap>("/players/nfl", REVALIDATE.players);
-  playersCache = { data, timestamp: Date.now() };
-  return data;
+  try {
+    const data = await fetchSleeper<SleeperPlayersMap>("/players/nfl", REVALIDATE.players);
+    playersCache = { data, timestamp: Date.now() };
+    return data;
+  } catch {
+    console.warn("Failed to fetch NFL players from Sleeper (may be rate-limited) — using cached or empty");
+    return playersCache?.data ?? {};
+  }
 }
 
 // --- Helper: Build roster_id → display name map ---
