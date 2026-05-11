@@ -2,6 +2,7 @@
 
 import { useState, useRef, useMemo, useCallback } from "react";
 import { OWNER_DIVISION, ALL_OWNERS } from "@/lib/config";
+import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ interface PairRecord {
 export interface RivalryClientProps {
   allMatchups: HistoricalMatchup[];
   availableSeasons: number[];
+  ownerAvatars: Record<string, string>;
 }
 
 type MatrixMode = "record" | "heat" | "points";
@@ -103,18 +105,25 @@ function pairRecord(
 
 function OwnerAvatar({ owner, size = 28 }: { owner: string; size?: number }) {
   const dc = getDivColor(owner);
+  const avatarId = useOwnerAvatar(owner);
   return (
     <div style={{
-      width: size, height: size, borderRadius: "50%", flexShrink: 0,
+      width: size, height: size, borderRadius: "50%", flexShrink: 0, overflow: "hidden",
       background: dc.bg, border: `1.5px solid ${dc.border}`,
       display: "flex", alignItems: "center", justifyContent: "center",
     }}>
-      <span style={{
-        fontSize: size * 0.36, fontWeight: 800, color: dc.text,
-        fontFamily: HEADER_FONT, letterSpacing: "-0.01em",
-      }}>
-        {initials(owner)}
-      </span>
+      <SleeperAvatarImage
+        avatarId={avatarId}
+        name={owner}
+        fallback={
+          <span style={{
+            fontSize: size * 0.36, fontWeight: 800, color: dc.text,
+            fontFamily: HEADER_FONT, letterSpacing: "-0.01em",
+          }}>
+            {initials(owner)}
+          </span>
+        }
+      />
     </div>
   );
 }
@@ -813,7 +822,7 @@ function MostLopsided({ owners, activeSeasons, allMatchups, onSelect }: {
 
 // ── RivalryClient ─────────────────────────────────────────────────────────────
 
-export function RivalryClient({ allMatchups, availableSeasons }: RivalryClientProps) {
+export function RivalryClient({ allMatchups, availableSeasons, ownerAvatars }: RivalryClientProps) {
   const seasons = [...availableSeasons].sort((a, b) => b - a);
   const owners = ALL_OWNERS;
 
@@ -854,6 +863,7 @@ export function RivalryClient({ allMatchups, availableSeasons }: RivalryClientPr
   const MODE_LABELS: Record<MatrixMode, string> = { record: "Record", heat: "Win Diff", points: "Points ±" };
 
   return (
+    <OwnerAvatarsProvider avatars={ownerAvatars}>
     <div style={{ paddingBottom: 80 }}>
       {/* Page header */}
       <div className="pb-6 border-b border-border mb-6">
@@ -982,5 +992,6 @@ export function RivalryClient({ allMatchups, availableSeasons }: RivalryClientPr
         </div>
       </div>
     </div>
+    </OwnerAvatarsProvider>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { MatchupPair } from "@/types/sleeper";
+import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ interface MatchupsClientProps {
   currentWeek: number;
   teamMeta: Record<string, TeamMeta>;
   playoffWeekStart: number;
+  ownerAvatars: Record<string, string>;
 }
 
 interface EnrichedMatchup {
@@ -132,16 +134,23 @@ function weekLabel(w: number, playoffStart: number): string {
 
 function OwnerAvatar({ name, division, size = 32 }: { name: string; division: string; size?: number }) {
   const d = divColor(division);
+  const avatarId = useOwnerAvatar(name);
   const initials = name.slice(0, 2).toUpperCase();
   return (
     <div style={{
-      width: size, height: size, borderRadius: size > 40 ? 10 : 8, flexShrink: 0,
+      width: size, height: size, borderRadius: size > 40 ? 10 : 8, flexShrink: 0, overflow: "hidden",
       background: d.bg, border: `1px solid ${d.border}`,
       display: "flex", alignItems: "center", justifyContent: "center",
     }}>
-      <span style={{ fontFamily: T.headerFont, fontWeight: 800, fontSize: size * 0.36, color: d.color, letterSpacing: "-0.01em" }}>
-        {initials}
-      </span>
+      <SleeperAvatarImage
+        avatarId={avatarId}
+        name={name}
+        fallback={
+          <span style={{ fontFamily: T.headerFont, fontWeight: 800, fontSize: size * 0.36, color: d.color, letterSpacing: "-0.01em" }}>
+            {initials}
+          </span>
+        }
+      />
     </div>
   );
 }
@@ -718,7 +727,7 @@ function StandingsSnapshot({ teamMeta }: { teamMeta: Record<string, TeamMeta> })
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 
-export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playoffWeekStart }: MatchupsClientProps) {
+export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playoffWeekStart, ownerAvatars }: MatchupsClientProps) {
   const defaultWeek = Math.max(currentWeek - 1, 1);
   const [week, setWeek] = useState(defaultWeek);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -744,6 +753,7 @@ export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playof
 
   if (matchups.length === 0) {
     return (
+      <OwnerAvatarsProvider avatars={ownerAvatars}>
       <div style={{ fontFamily: T.bodyFont }}>
         <div className="pb-6 border-b border-border mb-6">
           <div className="flex items-center gap-3 mb-1.5">
@@ -759,10 +769,12 @@ export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playof
           <p style={{ color: T.muted, fontStyle: "italic" }}>There are no games right now. This is a crisis.</p>
         </div>
       </div>
+      </OwnerAvatarsProvider>
     );
   }
 
   return (
+    <OwnerAvatarsProvider avatars={ownerAvatars}>
     <div style={{ fontFamily: T.bodyFont }}>
       {/* Page header */}
       <div className="pb-6 border-b border-border mb-6">
@@ -830,5 +842,6 @@ export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playof
         }
       `}</style>
     </div>
+    </OwnerAvatarsProvider>
   );
 }

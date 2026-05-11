@@ -40,8 +40,10 @@ export default async function TeamsPage() {
   const playoffTeams = league.settings.playoff_teams || 6;
 
   const teamNames: Record<string, string> = {};
+  const ownerAvatars: Record<string, string> = {};
   for (const user of users) {
     teamNames[getDisplayName(user)] = user.metadata?.team_name || "";
+    if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
   }
 
   const contractById = new Map<string, { salary: number; years: number; position: string }>();
@@ -140,5 +142,5 @@ export default async function TeamsPage() {
     };
   });
 
-  return <TeamsClient teams={entries} season={season} />;
+  return <TeamsClient teams={entries} season={season} ownerAvatars={ownerAvatars} />;
 }

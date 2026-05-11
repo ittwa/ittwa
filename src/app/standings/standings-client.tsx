@@ -4,6 +4,7 @@ import { useState, useMemo, Fragment } from "react";
 import { StandingsEntry } from "@/lib/standings";
 import { DIVISIONS } from "@/lib/config";
 import { getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
+import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
 const PLAYOFF_SPOTS = 4;
 
@@ -65,16 +66,23 @@ function RankBadge({ rank }: { rank: number }) {
 
 function OwnerAvatar({ name, division }: { name: string; division: string }) {
   const color = getDivisionColor(division);
+  const avatarId = useOwnerAvatar(name);
   const initials = name.slice(0, 2).toUpperCase();
   return (
     <div
-      className="w-[30px] h-[30px] rounded-lg shrink-0 flex items-center justify-center"
+      className="w-[30px] h-[30px] rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
       style={{
         background: getDivisionColorAlpha(division, 0.1),
         border: `1px solid ${getDivisionColorAlpha(division, 0.2)}`,
       }}
     >
-      <span className="font-heading font-extrabold text-xs" style={{ color }}>{initials}</span>
+      <SleeperAvatarImage
+        avatarId={avatarId}
+        name={name}
+        fallback={
+          <span className="font-heading font-extrabold text-xs" style={{ color }}>{initials}</span>
+        }
+      />
     </div>
   );
 }
@@ -128,6 +136,7 @@ export interface StandingsClientProps {
   standingsByDivision: Record<string, StandingsEntry[]>;
   season: string;
   currentWeek: number;
+  ownerAvatars: Record<string, string>;
 }
 
 // ─── Main client component ─────────────────────────────────────────────────
@@ -136,6 +145,7 @@ export function StandingsClient({
   standingsByDivision,
   season,
   currentWeek,
+  ownerAvatars,
 }: StandingsClientProps) {
   const [activeTab, setActiveTab] = useState<"overall" | "division">("overall");
   const [sortCol, setSortCol] = useState<SortKey>("wins");
@@ -159,6 +169,7 @@ export function StandingsClient({
   const divisionOrder = Object.keys(DIVISIONS);
 
   return (
+    <OwnerAvatarsProvider avatars={ownerAvatars}>
     <div className="space-y-6">
       {/* Page header */}
       <div className="pb-6 border-b border-border">
@@ -402,5 +413,6 @@ export function StandingsClient({
         </div>
       )}
     </div>
+    </OwnerAvatarsProvider>
   );
 }

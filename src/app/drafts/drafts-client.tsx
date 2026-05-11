@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { getPositionColors, getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
 import { OWNER_DIVISION } from "@/lib/config";
+import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +35,7 @@ interface DraftData {
 
 interface DraftsClientProps {
   drafts: DraftData[];
+  ownerAvatars: Record<string, string>;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -73,12 +75,19 @@ function initials(name: string) {
 function OwnerAvatar({ name, division, size = 28 }: { name: string; division: string; size?: number }) {
   const dc = divColors(division);
   const ini = initials(name);
+  const avatarId = useOwnerAvatar(name);
   return (
     <div
-      className="rounded-full flex-shrink-0 flex items-center justify-center"
+      className="rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden"
       style={{ width: size, height: size, background: dc.bg, border: `1.5px solid ${dc.border}` }}
     >
-      <span className="font-heading font-extrabold" style={{ fontSize: size * 0.36, color: dc.text, letterSpacing: "-0.01em" }}>{ini}</span>
+      <SleeperAvatarImage
+        avatarId={avatarId}
+        name={name}
+        fallback={
+          <span className="font-heading font-extrabold" style={{ fontSize: size * 0.36, color: dc.text, letterSpacing: "-0.01em" }}>{ini}</span>
+        }
+      />
     </div>
   );
 }
@@ -288,7 +297,7 @@ function TradedPicksChart({ data }: { data: { name: string; cnt: number; divisio
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
-export function DraftsClient({ drafts }: DraftsClientProps) {
+export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
   const seasons = useMemo(() => [...new Set(drafts.map((d) => d.season))].sort().reverse(), [drafts]);
   const [selectedSeason, setSelectedSeason] = useState(seasons[0] || "");
 
@@ -395,6 +404,7 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
   const draftTypeLabel = draft.type === "snake" ? "Startup" : "Rookie";
 
   return (
+    <OwnerAvatarsProvider avatars={ownerAvatars}>
     <div>
       {/* Page header */}
       <div className="pb-6 border-b border-border mb-6">
@@ -591,5 +601,6 @@ export function DraftsClient({ drafts }: DraftsClientProps) {
         </div>
       </div>
     </div>
+    </OwnerAvatarsProvider>
   );
 }

@@ -31,6 +31,11 @@ export default async function MatchupsPage() {
     teamNames[getDisplayName(user)] = user.metadata?.team_name || "";
   }
 
+  const ownerAvatars: Record<string, string> = {};
+  for (const user of users) {
+    if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
+  }
+
   const teamMeta: Record<string, TeamMeta> = {};
   for (const entry of standings) {
     teamMeta[entry.displayName] = {
@@ -65,6 +70,7 @@ export default async function MatchupsPage() {
       currentWeek={currentWeek}
       teamMeta={teamMeta}
       playoffWeekStart={playoffWeekStart}
+      ownerAvatars={ownerAvatars}
     />
   );
 }

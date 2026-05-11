@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
-import { getMatchups, buildRosterOwnerMap } from "@/lib/sleeper";
+import { getMatchups, buildRosterOwnerMap, getLeagueUsers, getDisplayName } from "@/lib/sleeper";
 import { SEASON_LEAGUE_IDS } from "@/lib/config";
 import { RivalryClient, type HistoricalMatchup } from "./rivalry-client";
 import type { SleeperMatchup } from "@/types/sleeper";
@@ -9,6 +9,12 @@ import type { SleeperMatchup } from "@/types/sleeper";
 export default async function RivalryPage() {
   const seasons = Object.keys(SEASON_LEAGUE_IDS).sort();
   const allMatchups: HistoricalMatchup[] = [];
+
+  const users = await getLeagueUsers();
+  const ownerAvatars: Record<string, string> = {};
+  for (const user of users) {
+    if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
+  }
 
   await Promise.all(
     seasons.map(async (seasonStr) => {
@@ -62,5 +68,5 @@ export default async function RivalryPage() {
 
   const availableSeasons = seasons.map(Number).sort((a, b) => b - a);
 
-  return <RivalryClient allMatchups={allMatchups} availableSeasons={availableSeasons} />;
+  return <RivalryClient allMatchups={allMatchups} availableSeasons={availableSeasons} ownerAvatars={ownerAvatars} />;
 }
