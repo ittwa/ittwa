@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
-import { getDrafts, buildRosterOwnerMap } from "@/lib/data";
-import { getDraftPicks, getRosters } from "@/lib/sleeper";
+import { getDrafts, buildRosterOwnerMap, getLeagueUsers } from "@/lib/data";
+import { getDraftPicks, getDisplayName } from "@/lib/sleeper";
 import { DraftsClient } from "./drafts-client";
 import { SEASON_LEAGUE_IDS, OWNER_DIVISION, ROOKIE_PICK_CONTRACTS } from "@/lib/config";
 
@@ -9,6 +9,11 @@ export const revalidate = 3600;
 
 export default async function DraftsPage() {
   const allSeasons = Object.keys(SEASON_LEAGUE_IDS).sort().reverse();
+  const users = await getLeagueUsers();
+  const ownerAvatars: Record<string, string> = {};
+  for (const user of users) {
+    if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
+  }
 
   const allDrafts = await Promise.all(
     allSeasons.map(async (season) => {
@@ -85,5 +90,5 @@ export default async function DraftsPage() {
     .filter((d) => d.picks.length > 0)
     .sort((a, b) => b.season.localeCompare(a.season));
 
-  return <DraftsClient drafts={sorted} />;
+  return <DraftsClient drafts={sorted} ownerAvatars={ownerAvatars} />;
 }

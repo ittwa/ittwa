@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { SALARY_CAP, YEARS_CAP } from "@/lib/config";
+import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -166,17 +167,24 @@ function SeedPill({ seed }: { seed: number }) {
 
 function OwnerAvatar({ name, division, size = 40 }: { name: string; division: string; size?: number }) {
   const d = getDivColor(division);
+  const avatarId = useOwnerAvatar(name);
   return (
     <div
       style={{
-        width: size, height: size, borderRadius: 10, flexShrink: 0,
+        width: size, height: size, borderRadius: 10, flexShrink: 0, overflow: "hidden",
         background: d.bg, border: `1px solid ${d.border}`,
         display: "flex", alignItems: "center", justifyContent: "center",
       }}
     >
-      <span style={{ fontFamily: HEADER_FONT, fontWeight: 800, fontSize: size * 0.38, color: d.color, letterSpacing: "0.02em" }}>
-        {initials(name)}
-      </span>
+      <SleeperAvatarImage
+        avatarId={avatarId}
+        name={name}
+        fallback={
+          <span style={{ fontFamily: HEADER_FONT, fontWeight: 800, fontSize: size * 0.38, color: d.color, letterSpacing: "0.02em" }}>
+            {initials(name)}
+          </span>
+        }
+      />
     </div>
   );
 }
@@ -787,7 +795,7 @@ function Segmented<T extends string>({
 
 // ── Main Client Component ────────────────────────────────────────────────────
 
-export function TeamsClient({ teams, season }: { teams: TeamDirectoryEntry[]; season: string }) {
+export function TeamsClient({ teams, season, ownerAvatars }: { teams: TeamDirectoryEntry[]; season: string; ownerAvatars: Record<string, string> }) {
   const [view, setView] = useState<ViewMode>("grid");
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [sort, setSort] = useState<SortKey>("cap");
@@ -834,6 +842,7 @@ export function TeamsClient({ teams, season }: { teams: TeamDirectoryEntry[]; se
   );
 
   return (
+    <OwnerAvatarsProvider avatars={ownerAvatars}>
     <div>
       <div className="pb-6 border-b border-border mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -934,5 +943,6 @@ export function TeamsClient({ teams, season }: { teams: TeamDirectoryEntry[]; se
         </span>
       </div>
     </div>
+    </OwnerAvatarsProvider>
   );
 }
