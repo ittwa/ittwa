@@ -4,7 +4,7 @@ import { Nav } from "@/components/nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ITTWA — I Thought This Was America",
+  title: "ITTWA",
   description:
     "Contract dynasty fantasy football league, founded 2014. 12 teams, too many opinions.",
   icons: {
