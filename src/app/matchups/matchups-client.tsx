@@ -45,12 +45,12 @@ interface EnrichedMatchup {
 // ── Design tokens ────────────────────────────────────────────────────────────
 
 const T = {
-  card: "#111111",
-  cardBorder: "#1f1f1f",
-  surface: "#161616",
-  muted: "#555",
-  text: "#e8e8e8",
-  textDim: "#bbb",
+  card: "var(--card)",
+  cardBorder: "var(--border)",
+  surface: "var(--secondary)",
+  muted: "var(--muted-foreground)",
+  text: "var(--foreground)",
+  textDim: "var(--muted-foreground)",
   accent: "#FD4A48",
   accentDim: "rgba(253,74,72,0.12)",
   gold: "#E8B84B",
@@ -357,7 +357,7 @@ function HeroMatchup({ m, week, season }: { m: EnrichedMatchup; week: number; se
     <div style={{
       background: T.card, border: `1px solid ${T.cardBorder}`,
       borderRadius: 12, overflow: "hidden", marginBottom: 24,
-      boxShadow: `0 0 0 1px ${T.cardBorder}, 0 8px 30px rgba(0,0,0,0.4)`,
+      boxShadow: `0 0 0 1px ${T.cardBorder}, 0 8px 30px rgba(0,0,0,0.12)`,
     }}>
       {/* Top stripe */}
       <div style={{
@@ -483,7 +483,7 @@ function ExpandedDetails({ m }: { m: EnrichedMatchup }) {
   const spreadOwner = m.spread >= 0 ? m.aName : m.bName;
 
   return (
-    <div style={{ padding: "14px 16px", borderTop: `1px solid ${T.cardBorder}`, background: "#0c0c0c" }}>
+    <div style={{ padding: "14px 16px", borderTop: `1px solid ${T.cardBorder}`, background: T.surface }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <DetailBlock label="Lines">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
