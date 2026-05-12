@@ -2,6 +2,7 @@
 
 import { useState, Fragment } from "react";
 import { getPositionColors } from "@/lib/ui-utils";
+import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
 export interface TradePlayerItem {
   type: "player";
@@ -127,19 +128,29 @@ function PlayerCard({ item }: { item: TradeItem }) {
   );
 }
 
+function OwnerAvatar({ name }: { name: string }) {
+  const avatarId = useOwnerAvatar(name);
+  const initials = name.slice(0, 2).toUpperCase();
+  return (
+    <div
+      className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden"
+      style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+    >
+      <SleeperAvatarImage
+        avatarId={avatarId}
+        name={name}
+        fallback={<span className="font-heading text-[13px] font-extrabold text-[#60a5fa]">{initials}</span>}
+      />
+    </div>
+  );
+}
+
 function TradeSide({ side, isLeft }: { side: TradeSideData; isLeft: boolean }) {
   return (
     <div className="flex-1 min-w-0">
       <div className={`flex items-center gap-2.5 mb-2.5 ${isLeft ? "justify-start" : "justify-end"}`}>
         <div className={`flex items-center gap-2 ${isLeft ? "flex-row" : "flex-row-reverse"}`}>
-          <div
-            className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center"
-            style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
-          >
-            <span className="font-heading text-[13px] font-extrabold text-[#60a5fa]">
-              {side.owner.slice(0, 2).toUpperCase()}
-            </span>
-          </div>
+          <OwnerAvatar name={side.owner} />
           <div style={{ textAlign: isLeft ? "left" : "right" }}>
             <div className="text-sm font-bold text-foreground">{side.owner}</div>
             <div className="text-[11px] text-muted-foreground">

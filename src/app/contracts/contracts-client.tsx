@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { ContractWithValue } from "@/types/contracts";
 import { getPositionColors } from "@/lib/ui-utils";
+import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
 export interface ContractEntry extends ContractWithValue {
   rosterSeason: string;
@@ -15,6 +16,7 @@ interface ContractsClientProps {
   contracts: ContractEntry[];
   season: string;
   availableSeasons: string[];
+  ownerAvatars: Record<string, string>;
 }
 
 const YEAR_COLORS: Record<number, { text: string; bg: string; border: string }> = {
@@ -54,6 +56,26 @@ function PlayerAvatar({ playerId, name, pos }: { playerId: string; name: string;
         onError={() => setErr(true)}
         className="w-full h-full object-cover object-top"
       />
+    </div>
+  );
+}
+
+function OwnerCell({ name }: { name: string }) {
+  const avatarId = useOwnerAvatar(name);
+  const initials = name.slice(0, 2).toUpperCase();
+  return (
+    <div className="flex items-center gap-2">
+      <div
+        className="w-6 h-6 rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden"
+        style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+      >
+        <SleeperAvatarImage
+          avatarId={avatarId}
+          name={name}
+          fallback={<span className="font-heading text-[9px] font-bold text-[#60a5fa]">{initials}</span>}
+        />
+      </div>
+      <span className="text-[13px] text-muted-foreground whitespace-nowrap">{name}</span>
     </div>
   );
 }
@@ -304,7 +326,7 @@ function SortTh({ label, field, sortKey, sortDir, onSort, align = "left" }: {
   );
 }
 
-export function ContractsClient({ contracts, season, availableSeasons }: ContractsClientProps) {
+export function ContractsClient({ contracts, season, availableSeasons, ownerAvatars }: ContractsClientProps) {
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("");
@@ -387,6 +409,7 @@ export function ContractsClient({ contracts, season, availableSeasons }: Contrac
       : `${seasonFilter.length} Seasons`;
 
   return (
+    <OwnerAvatarsProvider avatars={ownerAvatars}>
     <div>
       {/* Page header */}
       <div className="pb-6 border-b border-border mb-6">
@@ -459,7 +482,7 @@ export function ContractsClient({ contracts, season, availableSeasons }: Contrac
                     <td className="px-3 py-2">
                       <PosBadge pos={c.position} rank={posRanks[c.player]} />
                     </td>
-                    <td className="px-3 py-2 text-[13px] text-muted-foreground whitespace-nowrap">{c.owner}</td>
+                    <td className="px-3 py-2"><OwnerCell name={c.owner} /></td>
                     <td className="px-3 py-2 text-right">
                       {c.isMidSeasonPickup ? (
                         <span className="text-muted-foreground text-xs">—</span>
@@ -528,5 +551,6 @@ export function ContractsClient({ contracts, season, availableSeasons }: Contrac
         </div>
       </div>
     </div>
+    </OwnerAvatarsProvider>
   );
 }
