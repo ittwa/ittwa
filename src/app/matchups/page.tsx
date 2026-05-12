@@ -10,18 +10,37 @@ import {
   getLeagueUsers,
 } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
+import { SEASON_LEAGUE_IDS } from "@/lib/config";
 import { MatchupPair } from "@/types/sleeper";
 import { MatchupsClient, type TeamMeta } from "./matchups-client";
 
-export default async function MatchupsPage() {
+export default async function MatchupsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const params = await searchParams;
+  const availableSeasons = Object.keys(SEASON_LEAGUE_IDS).sort().reverse();
+  const selectedSeason =
+    typeof params.season === "string" && SEASON_LEAGUE_IDS[params.season]
+      ? params.season
+      : availableSeasons[0];
+  const leagueId = SEASON_LEAGUE_IDS[selectedSeason];
+  const isCurrentSeason = selectedSeason === availableSeasons[0];
+
   const [teamsData, rosterOwnerMap, league, users] = await Promise.all([
-    getTeamsData(),
-    buildRosterOwnerMap(),
-    getLeague(),
-    getLeagueUsers(),
+    getTeamsData(leagueId),
+    buildRosterOwnerMap(leagueId),
+    getLeague(leagueId),
+    getLeagueUsers(leagueId),
   ]);
 
-  const { teams, season, currentWeek, allMatchups } = teamsData;
+  const { teams, season, currentWeek: rawCurrentWeek, allMatchups } = teamsData;
+  const lastWeekWithData = allMatchups.size > 0
+    ? Math.max(...Array.from(allMatchups.keys()))
+    : 1;
+  const currentWeek = isCurrentSeason ? rawCurrentWeek : lastWeekWithData + 1;
+
   const standings = calculateStandings(teams, allMatchups);
   const playoffTeams = league.settings.playoff_teams || 6;
   const playoffWeekStart = league.settings.playoff_week_start || 15;
@@ -56,7 +75,7 @@ export default async function MatchupsPage() {
   const promises = [];
   for (let w = 1; w <= 18; w++) {
     promises.push(
-      getMatchupPairs(w, rosterOwnerMap)
+      getMatchupPairs(w, rosterOwnerMap, leagueId)
         .then((pairs) => { allPairs[w] = pairs; })
         .catch(() => { allPairs[w] = []; })
     );
@@ -66,11 +85,12 @@ export default async function MatchupsPage() {
   return (
     <MatchupsClient
       allPairs={allPairs}
-      season={season}
+      season={selectedSeason}
       currentWeek={currentWeek}
       teamMeta={teamMeta}
       playoffWeekStart={playoffWeekStart}
       ownerAvatars={ownerAvatars}
+      availableSeasons={availableSeasons}
     />
   );
 }

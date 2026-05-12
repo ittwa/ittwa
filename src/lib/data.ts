@@ -20,17 +20,18 @@ import { TeamInfo, SleeperMatchup, MatchupPair, SleeperRoster } from "@/types/sl
 
 // --- Build full team info from Sleeper data ---
 
-export async function getTeamsData(): Promise<{
+export async function getTeamsData(leagueId?: string): Promise<{
   teams: TeamInfo[];
   season: string;
   currentWeek: number;
   allMatchups: Map<number, SleeperMatchup[]>;
 }> {
+  const lid = leagueId ?? LEAGUE_ID;
   const [nflState, league, users, rosters] = await Promise.all([
     getNFLState(),
-    getLeague(),
-    getLeagueUsers(),
-    getRosters(),
+    getLeague(lid),
+    getLeagueUsers(lid),
+    getRosters(lid),
   ]);
 
   // Prefer the league's own season (e.g. "2026" for the 2026 dynasty league)
@@ -51,7 +52,7 @@ export async function getTeamsData(): Promise<{
   const matchupPromises = [];
   for (let w = 1; w <= 18; w++) {
     matchupPromises.push(
-      getMatchups(w).then((m) => {
+      getMatchups(w, lid).then((m) => {
         // Only store weeks that have actual score data
         if (m && m.length > 0 && m.some((mm) => mm.points > 0)) {
           allMatchups.set(w, m);
@@ -152,11 +153,13 @@ function calculateDivisionRecords(
 
 export async function getMatchupPairs(
   week: number,
-  rosterOwnerMap?: Record<number, string>
+  rosterOwnerMap?: Record<number, string>,
+  leagueId?: string,
 ): Promise<MatchupPair[]> {
+  const lid = leagueId ?? LEAGUE_ID;
   const [matchups, ownerMap] = await Promise.all([
-    getMatchups(week),
-    rosterOwnerMap ? Promise.resolve(rosterOwnerMap) : buildRosterOwnerMap(),
+    getMatchups(week, lid),
+    rosterOwnerMap ? Promise.resolve(rosterOwnerMap) : buildRosterOwnerMap(lid),
   ]);
 
   // Group by matchup_id
