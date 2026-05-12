@@ -11,6 +11,7 @@ import {
   SeasonSummary,
 } from "@/lib/historical";
 import { cn } from "@/lib/utils";
+import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
 interface TeamRecord {
   rosterId: number;
@@ -35,6 +36,7 @@ interface RecordsClientProps {
   seasonRecords: SeasonRecordItem[];
   seasonSummaries: Record<string, SeasonSummary>;
   availableSeasons: string[];
+  ownerAvatars: Record<string, string>;
 }
 
 function SectionLabel({ label }: { label: string }) {
@@ -70,6 +72,23 @@ function RCard({
   );
 }
 
+function OwnerAvatar({ name, size = 24 }: { name: string; size?: number }) {
+  const avatarId = useOwnerAvatar(name);
+  const initials = name.slice(0, 2).toUpperCase();
+  return (
+    <div
+      className="rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden"
+      style={{ width: size, height: size, background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+    >
+      <SleeperAvatarImage
+        avatarId={avatarId}
+        name={name}
+        fallback={<span className="font-heading font-bold text-[#60a5fa]" style={{ fontSize: size * 0.38 }}>{initials}</span>}
+      />
+    </div>
+  );
+}
+
 type SortKey = "owner" | "wins" | "losses" | "winPct" | "pf" | "rings" | "playoffs";
 
 export function RecordsClient({
@@ -85,6 +104,7 @@ export function RecordsClient({
   seasonRecords,
   seasonSummaries,
   availableSeasons,
+  ownerAvatars,
 }: RecordsClientProps) {
   const [activeTab, setActiveTab] = useState("all-time");
   const [sortKey, setSortKey] = useState<SortKey>("wins");
@@ -163,6 +183,7 @@ export function RecordsClient({
   const maxRings = ringCounts[0]?.count || 1;
 
   return (
+    <OwnerAvatarsProvider avatars={ownerAvatars}>
     <div className="space-y-8">
       {/* Page Header */}
       <div className="border-b border-border pb-6">
@@ -297,6 +318,7 @@ export function RecordsClient({
                     <span className="font-mono text-[13px] font-bold text-gold text-center">{row.year}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-sm">🏆</span>
+                      <OwnerAvatar name={row.champion} size={20} />
                       <span className="text-[13px] font-semibold">{row.champion}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -393,6 +415,7 @@ export function RecordsClient({
                             <td className="px-3.5 py-2.5">
                               <div className="flex items-center gap-2.5">
                                 <span className="text-[11px] text-muted-foreground font-mono min-w-[16px]">{i + 1}</span>
+                                <OwnerAvatar name={t.owner} />
                                 <span className={cn("text-[13px]", i === 0 ? "font-semibold" : "")}>{t.owner}</span>
                               </div>
                             </td>
@@ -452,6 +475,7 @@ export function RecordsClient({
                     style={{ background: i === 0 ? "rgba(232,184,75,0.05)" : undefined }}
                   >
                     <span className="font-mono text-xs text-muted-foreground min-w-[20px]">{i + 1}</span>
+                    <OwnerAvatar name={t.name} size={20} />
                     <span className={cn("flex-1 text-[13px]", i === 0 ? "font-semibold" : "")}>{t.name}</span>
                     <div className="flex gap-1">
                       {Array(t.count).fill(0).map((_, j) => (
@@ -573,6 +597,7 @@ export function RecordsClient({
                     <span className="font-mono text-[13px] font-bold text-gold text-center">{selectedChamp.year}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-sm">🏆</span>
+                      <OwnerAvatar name={selectedChamp.champion} size={20} />
                       <span className="text-[13px] font-semibold">{selectedChamp.champion}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -644,6 +669,7 @@ export function RecordsClient({
         )}
       </div>
     </div>
+    </OwnerAvatarsProvider>
   );
 }
 

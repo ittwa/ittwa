@@ -8,7 +8,9 @@ import {
   getContracts,
   getLatestActiveContracts,
   getLeagueHistory,
+  getLeagueUsers,
 } from "@/lib/data";
+import { getDisplayName } from "@/lib/sleeper";
 import { TradesClient } from "./trades-client";
 import type { EnrichedTrade } from "@/components/trade-card";
 import { buildContractLookup, enrichTrades } from "@/lib/trade-utils";
@@ -16,11 +18,12 @@ import { buildContractLookup, enrichTrades } from "@/lib/trade-utils";
 export const revalidate = 300;
 
 export default async function TradesPage() {
-  const [leagues, nflState, players, rawContracts] = await Promise.all([
+  const [leagues, nflState, players, rawContracts, users] = await Promise.all([
     getLeagueHistory(),
     getNFLState(),
     getNFLPlayers(),
     getContracts(),
+    getLeagueUsers(),
   ]);
 
   const contracts = getLatestActiveContracts(rawContracts);
@@ -46,5 +49,10 @@ export default async function TradesPage() {
 
   allTrades.sort((a, b) => b.created - a.created);
 
-  return <TradesClient trades={allTrades} season={season} />;
+  const ownerAvatars: Record<string, string> = {};
+  for (const user of users) {
+    if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
+  }
+
+  return <TradesClient trades={allTrades} season={season} ownerAvatars={ownerAvatars} />;
 }
