@@ -12,8 +12,11 @@ import {
   buildRosterOwnerMap,
   getNFLState,
   getNFLPlayers,
+  getLeagueUsers,
 } from "@/lib/data";
-import { getDivisionVariant } from "@/lib/ui-utils";
+import { getDisplayName } from "@/lib/sleeper";
+import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
+import { SleeperAvatarImage } from "@/components/owner-avatar";
 import { SleeperTransaction, SleeperPlayersMap, MatchupPair } from "@/types/sleeper";
 import { StandingsEntry } from "@/lib/standings";
 import { PowerRankingEntry } from "@/lib/power-rankings";
@@ -29,6 +32,7 @@ async function fetchDashboardData(): Promise<{
   powerRankings: PowerRankingEntry[];
   transactions: SleeperTransaction[];
   nflPlayers: SleeperPlayersMap;
+  ownerAvatars: Record<string, string>;
 }> {
   let leagueName = "ITTWA";
   let currentWeek = 1;
@@ -38,12 +42,18 @@ async function fetchDashboardData(): Promise<{
   let powerRankings: PowerRankingEntry[] = [];
   let transactions: SleeperTransaction[] = [];
   let nflPlayers: SleeperPlayersMap = {};
+  let ownerAvatars: Record<string, string> = {};
 
   try {
-    const [teamsData, nflState] = await Promise.all([
+    const [teamsData, nflState, users] = await Promise.all([
       getTeamsData(),
       getNFLState(),
+      getLeagueUsers(),
     ]);
+
+    for (const user of users) {
+      if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
+    }
 
     season = teamsData.season;
     currentWeek = teamsData.currentWeek;
@@ -78,7 +88,7 @@ async function fetchDashboardData(): Promise<{
     console.error("[dashboard] data fetch error:", err);
   }
 
-  return { leagueName, currentWeek, season, matchupPairs, standings, powerRankings, transactions, nflPlayers };
+  return { leagueName, currentWeek, season, matchupPairs, standings, powerRankings, transactions, nflPlayers, ownerAvatars };
 }
 
 function formatDate(timestampMs: number): string {
@@ -103,9 +113,28 @@ function SectionTick({ label }: { label: string }) {
   );
 }
 
+function DashboardAvatar({ name, avatarId, division, size = 24 }: { name: string; avatarId?: string; division?: string; size?: number }) {
+  const initials = name.slice(0, 2).toUpperCase();
+  const color = division ? getDivisionColor(division) : "#888";
+  const bg = division ? getDivisionColorAlpha(division, 0.1) : "rgba(136,136,136,0.1)";
+  const border = division ? getDivisionColorAlpha(division, 0.2) : "rgba(136,136,136,0.2)";
+  return (
+    <div
+      className="rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
+      style={{ width: size, height: size, background: bg, border: `1px solid ${border}` }}
+    >
+      <SleeperAvatarImage
+        avatarId={avatarId}
+        name={name}
+        fallback={<span className="font-heading font-extrabold" style={{ color, fontSize: size * 0.38 }}>{initials}</span>}
+      />
+    </div>
+  );
+}
+
 // ─── Section components ────────────────────────────────────────────────────────
 
-function MatchupsSection({ pairs, week }: { pairs: MatchupPair[]; week: number }) {
+function MatchupsSection({ pairs, week, ownerAvatars, divisionMap }: { pairs: MatchupPair[]; week: number; ownerAvatars: Record<string, string>; divisionMap: Record<string, string> }) {
   if (pairs.length === 0) {
     return (
       <Card>
@@ -136,9 +165,10 @@ function MatchupsSection({ pairs, week }: { pairs: MatchupPair[]; week: number }
                   background: i % 2 === 1 ? "rgba(22,22,22,0.3)" : undefined,
                 }}
               >
-                <span className={`text-right text-[13px] truncate ${pair.completed && t1Winning ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-                  {pair.team1.displayName}
-                </span>
+                <div className={`flex items-center justify-end gap-1.5 min-w-0 ${pair.completed && t1Winning ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                  <span className="text-[13px] truncate">{pair.team1.displayName}</span>
+                  <DashboardAvatar name={pair.team1.displayName} avatarId={ownerAvatars[pair.team1.displayName]} division={divisionMap[pair.team1.displayName]} size={22} />
+                </div>
                 <div className="flex items-center gap-2 font-mono text-[13px]">
                   <span className={pair.completed && t1Winning ? "text-foreground font-bold" : "text-muted-foreground"}>
                     {pair.team1.points > 0 ? pair.team1.points.toFixed(2) : "—"}
@@ -148,9 +178,10 @@ function MatchupsSection({ pairs, week }: { pairs: MatchupPair[]; week: number }
                     {pair.team2.points > 0 ? pair.team2.points.toFixed(2) : "—"}
                   </span>
                 </div>
-                <span className={`text-[13px] truncate ${pair.completed && !t1Winning ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-                  {pair.team2.displayName}
-                </span>
+                <div className={`flex items-center gap-1.5 min-w-0 ${pair.completed && !t1Winning ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                  <DashboardAvatar name={pair.team2.displayName} avatarId={ownerAvatars[pair.team2.displayName]} division={divisionMap[pair.team2.displayName]} size={22} />
+                  <span className="text-[13px] truncate">{pair.team2.displayName}</span>
+                </div>
               </div>
             );
           })}
@@ -160,7 +191,7 @@ function MatchupsSection({ pairs, week }: { pairs: MatchupPair[]; week: number }
   );
 }
 
-function StandingsSection({ standings }: { standings: StandingsEntry[] }) {
+function StandingsSection({ standings, ownerAvatars }: { standings: StandingsEntry[]; ownerAvatars: Record<string, string> }) {
   if (standings.length === 0) {
     return (
       <Card>
@@ -205,7 +236,12 @@ function StandingsSection({ standings }: { standings: StandingsEntry[] }) {
                       <span className="inline-flex items-center justify-center w-6 h-6 rounded border border-border text-muted-foreground text-xs font-medium">{entry.rank}</span>
                     )}
                   </td>
-                  <td className="px-2 py-2.5 font-medium truncate max-w-[140px]">{entry.displayName}</td>
+                  <td className="px-2 py-2.5 font-medium">
+                    <div className="flex items-center gap-2 max-w-[160px]">
+                      <DashboardAvatar name={entry.displayName} avatarId={ownerAvatars[entry.displayName]} division={entry.division} />
+                      <span className="truncate">{entry.displayName}</span>
+                    </div>
+                  </td>
                   <td className="px-2 py-2.5 text-center tabular-nums text-muted-foreground">
                     {entry.wins}-{entry.losses}
                   </td>
@@ -227,7 +263,7 @@ function StandingsSection({ standings }: { standings: StandingsEntry[] }) {
   );
 }
 
-function PowerRankingsSection({ rankings }: { rankings: PowerRankingEntry[] }) {
+function PowerRankingsSection({ rankings, ownerAvatars }: { rankings: PowerRankingEntry[]; ownerAvatars: Record<string, string> }) {
   const top5 = rankings.slice(0, 5);
 
   if (top5.length === 0) {
@@ -271,6 +307,7 @@ function PowerRankingsSection({ rankings }: { rankings: PowerRankingEntry[] }) {
                 ) : (
                   <span className="inline-flex items-center justify-center w-6 h-6 rounded border border-border text-muted-foreground text-xs font-medium shrink-0">{entry.rank}</span>
                 )}
+                <DashboardAvatar name={entry.displayName} avatarId={ownerAvatars[entry.displayName]} division={entry.division} size={28} />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{entry.displayName}</p>
                   <div>
@@ -413,12 +450,14 @@ function TransactionsSection({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function HomePage() {
-  const { leagueName, currentWeek, season, matchupPairs, standings, powerRankings, transactions, nflPlayers } =
+  const { leagueName, currentWeek, season, matchupPairs, standings, powerRankings, transactions, nflPlayers, ownerAvatars } =
     await fetchDashboardData();
 
   const rosterOwnerMap: Record<number, string> = {};
+  const divisionMap: Record<string, string> = {};
   for (const entry of standings) {
     rosterOwnerMap[entry.rosterId] = entry.displayName;
+    divisionMap[entry.displayName] = entry.division;
   }
 
   const weekToShow = Math.max(currentWeek - 1, 1);
@@ -471,11 +510,11 @@ export default async function HomePage() {
       {/* ── Main grid ───────────────────────────────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
-          <MatchupsSection pairs={matchupPairs} week={weekToShow} />
-          <PowerRankingsSection rankings={powerRankings} />
+          <MatchupsSection pairs={matchupPairs} week={weekToShow} ownerAvatars={ownerAvatars} divisionMap={divisionMap} />
+          <PowerRankingsSection rankings={powerRankings} ownerAvatars={ownerAvatars} />
         </div>
         <div className="space-y-6">
-          <StandingsSection standings={standings} />
+          <StandingsSection standings={standings} ownerAvatars={ownerAvatars} />
           <TransactionsSection transactions={transactions} rosterOwnerMap={rosterOwnerMap} nflPlayers={nflPlayers} season={season} />
         </div>
       </div>
