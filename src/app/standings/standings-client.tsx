@@ -6,7 +6,7 @@ import { DIVISIONS } from "@/lib/config";
 import { getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
-const PLAYOFF_SPOTS = 4;
+const PLAYOFF_SPOTS = 6;
 
 function DivisionBadge({ division }: { division: string }) {
   const color = getDivisionColor(division);
