@@ -3,10 +3,12 @@
 import { useState, useMemo } from "react";
 import { TradeCard } from "@/components/trade-card";
 import type { EnrichedTrade } from "@/components/trade-card";
+import { OwnerAvatarsProvider } from "@/components/owner-avatar";
 
 interface TradesClientProps {
   trades: EnrichedTrade[];
   season: string;
+  ownerAvatars: Record<string, string>;
 }
 
 function FilterSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
@@ -35,7 +37,7 @@ function FilterSelect({ value, onChange, options }: { value: string; onChange: (
   );
 }
 
-export function TradesClient({ trades, season }: TradesClientProps) {
+export function TradesClient({ trades, season, ownerAvatars }: TradesClientProps) {
   const [ownerFilter, setOwnerFilter] = useState("All Teams");
   const [seasonFilter, setSeasonFilter] = useState(season);
 
@@ -67,6 +69,7 @@ export function TradesClient({ trades, season }: TradesClientProps) {
   }, [filtered]);
 
   return (
+    <OwnerAvatarsProvider avatars={ownerAvatars}>
     <div>
       {/* Page header */}
       <div className="pb-6 border-b border-border mb-6">
@@ -123,5 +126,6 @@ export function TradesClient({ trades, season }: TradesClientProps) {
         </div>
       )}
     </div>
+    </OwnerAvatarsProvider>
   );
 }

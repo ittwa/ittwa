@@ -8,8 +8,10 @@ import {
   getNFLState,
   getLatestActiveContracts,
   getActiveContractsForSeason,
+  getLeagueUsers,
 } from "@/lib/data";
 import { resolveOwnerName } from "@/lib/contracts";
+import { getDisplayName } from "@/lib/sleeper";
 import { SEASON_LEAGUE_IDS } from "@/lib/config";
 import { ContractsClient } from "./contracts-client";
 import type { ContractEntry } from "./contracts-client";
@@ -18,10 +20,11 @@ import type { ContractWithValue } from "@/types/contracts";
 export const revalidate = 600;
 
 export default async function ContractsPage() {
-  const [nflPlayers, rawContracts, nflState] = await Promise.all([
+  const [nflPlayers, rawContracts, nflState, users] = await Promise.all([
     getNFLPlayers(),
     getContracts(),
     getNFLState(),
+    getLeagueUsers(),
   ]);
 
   const season = nflState.season;
@@ -114,5 +117,10 @@ export default async function ContractsPage() {
     }
   }
 
-  return <ContractsClient contracts={allContracts} season={season} availableSeasons={availableSeasons} />;
+  const ownerAvatars: Record<string, string> = {};
+  for (const user of users) {
+    if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
+  }
+
+  return <ContractsClient contracts={allContracts} season={season} availableSeasons={availableSeasons} ownerAvatars={ownerAvatars} />;
 }

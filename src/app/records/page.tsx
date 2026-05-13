@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
-import { getTeamsData, buildRosterOwnerMap } from "@/lib/data";
+import { getTeamsData, buildRosterOwnerMap, getLeagueUsers } from "@/lib/data";
+import { getDisplayName } from "@/lib/sleeper";
 import { getScores } from "@/lib/sheets";
 import { computeChampions, computeAllTimeStandings, computeMilestones, computeGameRecords, computeSeasonRecords, computeSeasonSummaries } from "@/lib/historical";
 import { RecordsClient } from "./records-client";
@@ -9,11 +10,17 @@ import { SleeperMatchup } from "@/types/sleeper";
 export const revalidate = 300;
 
 export default async function RecordsPage() {
-  const [teamsData, rosterOwnerMap, scores] = await Promise.all([
+  const [teamsData, rosterOwnerMap, scores, users] = await Promise.all([
     getTeamsData(),
     buildRosterOwnerMap(),
     getScores(),
+    getLeagueUsers(),
   ]);
+
+  const ownerAvatars: Record<string, string> = {};
+  for (const user of users) {
+    if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
+  }
 
   const { teams, season, currentWeek, allMatchups } = teamsData;
 
@@ -51,6 +58,7 @@ export default async function RecordsPage() {
       seasonRecords={seasonRecords}
       seasonSummaries={seasonSummaries}
       availableSeasons={availableSeasons}
+      ownerAvatars={ownerAvatars}
     />
   );
 }

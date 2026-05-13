@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { MatchupPair } from "@/types/sleeper";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
@@ -26,6 +27,7 @@ interface MatchupsClientProps {
   teamMeta: Record<string, TeamMeta>;
   playoffWeekStart: number;
   ownerAvatars: Record<string, string>;
+  availableSeasons: string[];
 }
 
 interface EnrichedMatchup {
@@ -45,12 +47,12 @@ interface EnrichedMatchup {
 // ── Design tokens ────────────────────────────────────────────────────────────
 
 const T = {
-  card: "#111111",
-  cardBorder: "#1f1f1f",
-  surface: "#161616",
-  muted: "#555",
-  text: "#e8e8e8",
-  textDim: "#bbb",
+  card: "var(--card)",
+  cardBorder: "var(--border)",
+  surface: "var(--secondary)",
+  muted: "var(--muted-foreground)",
+  text: "var(--foreground)",
+  textDim: "var(--muted-foreground)",
   accent: "#FD4A48",
   accentDim: "rgba(253,74,72,0.12)",
   gold: "#E8B84B",
@@ -168,6 +170,39 @@ function StatusPill({ status }: { status: "live" | "final" | "upcoming" }) {
     <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: T.muted, fontFamily: T.bodyFont }}>
       {status === "final" ? "FINAL" : "UPCOMING"}
     </span>
+  );
+}
+
+// ── Season Selector ─────────────────────────────────────────────────────────
+
+function SeasonSelector({ seasons, current }: { seasons: string[]; current: string }) {
+  const router = useRouter();
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
+      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: T.muted, fontFamily: T.bodyFont, marginRight: 4 }}>
+        Season
+      </span>
+      {seasons.map((s) => {
+        const active = s === current;
+        return (
+          <button
+            key={s}
+            onClick={() => {
+              if (!active) router.push(s === seasons[0] ? "/matchups" : `/matchups?season=${s}`);
+            }}
+            style={{
+              padding: "5px 12px", borderRadius: 6, border: "none", cursor: active ? "default" : "pointer",
+              background: active ? T.accentDim : "transparent",
+              color: active ? T.accent : T.muted,
+              fontSize: 12, fontWeight: 700, fontFamily: T.headerFont, letterSpacing: "0.02em",
+              transition: "all 0.15s",
+            }}
+          >
+            {s}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -357,7 +392,7 @@ function HeroMatchup({ m, week, season }: { m: EnrichedMatchup; week: number; se
     <div style={{
       background: T.card, border: `1px solid ${T.cardBorder}`,
       borderRadius: 12, overflow: "hidden", marginBottom: 24,
-      boxShadow: `0 0 0 1px ${T.cardBorder}, 0 8px 30px rgba(0,0,0,0.4)`,
+      boxShadow: `0 0 0 1px ${T.cardBorder}, 0 8px 30px rgba(0,0,0,0.12)`,
     }}>
       {/* Top stripe */}
       <div style={{
@@ -483,7 +518,7 @@ function ExpandedDetails({ m }: { m: EnrichedMatchup }) {
   const spreadOwner = m.spread >= 0 ? m.aName : m.bName;
 
   return (
-    <div style={{ padding: "14px 16px", borderTop: `1px solid ${T.cardBorder}`, background: "#0c0c0c" }}>
+    <div style={{ padding: "14px 16px", borderTop: `1px solid ${T.cardBorder}`, background: T.surface }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <DetailBlock label="Lines">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -727,7 +762,7 @@ function StandingsSnapshot({ teamMeta }: { teamMeta: Record<string, TeamMeta> })
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 
-export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playoffWeekStart, ownerAvatars }: MatchupsClientProps) {
+export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playoffWeekStart, ownerAvatars, availableSeasons }: MatchupsClientProps) {
   const defaultWeek = Math.max(currentWeek - 1, 1);
   const [week, setWeek] = useState(defaultWeek);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -764,6 +799,7 @@ export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playof
             Live scoring, projected outcomes, and key matchup intel for every game on the slate.
           </p>
         </div>
+        <SeasonSelector seasons={availableSeasons} current={season} />
         <WeekSelector week={week} setWeek={setWeek} playoffStart={playoffWeekStart} />
         <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 10, padding: 48, textAlign: "center" }}>
           <p style={{ color: T.muted, fontStyle: "italic" }}>There are no games right now. This is a crisis.</p>
@@ -787,7 +823,8 @@ export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playof
         </p>
       </div>
 
-      {/* Week selector */}
+      {/* Season + Week selectors */}
+      <SeasonSelector seasons={availableSeasons} current={season} />
       <WeekSelector week={week} setWeek={setWeek} playoffStart={playoffWeekStart} />
 
       {/* Hero */}
