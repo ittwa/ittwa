@@ -9,6 +9,7 @@ import {
   getLatestActiveContracts,
   getActiveContractsForSeason,
   getLeagueUsers,
+  getSeasonPosRanks,
 } from "@/lib/data";
 import { resolveOwnerName } from "@/lib/contracts";
 import { getDisplayName } from "@/lib/sleeper";
@@ -40,6 +41,26 @@ export default async function ContractsPage() {
       return { season: yr, rosters, rosterOwnerMap };
     })
   );
+
+  const seasonRanks = new Map<string, Map<string, number>>();
+  await Promise.all(
+    availableSeasons.map(async (yr) => {
+      const leagueId = SEASON_LEAGUE_IDS[yr];
+      const ranks = await getSeasonPosRanks(leagueId, nflPlayers);
+      seasonRanks.set(yr, ranks);
+    })
+  );
+
+  for (const yr of [...availableSeasons].sort()) {
+    const ranks = seasonRanks.get(yr);
+    if (!ranks || ranks.size === 0) {
+      const prevYr = String(parseInt(yr) - 1);
+      const prevRanks = seasonRanks.get(prevYr);
+      if (prevRanks && prevRanks.size > 0) {
+        seasonRanks.set(yr, prevRanks);
+      }
+    }
+  }
 
   const allContracts: ContractEntry[] = [];
 
@@ -82,6 +103,9 @@ export default async function ContractsPage() {
           : contract?.player || `Unknown (${pid})`;
         const pos = sleeperPlayer?.position || contract?.position || "—";
 
+        const rankMap = seasonRanks.get(yr);
+        const posRank = rankMap?.get(pid) ?? undefined;
+
         if (contract) {
           allContracts.push({
             ...contract,
@@ -90,6 +114,7 @@ export default async function ContractsPage() {
             position: pos,
             owner: resolveOwnerName(contract.owner),
             rosterSeason: yr,
+            posRank,
           });
         } else {
           allContracts.push({
@@ -111,6 +136,7 @@ export default async function ContractsPage() {
             contractValue: 0,
             isMidSeasonPickup: true,
             rosterSeason: yr,
+            posRank,
           });
         }
       }
