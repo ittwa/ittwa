@@ -232,9 +232,9 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
           {/* Right: stat boxes */}
           <div className="hidden sm:flex gap-0.5 items-stretch shrink-0">
             {[
-              { label: "Salary Used", value: `$${rosterSalary.toFixed(0)}`, sub: `of $${SALARY_CAP}`, pct: rosterSalary / SALARY_CAP, color: "#FD4A48" },
-              { label: "Years Used", value: String(rosterYears), sub: "of 60", pct: rosterYears / 60, color: "#E8B84B" },
-              { label: "Cap Hit", value: `$${capHitTotal.toFixed(0)}`, sub: `${capHitYear} dead cap`, pct: null as number | null, color: "#fb923c" },
+              { label: "Salary Used", value: `$${rosterSalary.toFixed(0)}`, sub: `of $${SALARY_CAP}`, pct: rosterSalary / SALARY_CAP, color: "var(--color-gold)" },
+              { label: "Years Used", value: String(rosterYears), sub: "of 60", pct: rosterYears / 60, color: "var(--color-dark-knight)" },
+              { label: "Cap Hit", value: `$${capHitTotal.toFixed(0)}`, sub: `${capHitYear} dead cap`, pct: null as number | null, color: "var(--color-ittwa)" },
               { label: "Cap Space", value: `$${capSpace.toFixed(0)}`, sub: `${capHitYear} avail`, pct: null as number | null, color: capSpace >= 0 ? "#4ade80" : "#FD4A48" },
               { label: "Roster Size", value: String(rosterPlayers.length), sub: "players", pct: rosterPlayers.length / ROSTER_SIZE, color: divisionColor },
               { label: "Draft Picks", value: String(ownerDraftPicks.length), sub: "on hand", pct: null as number | null, color: divisionColor },
@@ -256,9 +256,9 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
         {/* Mobile-only stat row */}
         <div className="sm:hidden flex gap-2 px-6 pb-6 overflow-x-auto">
           {[
-            { label: "Salary", value: `$${rosterSalary.toFixed(0)}`, color: "#FD4A48" },
-            { label: "Years", value: String(rosterYears), color: "#E8B84B" },
-            { label: "Cap Hit", value: `$${capHitTotal.toFixed(0)}`, color: "#fb923c" },
+            { label: "Salary", value: `$${rosterSalary.toFixed(0)}`, color: "var(--color-gold)" },
+            { label: "Years", value: String(rosterYears), color: "var(--color-dark-knight)" },
+            { label: "Cap Hit", value: `$${capHitTotal.toFixed(0)}`, color: "var(--color-ittwa)" },
             { label: "Cap Space", value: `$${capSpace.toFixed(0)}`, color: capSpace >= 0 ? "#4ade80" : "#FD4A48" },
             { label: "Roster", value: String(rosterPlayers.length), color: divisionColor },
             { label: "Picks", value: String(ownerDraftPicks.length), color: divisionColor },
