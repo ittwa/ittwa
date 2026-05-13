@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { SALARY_CAP, YEARS_CAP } from "@/lib/config";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { OwnerLink } from "@/components/owner-link";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -467,7 +468,7 @@ function CapBarRow({ team, max, isHover, onHover }: {
         background: isHover ? SURFACE : "transparent", transition: "background 0.12s",
       }}
     >
-      <span style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</span>
+      <OwnerLink name={team.owner} className="" style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</OwnerLink>
       <div style={{ position: "relative", height: 16, background: "var(--secondary)", borderRadius: 3, overflow: "hidden", border: `1px solid ${CARD_BORDER}` }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${pctRem * 100}%`, background: EMERALD }} />
         <div style={{ position: "absolute", left: `${pctRem * 100}%`, top: 0, bottom: 0, width: `${pctCommit * 100}%`, background: GOLD, opacity: 0.85 }} />
@@ -533,7 +534,7 @@ function RosterRow({ team, maxRoster, isHover, onHover }: {
         background: isHover ? SURFACE : "transparent", transition: "background 0.12s",
       }}
     >
-      <span style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</span>
+      <OwnerLink name={team.owner} className="" style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</OwnerLink>
       <div style={{ position: "relative", height: 16, background: "var(--secondary)", borderRadius: 3, overflow: "hidden", border: `1px solid ${CARD_BORDER}`, display: "flex" }}>
         {POS_ORDER.map((pos) => {
           const n = team.pos[pos] || 0;
@@ -605,7 +606,7 @@ function YearsRow({ team, max, isHover, onHover }: {
         background: isHover ? SURFACE : "transparent", transition: "background 0.12s",
       }}
     >
-      <span style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</span>
+      <OwnerLink name={team.owner} className="" style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</OwnerLink>
       <div style={{ position: "relative", height: 16, background: "var(--secondary)", borderRadius: 3, overflow: "hidden", border: `1px solid ${CARD_BORDER}`, display: "flex" }}>
         {isOver && (
           <div style={{ width: `${pctOver * 100}%`, background: ROSE, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO_FONT, fontSize: 9, fontWeight: 700, color: "#3b0d0f" }}>
@@ -684,9 +685,9 @@ function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3.5">
         {[
-          { label: "Tight on Cap", count: tightOnSpace.length, names: tightOnSpace.map((t) => t.owner).join(" · ") || "—", color: ACCENT, hint: "<$30 remaining" },
-          { label: "Cap Flush", count: flush.length, names: flush.map((t) => t.owner).join(" · ") || "—", color: GOLD, hint: ">$80 remaining" },
-          { label: "Years Over", count: overCap.length, names: overCap.map((t) => t.owner).join(" · ") || "—", color: ROSE, hint: "Past 60-yr floor" },
+          { label: "Tight on Cap", owners: tightOnSpace.map((t) => t.owner), color: ACCENT, hint: "<$30 remaining" },
+          { label: "Cap Flush", owners: flush.map((t) => t.owner), color: GOLD, hint: ">$80 remaining" },
+          { label: "Years Over", owners: overCap.map((t) => t.owner), color: ROSE, hint: "Past 60-yr floor" },
         ].map((s) => (
           <div
             key={s.label}
@@ -703,14 +704,16 @@ function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
                 fontFamily: HEADER_FONT, fontSize: 18, fontWeight: 900, color: s.color,
               }}
             >
-              {s.count}
+              {s.owners.length}
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: MUTED }}>
                 {s.label} <span style={{ color: MUTED, fontWeight: 500, marginLeft: 4 }}>· {s.hint}</span>
               </div>
               <div style={{ fontSize: 11, color: TEXT_DIM, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {s.names}
+                {s.owners.length === 0 ? "—" : s.owners.map((name, i) => (
+                  <span key={name}>{i > 0 && " · "}<OwnerLink name={name} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{name}</OwnerLink></span>
+                ))}
               </div>
             </div>
           </div>
@@ -747,7 +750,9 @@ function LeagueRibbon({ teams }: { teams: TeamDirectoryEntry[] }) {
       {items.map((s) => (
         <div key={s.label} style={{ background: CARD, border: `1px solid ${CARD_BORDER}`, borderRadius: 10, padding: "12px 14px" }}>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: MUTED, marginBottom: 4 }}>{s.label}</div>
-          <div style={{ fontFamily: HEADER_FONT, fontSize: 20, fontWeight: 800, color: s.color, lineHeight: 1, letterSpacing: "0.02em", textTransform: "uppercase" }}>{s.value}</div>
+          <div style={{ fontFamily: HEADER_FONT, fontSize: 20, fontWeight: 800, color: s.color, lineHeight: 1, letterSpacing: "0.02em", textTransform: "uppercase" }}>
+            {s.value === "—" ? s.value : <OwnerLink name={s.value} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{s.value}</OwnerLink>}
+          </div>
           <div style={{ fontFamily: MONO_FONT, fontSize: 10, color: MUTED_TEXT, marginTop: 4 }}>{s.sub}</div>
         </div>
       ))}

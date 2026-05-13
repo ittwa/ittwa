@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { ContractWithValue } from "@/types/contracts";
 import { getPositionColors } from "@/lib/ui-utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { OwnerLink } from "@/components/owner-link";
 
 export interface ContractEntry extends ContractWithValue {
   rosterSeason: string;
@@ -65,7 +66,7 @@ function OwnerCell({ name }: { name: string }) {
   const avatarId = useOwnerAvatar(name);
   const initials = name.slice(0, 2).toUpperCase();
   return (
-    <div className="flex items-center gap-2">
+    <OwnerLink name={name} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
       <div
         className="w-6 h-6 rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden"
         style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
@@ -77,7 +78,7 @@ function OwnerCell({ name }: { name: string }) {
         />
       </div>
       <span className="text-[13px] text-muted-foreground whitespace-nowrap">{name}</span>
-    </div>
+    </OwnerLink>
   );
 }
 

@@ -12,6 +12,7 @@ import {
 } from "@/lib/historical";
 import { cn } from "@/lib/utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { OwnerLink } from "@/components/owner-link";
 
 interface TeamRecord {
   rosterId: number;
@@ -281,7 +282,7 @@ export function RecordsClient({
                     <div className="text-[10px] text-muted-foreground tracking-widest uppercase mt-0.5">
                       Championship{ringLeaders[idx]?.rings !== 1 ? "s" : ""}
                     </div>
-                    <div className="text-sm font-semibold mt-2">{ringLeaders[idx]?.owner}</div>
+                    <div className="text-sm font-semibold mt-2">{ringLeaders[idx]?.owner ? <OwnerLink name={ringLeaders[idx].owner} className="hover:underline underline-offset-2">{ringLeaders[idx].owner}</OwnerLink> : "—"}</div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
                       {ringLeaders[idx]?.playoffs} playoff appearances
                     </div>
@@ -316,18 +317,18 @@ export function RecordsClient({
                     }}
                   >
                     <span className="font-mono text-[13px] font-bold text-gold text-center">{row.year}</span>
-                    <div className="flex items-center gap-2">
+                    <OwnerLink name={row.champion} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                       <span className="text-sm">🏆</span>
                       <OwnerAvatar name={row.champion} size={20} />
                       <span className="text-[13px] font-semibold">{row.champion}</span>
-                    </div>
+                    </OwnerLink>
                     <div className="flex items-center gap-2">
                       <span className="text-xs">🥈</span>
-                      <span className="text-[13px] text-[#aaa]">{row.runnerUp}</span>
+                      {row.runnerUp && row.runnerUp !== "—" ? <OwnerLink name={row.runnerUp} className="text-[13px] text-[#aaa] hover:underline underline-offset-2">{row.runnerUp}</OwnerLink> : <span className="text-[13px] text-[#aaa]">—</span>}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs">🥉</span>
-                      <span className="text-[13px] text-muted-foreground">{row.third}</span>
+                      {row.third && row.third !== "—" ? <OwnerLink name={row.third} className="text-[13px] text-muted-foreground hover:underline underline-offset-2">{row.third}</OwnerLink> : <span className="text-[13px] text-muted-foreground">—</span>}
                     </div>
                   </div>
                 ))}
@@ -413,11 +414,11 @@ export function RecordsClient({
                             className="border-b border-border/50 last:border-0"
                           >
                             <td className="px-3.5 py-2.5">
-                              <div className="flex items-center gap-2.5">
+                              <OwnerLink name={t.owner} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
                                 <span className="text-[11px] text-muted-foreground font-mono min-w-[16px]">{i + 1}</span>
                                 <OwnerAvatar name={t.owner} />
                                 <span className={cn("text-[13px]", i === 0 ? "font-semibold" : "")}>{t.owner}</span>
-                              </div>
+                              </OwnerLink>
                             </td>
                             <td className="px-3.5 py-2.5 text-center font-mono text-[13px] text-emerald-400 font-semibold">{t.wins}</td>
                             <td className="px-3.5 py-2.5 text-center font-mono text-[13px] text-red-400">{t.losses}</td>
@@ -476,7 +477,7 @@ export function RecordsClient({
                   >
                     <span className="font-mono text-xs text-muted-foreground min-w-[20px]">{i + 1}</span>
                     <OwnerAvatar name={t.name} size={20} />
-                    <span className={cn("flex-1 text-[13px]", i === 0 ? "font-semibold" : "")}>{t.name}</span>
+                    <OwnerLink name={t.name} className={cn("flex-1 text-[13px] hover:underline underline-offset-2", i === 0 ? "font-semibold" : "")}>{t.name}</OwnerLink>
                     <div className="flex gap-1">
                       {Array(t.count).fill(0).map((_, j) => (
                         <span key={j} className="text-base">🏆</span>
@@ -529,7 +530,7 @@ export function RecordsClient({
                   <div key={row.label} className={cn("flex items-center justify-between px-5 py-3", i < arr.length - 1 ? "border-b border-border/50" : "")}>
                     <div>
                       <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-0.5">{row.label}</div>
-                      <div className="text-sm font-medium">{row.name ?? "—"}</div>
+                      <div className="text-sm font-medium">{row.name && row.name !== "—" ? <OwnerLink name={row.name} className="hover:underline underline-offset-2">{row.name}</OwnerLink> : "—"}</div>
                     </div>
                     <span
                       className="font-heading text-2xl font-extrabold"
@@ -561,7 +562,7 @@ export function RecordsClient({
                         return (
                           <tr key={t.rosterId} className="border-b border-border/50 last:border-0" style={{ background: i === 0 ? "rgba(232,184,75,0.04)" : i % 2 === 1 ? "rgba(22,22,22,0.3)" : undefined }}>
                             <td className="px-3.5 py-2.5 text-center font-mono text-[11px] text-muted-foreground">{i + 1}</td>
-                            <td className="px-3.5 py-2.5 text-[13px] font-medium">{t.displayName}</td>
+                            <td className="px-3.5 py-2.5 text-[13px] font-medium">{t.displayName && t.displayName !== "—" ? <OwnerLink name={t.displayName} className="hover:underline underline-offset-2">{t.displayName}</OwnerLink> : "—"}</td>
                             <td className="px-3.5 py-2.5 text-center font-mono text-[13px] text-emerald-400 font-semibold">{t.wins}</td>
                             <td className="px-3.5 py-2.5 text-center font-mono text-[13px] text-red-400">{t.losses}</td>
                             <td className="px-3.5 py-2.5 text-center font-mono text-[13px]">{pct}%</td>
@@ -595,18 +596,18 @@ export function RecordsClient({
                   </div>
                   <div className="grid items-center gap-0 px-4 py-2.5" style={{ gridTemplateColumns: "56px 1fr 1fr 1fr" }}>
                     <span className="font-mono text-[13px] font-bold text-gold text-center">{selectedChamp.year}</span>
-                    <div className="flex items-center gap-2">
+                    <OwnerLink name={selectedChamp.champion} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                       <span className="text-sm">🏆</span>
                       <OwnerAvatar name={selectedChamp.champion} size={20} />
                       <span className="text-[13px] font-semibold">{selectedChamp.champion}</span>
-                    </div>
+                    </OwnerLink>
                     <div className="flex items-center gap-2">
                       <span className="text-xs">🥈</span>
-                      <span className="text-[13px] text-[#aaa]">{selectedChamp.runnerUp}</span>
+                      {selectedChamp.runnerUp && selectedChamp.runnerUp !== "—" ? <OwnerLink name={selectedChamp.runnerUp} className="text-[13px] text-[#aaa] hover:underline underline-offset-2">{selectedChamp.runnerUp}</OwnerLink> : <span className="text-[13px] text-[#aaa]">—</span>}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs">🥉</span>
-                      <span className="text-[13px] text-muted-foreground">{selectedChamp.third}</span>
+                      {selectedChamp.third && selectedChamp.third !== "—" ? <OwnerLink name={selectedChamp.third} className="text-[13px] text-muted-foreground hover:underline underline-offset-2">{selectedChamp.third}</OwnerLink> : <span className="text-[13px] text-muted-foreground">—</span>}
                     </div>
                   </div>
                 </RCard>
@@ -641,7 +642,7 @@ export function RecordsClient({
                       >
                         <div>
                           <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-0.5">{row.label}</div>
-                          <div className="text-sm font-medium">{row.name}</div>
+                          <div className="text-sm font-medium">{row.name && row.name !== "—" ? <OwnerLink name={row.name} className="hover:underline underline-offset-2">{row.name}</OwnerLink> : "—"}</div>
                         </div>
                         {row.value && (
                           <span
