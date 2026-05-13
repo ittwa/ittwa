@@ -25,6 +25,7 @@ export async function getTeamsData(leagueId?: string): Promise<{
   season: string;
   currentWeek: number;
   allMatchups: Map<number, SleeperMatchup[]>;
+  allScheduleMatchups: Map<number, SleeperMatchup[]>;
 }> {
   const lid = leagueId ?? LEAGUE_ID;
   const [nflState, league, users, rosters] = await Promise.all([
@@ -48,14 +49,17 @@ export async function getTeamsData(leagueId?: string): Promise<{
   // Fetch all 18 possible regular+playoff weeks to ensure we get all completed matchups.
   // Weeks with no data will return empty arrays and are filtered out naturally.
   const allMatchups = new Map<number, SleeperMatchup[]>();
+  const allScheduleMatchups = new Map<number, SleeperMatchup[]>();
 
   const matchupPromises = [];
   for (let w = 1; w <= 18; w++) {
     matchupPromises.push(
       getMatchups(w, lid).then((m) => {
-        // Only store weeks that have actual score data
-        if (m && m.length > 0 && m.some((mm) => mm.points > 0)) {
-          allMatchups.set(w, m);
+        if (m && m.length > 0) {
+          allScheduleMatchups.set(w, m);
+          if (m.some((mm) => mm.points > 0)) {
+            allMatchups.set(w, m);
+          }
         }
       }).catch(() => {})
     );
@@ -94,7 +98,7 @@ export async function getTeamsData(leagueId?: string): Promise<{
     };
   });
 
-  return { teams, season, currentWeek, allMatchups };
+  return { teams, season, currentWeek, allMatchups, allScheduleMatchups };
 }
 
 // Calculate division records from matchup data
