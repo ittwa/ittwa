@@ -505,7 +505,7 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
     <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
       {/* VS header */}
       <div style={{
-        position: "relative", padding: "28px 28px 24px",
+        position: "relative", padding: "20px 16px 18px",
         background: `linear-gradient(90deg, ${dcA.bg} 0%, transparent 35%, transparent 65%, ${dcB.bg} 100%)`,
         borderBottom: "1px solid var(--border)",
       }}>
@@ -514,7 +514,7 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
           color: "var(--muted-foreground)", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: 4,
         }}>×</button>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 24, alignItems: "center" }}>
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 items-center">
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <OwnerAvatar owner={ownerA} size={48} />
             <div>
@@ -527,7 +527,7 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
             </div>
           </div>
 
-          <div style={{ textAlign: "center", display: "flex", alignItems: "baseline", gap: 14 }}>
+          <div style={{ textAlign: "center", display: "flex", alignItems: "baseline", justifyContent: "center", gap: 14 }}>
             <span style={{ fontFamily: HEADER_FONT, fontSize: 64, fontWeight: 900, color: winner === "A" ? WIN_COLOR : "var(--foreground)", lineHeight: 1, letterSpacing: "-0.04em" }}>
               {rec.aw}
             </span>
@@ -537,8 +537,9 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
             </span>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 14, justifyContent: "flex-end" }}>
-            <div style={{ textAlign: "right" }}>
+          <div className="flex items-center gap-3.5 md:justify-end">
+            <OwnerAvatar owner={ownerB} size={48} />
+            <div>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: dcB.text, marginBottom: 2 }}>
                 {OWNER_DIVISION[ownerB] || ""}
               </div>
@@ -546,7 +547,6 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
                 {ownerB}
               </div>
             </div>
-            <OwnerAvatar owner={ownerB} size={48} />
           </div>
         </div>
 
@@ -563,7 +563,7 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
       </div>
 
       {/* Body */}
-      <div style={{ padding: 24, display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 24, alignItems: "start" }}>
+      <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-6 items-start p-4 md:p-6">
         <div>
           <ChartLabel label="Score Differential Over Time" subtitle="Positive bar = win for team listed first" />
           <ScoreTimeline ownerA={ownerA} ownerB={ownerB} matches={ms} />
@@ -575,8 +575,8 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
                 const aWin = m.scoreA > m.scoreB;
                 return (
                   <div key={i} style={{
-                    display: "grid", gridTemplateColumns: "60px 56px 1fr auto 1fr",
-                    gap: 10, alignItems: "center", padding: "8px 10px", borderRadius: 6,
+                    display: "grid", gridTemplateColumns: "48px 50px 1fr auto 1fr",
+                    gap: 6, alignItems: "center", padding: "8px 10px", borderRadius: 6,
                     background: i === 0 ? "var(--secondary)" : "transparent",
                     border: i === 0 ? "1px solid var(--border)" : "1px solid transparent",
                     fontSize: 12,
@@ -878,11 +878,11 @@ export function RivalryClient({ allMatchups, availableSeasons, ownerAvatars }: R
             </p>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+          <div className="flex flex-col items-start md:items-end gap-1.5">
             <span style={{ fontSize: 10, color: "var(--muted-foreground)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const }}>
               Lookback
             </span>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {seasons.map(yr => {
                 const on = activeSeasonsList.includes(yr);
                 return (
@@ -908,7 +908,7 @@ export function RivalryClient({ allMatchups, availableSeasons, ownerAvatars }: R
       </div>
 
       {/* Two-column layout */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 20, alignItems: "start" }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5 items-start">
         {/* Left: Matrix + detail */}
         <div>
           <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
@@ -979,7 +979,7 @@ export function RivalryClient({ allMatchups, availableSeasons, ownerAvatars }: R
         </div>
 
         {/* Right: Sidebar */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="flex flex-col gap-4">
           <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px 18px 16px" }}>
             <DominanceBoard owners={owners} activeSeasons={activeSeasons} allMatchups={allMatchups} showDivColors={showDivColors} />
           </div>
