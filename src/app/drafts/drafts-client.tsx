@@ -412,7 +412,7 @@ export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
           <div>
             <div className="flex items-center gap-3 mb-1.5">
               <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
-              <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Draft History</h1>
+              <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Drafts</h1>
             </div>
             <p className="text-[13px] text-muted-foreground ml-4">
               {draftTypeLabel} · {draft.rounds} Rounds · {draft.picks.length} Picks
@@ -443,7 +443,7 @@ export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
       </div>
 
       {/* Two-column layout */}
-      <div className="grid gap-5" style={{ gridTemplateColumns: "1fr 280px" }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5">
         {/* Draft Grid */}
         <div className="bg-card border border-border rounded-[10px] overflow-hidden">
           <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 220px)" }}>
