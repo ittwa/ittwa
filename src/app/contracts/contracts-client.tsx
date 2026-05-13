@@ -7,6 +7,7 @@ import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/comp
 
 export interface ContractEntry extends ContractWithValue {
   rosterSeason: string;
+  posRank?: number;
 }
 
 type SortKey = "rosterSeason" | "player" | "position" | "owner" | "salary" | "years" | "contractStartYear";
@@ -343,17 +344,6 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
   const allSeasons = availableSeasons;
   const maxSalary = useMemo(() => Math.max(...contracts.map((c) => c.salary), 1), [contracts]);
 
-  const posRanks = useMemo(() => {
-    const ranks: Record<string, number> = {};
-    for (const pos of positions) {
-      contracts
-        .filter((c) => c.position === pos)
-        .sort((a, b) => b.salary - a.salary)
-        .forEach((c, i) => { ranks[c.player] = i + 1; });
-    }
-    return ranks;
-  }, [contracts, positions]);
-
   const filtered = useMemo(() => {
     let result = [...contracts];
     if (search) {
@@ -483,7 +473,7 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
                       </div>
                     </td>
                     <td className="px-3 py-2">
-                      <PosBadge pos={c.position} rank={posRanks[c.player]} />
+                      <PosBadge pos={c.position} rank={c.posRank} />
                     </td>
                     <td className="px-3 py-2"><OwnerCell name={c.owner} /></td>
                     <td className="px-3 py-2 text-right">

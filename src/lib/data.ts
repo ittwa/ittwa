@@ -194,6 +194,50 @@ export async function getMatchupPairs(
   return pairs;
 }
 
+// --- Per-player season points & positional ranks ---
+
+export async function getSeasonPosRanks(
+  leagueId: string,
+  nflPlayers: Record<string, { position?: string }>,
+): Promise<Map<string, number>> {
+  const playerPoints = new Map<string, number>();
+  const promises = [];
+  for (let w = 1; w <= 18; w++) {
+    promises.push(
+      getMatchups(w, leagueId)
+        .then((matchups) => {
+          for (const m of matchups) {
+            if (m.players_points) {
+              for (const [pid, pts] of Object.entries(m.players_points)) {
+                playerPoints.set(pid, (playerPoints.get(pid) || 0) + pts);
+              }
+            }
+          }
+        })
+        .catch(() => {}),
+    );
+  }
+  await Promise.all(promises);
+
+  if (playerPoints.size === 0) return new Map();
+
+  const byPosition = new Map<string, { pid: string; pts: number }[]>();
+  for (const [pid, pts] of playerPoints) {
+    const pos = nflPlayers[pid]?.position || "—";
+    const arr = byPosition.get(pos) || [];
+    arr.push({ pid, pts });
+    byPosition.set(pos, arr);
+  }
+
+  const ranks = new Map<string, number>();
+  for (const [, players] of byPosition) {
+    players.sort((a, b) => b.pts - a.pts);
+    players.forEach((p, i) => ranks.set(p.pid, i + 1));
+  }
+
+  return ranks;
+}
+
 // Re-export for convenience
 export {
   getNFLState,
