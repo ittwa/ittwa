@@ -47,7 +47,8 @@ function ThemeToggle() {
 
 function TeamsDropdown() {
   return (
-    <div className="absolute top-full left-0 mt-1 w-48 rounded-lg border border-border bg-popover shadow-lg py-1 z-50">
+    <div className="absolute top-full left-0 pt-1 z-50">
+      <div className="w-48 rounded-lg border border-border bg-popover shadow-lg py-1">
       <Link
         href="/teams"
         className="block px-3 py-1.5 text-sm font-medium text-ittwa hover:bg-accent transition-colors"
@@ -64,6 +65,7 @@ function TeamsDropdown() {
           {owner}
         </Link>
       ))}
+      </div>
     </div>
   );
 }
