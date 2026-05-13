@@ -420,13 +420,13 @@ export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
           </div>
 
           {/* Season filter */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground font-semibold tracking-[0.06em] uppercase mr-1">Season</span>
+          <div className="flex items-center gap-1.5 overflow-x-auto flex-shrink-0">
+            <span className="text-[11px] text-muted-foreground font-semibold tracking-[0.06em] uppercase mr-1 flex-shrink-0">Season</span>
             {seasons.map((yr) => (
               <button
                 key={yr}
                 onClick={() => setSelectedSeason(yr)}
-                className="px-3.5 py-1.5 rounded-md cursor-pointer text-[13px] font-heading tracking-[0.04em]"
+                className="px-3.5 py-1.5 rounded-md cursor-pointer text-[13px] font-heading tracking-[0.04em] flex-shrink-0"
                 style={{
                   background: selectedSeason === yr ? "#FD4A48" : "transparent",
                   border: `1px solid ${selectedSeason === yr ? "#FD4A48" : "var(--border)"}`,
