@@ -86,6 +86,7 @@ export default async function TeamsPage() {
 
     let playerSalary = 0;
     let playerYears = 0;
+    let expiringContracts = 0;
     const pos: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0, K: 0, DEF: 0 };
 
     for (const pid of team.players) {
@@ -98,6 +99,7 @@ export default async function TeamsPage() {
       if (contract) {
         playerSalary += contract.salary;
         playerYears += contract.years;
+        if (contract.years <= 1) expiringContracts++;
       }
       const position = sp?.position || contract?.position;
       if (position && position in pos) pos[position]++;
@@ -139,6 +141,7 @@ export default async function TeamsPage() {
       picks: draftPicks.length,
       roster: team.players.length,
       pos,
+      expiringContracts,
     };
   });
 
