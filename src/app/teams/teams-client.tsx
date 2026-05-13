@@ -28,6 +28,7 @@ export interface TeamDirectoryEntry {
   picks: number;
   roster: number;
   pos: Record<string, number>;
+  expiringContracts: number;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -468,19 +469,19 @@ function CapBarRow({ team, max, isHover, onHover }: {
     >
       <span style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</span>
       <div style={{ position: "relative", height: 16, background: "var(--secondary)", borderRadius: 3, overflow: "hidden", border: `1px solid ${CARD_BORDER}` }}>
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${pctCommit * 100}%`, background: EMERALD }} />
-        <div style={{ position: "absolute", left: `${pctCommit * 100}%`, top: 0, bottom: 0, width: `${pctDead * 100}%`, background: ROSE }} />
-        <div style={{ position: "absolute", left: `${(pctCommit + pctDead) * 100}%`, top: 0, bottom: 0, width: `${pctRem * 100}%`, background: GOLD, opacity: 0.85 }} />
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${pctRem * 100}%`, background: EMERALD }} />
+        <div style={{ position: "absolute", left: `${pctRem * 100}%`, top: 0, bottom: 0, width: `${pctCommit * 100}%`, background: GOLD, opacity: 0.85 }} />
+        <div style={{ position: "absolute", left: `${(pctRem + pctCommit) * 100}%`, top: 0, bottom: 0, width: `${pctDead * 100}%`, background: ROSE }} />
         <div style={{ position: "absolute", left: `${(SALARY_CAP / max) * 100}%`, top: -2, bottom: -2, width: 1, background: "rgba(255,255,255,0.45)" }} />
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 6, fontFamily: MONO_FONT, fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.55)", pointerEvents: "none" }}>
+          {pctRem > 0.10 && (
+            <span style={{ position: "absolute", left: `${pctRem * 50}%`, transform: "translateX(-50%)", color: "#0a1f0e" }}>${team.capRem.toFixed(0)}</span>
+          )}
           {pctCommit > 0.18 && (
-            <span style={{ position: "absolute", left: `${pctCommit * 50}%`, transform: "translateX(-50%)", color: "#0a1f0e" }}>${team.capCommit.toFixed(0)}</span>
+            <span style={{ position: "absolute", left: `${(pctRem + pctCommit / 2) * 100}%`, transform: "translateX(-50%)", color: "#3a2c08" }}>${team.capCommit.toFixed(0)}</span>
           )}
           {pctDead > 0.07 && (
-            <span style={{ position: "absolute", left: `${(pctCommit + pctDead / 2) * 100}%`, transform: "translateX(-50%)", color: "#3b0d0f" }}>${team.capDead.toFixed(0)}</span>
-          )}
-          {pctRem > 0.10 && (
-            <span style={{ position: "absolute", left: `${(pctCommit + pctDead + Math.max(team.capRem, 0) / max / 2) * 100}%`, transform: "translateX(-50%)", color: "#3a2c08" }}>${team.capRem.toFixed(0)}</span>
+            <span style={{ position: "absolute", left: `${(pctRem + pctCommit + pctDead / 2) * 100}%`, transform: "translateX(-50%)", color: "#3b0d0f" }}>${team.capDead.toFixed(0)}</span>
           )}
         </div>
       </div>
@@ -490,20 +491,20 @@ function CapBarRow({ team, max, isHover, onHover }: {
 
 function CapChart({ teams, hovered, onHover }: { teams: TeamDirectoryEntry[]; hovered: string | null; onHover: (n: string | null) => void }) {
   const { sorted, max } = useMemo(() => {
-    const s = [...teams].sort((a, b) => b.capCommit - a.capCommit);
+    const s = [...teams].sort((a, b) => b.capRem - a.capRem);
     return { sorted: s, max: Math.max(SALARY_CAP, ...s.map((t) => t.capCommit + t.capDead + Math.max(t.capRem, 0))) };
   }, [teams]);
   return (
     <ChartFrame
       title="Cap Breakdown"
       color={EMERALD}
-      subtitle={`Committed + Dead + Remaining · Cap floor $${SALARY_CAP}`}
+      subtitle={`Remaining + Committed + Dead · Cap floor $${SALARY_CAP}`}
       footer={
         <InsightLegend
           items={[
-            { label: "Committed", color: EMERALD },
+            { label: "Remaining", color: EMERALD },
+            { label: "Committed", color: GOLD },
             { label: "Dead", color: ROSE },
-            { label: "Remaining", color: GOLD },
           ]}
           right={`Floor line @ $${SALARY_CAP}`}
         />
@@ -666,7 +667,7 @@ function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
   const [hovered, setHovered] = useState<string | null>(null);
   const overCap = useMemo(() => teams.filter((t) => t.yearsRem < 0), [teams]);
   const tightOnSpace = useMemo(() => teams.filter((t) => t.capRem < 30), [teams]);
-  const flush = useMemo(() => teams.filter((t) => t.capRem > 80), [teams]);
+  const flush = useMemo(() => teams.filter((t) => t.capRem > 80).sort((a, b) => b.capRem - a.capRem).slice(0, 3), [teams]);
 
   return (
     <section style={{ marginBottom: 32 }}>
@@ -729,26 +730,20 @@ function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
 
 function LeagueRibbon({ teams }: { teams: TeamDirectoryEntry[] }) {
   const items = useMemo(() => {
-    const top = [...teams].sort((a, b) => b.wins - a.wins || b.pf - a.pf)[0];
-    const topPF = [...teams].sort((a, b) => b.pf - a.pf)[0];
-    const hot = [...teams]
-      .filter((t) => t.streak.startsWith("W"))
-      .sort((a, b) => parseInt(b.streak.slice(1)) - parseInt(a.streak.slice(1)))[0];
-    const cold = [...teams]
-      .filter((t) => t.streak.startsWith("L"))
-      .sort((a, b) => parseInt(b.streak.slice(1)) - parseInt(a.streak.slice(1)))[0];
-    const mostCapUsed = [...teams].sort((a, b) => (b.capCommit + b.capDead) - (a.capCommit + a.capDead))[0];
+    const mostCap = [...teams].sort((a, b) => b.capRem - a.capRem)[0];
+    const mostPicks = [...teams].sort((a, b) => b.picks - a.picks)[0];
+    const mostYears = [...teams].sort((a, b) => b.yearsUsed - a.yearsUsed)[0];
+    const mostExpiring = [...teams].sort((a, b) => b.expiringContracts - a.expiringContracts)[0];
     return [
-      { label: "Standings Leader", value: top?.owner || "—", sub: top ? `${top.wins}-${top.losses}` : "", color: EMERALD },
-      { label: "Points Leader", value: topPF?.owner || "—", sub: topPF ? `${topPF.pf.toFixed(1)} PF` : "", color: GOLD },
-      { label: "Hottest", value: hot?.owner || "—", sub: hot?.streak || "—", color: ACCENT },
-      { label: "Coldest", value: cold?.owner || "—", sub: cold?.streak || "—", color: ROSE },
-      { label: "Most Cap Used", value: mostCapUsed?.owner || "—", sub: mostCapUsed ? `$${(mostCapUsed.capCommit + mostCapUsed.capDead).toFixed(0)}` : "", color: GOLD },
+      { label: "Most Cap Space", value: mostCap?.owner || "—", sub: mostCap ? `$${mostCap.capRem.toFixed(0)} remaining` : "", color: EMERALD },
+      { label: "Most Draft Picks", value: mostPicks?.owner || "—", sub: mostPicks ? `${mostPicks.picks} picks` : "", color: GOLD },
+      { label: "Most Years Used", value: mostYears?.owner || "—", sub: mostYears ? `${mostYears.yearsUsed} of ${YEARS_CAP}` : "", color: ACCENT },
+      { label: "Most Expiring", value: mostExpiring?.owner || "—", sub: mostExpiring ? `${mostExpiring.expiringContracts} contracts` : "", color: ROSE },
     ];
   }, [teams]);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-7">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
       {items.map((s) => (
         <div key={s.label} style={{ background: CARD, border: `1px solid ${CARD_BORDER}`, borderRadius: 10, padding: "12px 14px" }}>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: MUTED, marginBottom: 4 }}>{s.label}</div>
