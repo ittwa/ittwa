@@ -3,8 +3,8 @@ export const dynamic = 'force-dynamic';
 import { notFound } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap, getLatestActiveContracts } from "@/lib/data";
-import { getNFLPlayers } from "@/lib/sleeper";
+import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap, getLatestActiveContracts, getLeagueUsers } from "@/lib/data";
+import { getNFLPlayers, getDisplayName } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP, AUCTION_DATE, SALARY_CAP, ROSTER_SIZE } from "@/lib/config";
 import { TradeCard } from "@/components/trade-card";
 import type { EnrichedTrade } from "@/components/trade-card";
@@ -13,6 +13,8 @@ import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha, getPositio
 import { ContractWithValue } from "@/types/contracts";
 import { SleeperPlayersMap } from "@/types/sleeper";
 import { PlayerAvatar } from "@/components/player-avatar";
+import { SleeperAvatarImage } from "@/components/owner-avatar";
+import { OwnerLink } from "@/components/owner-link";
 
 export const revalidate = 300;
 
@@ -99,13 +101,14 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   const { owner: rawOwner } = await params;
   const ownerName = decodeURIComponent(rawOwner);
 
-  const [teamsData, contracts, capHits, rosterOwnerMap, nflPlayers, allTxns] = await Promise.all([
+  const [teamsData, contracts, capHits, rosterOwnerMap, nflPlayers, allTxns, users] = await Promise.all([
     getTeamsData(),
     getContracts(),
     getCapHits(),
     buildRosterOwnerMap(),
     getNFLPlayers(),
     getAllTransactions().catch(() => [] as Awaited<ReturnType<typeof getAllTransactions>>),
+    getLeagueUsers(),
   ]);
 
   const { teams, season, currentWeek, allMatchups, allScheduleMatchups } = teamsData;
@@ -116,6 +119,11 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
 
   const ownerLastName = getOwnerLastName(ownerName);
   const allActiveContracts = getLatestActiveContracts(contracts);
+
+  const ownerAvatars: Record<string, string> = {};
+  for (const user of users) {
+    if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
+  }
 
   const rosterPlayers = sortRoster(buildMergedRoster(team.players, nflPlayers, allActiveContracts));
 
@@ -420,7 +428,25 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                   return (
                     <tr key={g.week} className="border-b border-border/50" style={{ background: won ? "rgba(74,222,128,0.03)" : lost ? "rgba(253,74,72,0.03)" : undefined }}>
                       <td className="px-4 py-2 text-center text-muted-foreground tabular-nums">W{g.week}</td>
-                      <td className="px-4 py-2">{g.opponent}</td>
+                      <td className="px-4 py-2">
+                        {g.opponent === "TBD" || g.opponent === "BYE" ? (
+                          <span className="text-muted-foreground">{g.opponent}</span>
+                        ) : (
+                          <OwnerLink name={g.opponent} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                            <div
+                              className="w-6 h-6 rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden"
+                              style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+                            >
+                              <SleeperAvatarImage
+                                avatarId={ownerAvatars[g.opponent]}
+                                name={g.opponent}
+                                fallback={<span className="font-heading text-[9px] font-bold text-[#60a5fa]">{g.opponent.slice(0, 2).toUpperCase()}</span>}
+                              />
+                            </div>
+                            <span>{g.opponent}</span>
+                          </OwnerLink>
+                        )}
+                      </td>
                       <td className="px-4 py-2 text-center tabular-nums">
                         {g.completed ? `${g.myScore.toFixed(2)} – ${g.oppScore.toFixed(2)}` : "—"}
                       </td>
