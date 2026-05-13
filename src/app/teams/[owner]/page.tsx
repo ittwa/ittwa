@@ -108,7 +108,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
     getAllTransactions().catch(() => [] as Awaited<ReturnType<typeof getAllTransactions>>),
   ]);
 
-  const { teams, season, currentWeek, allMatchups } = teamsData;
+  const { teams, season, currentWeek, allMatchups, allScheduleMatchups } = teamsData;
   const standings = calculateStandings(teams, allMatchups);
 
   const team = standings.find((t) => t.displayName === ownerName);
@@ -166,10 +166,10 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
     })
   );
 
-  // Schedule
+  // Schedule — use allScheduleMatchups which includes future/unplayed weeks
   const schedule: { week: number; opponent: string; myScore: number; oppScore: number; completed: boolean }[] = [];
   for (let w = 1; w <= 13; w++) {
-    const weekMatchups = allMatchups.get(w);
+    const weekMatchups = allScheduleMatchups.get(w);
     if (!weekMatchups) { schedule.push({ week: w, opponent: "TBD", myScore: 0, oppScore: 0, completed: false }); continue; }
     const myMatchup = weekMatchups.find((m) => m.roster_id === team.rosterId);
     if (!myMatchup) { schedule.push({ week: w, opponent: "TBD", myScore: 0, oppScore: 0, completed: false }); continue; }
