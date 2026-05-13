@@ -3,6 +3,7 @@
 import { useState, Fragment } from "react";
 import { getPositionColors } from "@/lib/ui-utils";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { OwnerLink } from "@/components/owner-link";
 
 export interface TradePlayerItem {
   type: "player";
@@ -152,7 +153,7 @@ function TradeSide({ side, isLeft }: { side: TradeSideData; isLeft: boolean }) {
         <div className={`flex items-center gap-2 ${isLeft ? "flex-row" : "flex-row-reverse"}`}>
           <OwnerAvatar name={side.owner} />
           <div style={{ textAlign: isLeft ? "left" : "right" }}>
-            <div className="text-sm font-bold text-foreground">{side.owner}</div>
+            <OwnerLink name={side.owner} className="text-sm font-bold text-foreground hover:underline underline-offset-2">{side.owner}</OwnerLink>
             <div className="text-[11px] text-muted-foreground">
               received {side.received.length} item{side.received.length !== 1 ? "s" : ""}
             </div>
@@ -204,7 +205,7 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
           <div className="flex items-center gap-1">
             {trade.sides.map((s, i) => (
               <Fragment key={s.owner}>
-                <span className="text-[13px] font-semibold text-foreground">{s.owner}</span>
+                <OwnerLink name={s.owner} className="text-[13px] font-semibold text-foreground hover:underline underline-offset-2">{s.owner}</OwnerLink>
                 {i < trade.sides.length - 1 && (
                   <span className="text-[11px] text-muted-foreground mx-0.5">↔</span>
                 )}
@@ -272,7 +273,7 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
                 const hasPicks = inn.picks > 0 || out.picks > 0;
                 return (
                   <div key={side.owner} className="flex-1 bg-background border border-border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
-                    <span className="text-[11px] font-semibold text-muted-foreground whitespace-nowrap">{side.owner}</span>
+                    <OwnerLink name={side.owner} className="text-[11px] font-semibold text-muted-foreground whitespace-nowrap hover:underline underline-offset-2">{side.owner}</OwnerLink>
                     <div className="flex gap-3 items-center">
                       {hasSalary && (
                         <div className="text-right">

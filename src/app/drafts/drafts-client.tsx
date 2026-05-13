@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { getPositionColors, getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
 import { OWNER_DIVISION } from "@/lib/config";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { OwnerLink } from "@/components/owner-link";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -256,8 +257,10 @@ function PicksByOwnerChart({ data }: { data: { name: string; cnt: number; divisi
         const barColor = dc ? dc.text : "#FD4A48";
         return (
           <div key={name} className="flex items-center gap-2">
-            <OwnerAvatar name={name} division={division} size={20} />
-            <span className="text-[10px] text-muted-foreground min-w-[68px] truncate">{name.split(" ")[0]}</span>
+            <OwnerLink name={name} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <OwnerAvatar name={name} division={division} size={20} />
+              <span className="text-[10px] text-muted-foreground min-w-[68px] truncate">{name.split(" ")[0]}</span>
+            </OwnerLink>
             <div className="flex-1 h-1.5 rounded-[3px] bg-border overflow-hidden">
               <div className="h-full rounded-[3px] transition-[width] duration-500" style={{ width: `${(cnt / max) * 100}%`, background: barColor, opacity: 0.8 }} />
             </div>
@@ -276,8 +279,10 @@ function TradedPicksChart({ data }: { data: { name: string; cnt: number; divisio
         const dc = division ? divColors(division) : null;
         return (
           <div key={name} className="flex items-center gap-2">
-            <OwnerAvatar name={name} division={division} size={22} />
-            <span className="text-[11px] text-foreground flex-1 truncate">{name.split(" ")[0]}</span>
+            <OwnerLink name={name} className="flex items-center gap-2 hover:opacity-80 transition-opacity flex-1 min-w-0">
+              <OwnerAvatar name={name} division={division} size={22} />
+              <span className="text-[11px] text-foreground truncate">{name.split(" ")[0]}</span>
+            </OwnerLink>
             <div className="flex gap-[3px]">
               {Array.from({ length: cnt }).map((_, i) => (
                 <div
@@ -497,7 +502,7 @@ export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
                       <div className="flex flex-col gap-0.5 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="font-heading text-[10px] font-extrabold text-muted-foreground min-w-[14px]">{slot}</span>
-                          <span className="text-[12px] font-semibold text-foreground truncate">{ownerName}</span>
+                          <OwnerLink name={ownerName} className="text-[12px] font-semibold text-foreground truncate hover:underline underline-offset-2">{ownerName}</OwnerLink>
                         </div>
                         {dc && (
                           <span
@@ -549,9 +554,9 @@ export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
                                   >
                                     <OwnerAvatar name={pick.ownerName} division={pick.ownerDivision} size={14} />
                                     <span className="text-[8px] text-[#e8b84b] font-bold tracking-[0.03em]">traded to</span>
-                                    <span className="text-[9px] text-[#e8b84b] font-semibold">
+                                    <OwnerLink name={pick.ownerName} className="text-[9px] text-[#e8b84b] font-semibold hover:underline underline-offset-2">
                                       {pick.ownerName.split(" ")[0]}
-                                    </span>
+                                    </OwnerLink>
                                   </div>
                                 )}
                               </div>

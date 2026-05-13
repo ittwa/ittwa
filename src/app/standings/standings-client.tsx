@@ -5,6 +5,7 @@ import { StandingsEntry } from "@/lib/standings";
 import { DIVISIONS } from "@/lib/config";
 import { getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { OwnerLink } from "@/components/owner-link";
 
 const PLAYOFF_SPOTS = 6;
 
@@ -109,10 +110,10 @@ function StatSummary({ standings }: { standings: StandingsEntry[] }) {
     .sort((a, b) => Math.abs(a.pointsFor - a.pointsAgainst) - Math.abs(b.pointsFor - b.pointsAgainst))[0];
 
   const stats = [
-    { label: "Points Leader", value: topScorer?.displayName || "—", sub: `${topScorer?.pointsFor.toFixed(1)} PF`, color: "#E8B84B" },
-    { label: "Most Wins", value: topWins?.displayName || "—", sub: `${topWins?.wins}-${topWins?.losses} record`, color: "#4ade80" },
-    { label: "Hot Streak", value: hotStreak?.displayName || "—", sub: hotStreak?.streak || "—", color: "#FD4A48" },
-    { label: "Most Balanced", value: tightest?.displayName || "—", sub: `±${Math.abs((tightest?.pointsFor || 0) - (tightest?.pointsAgainst || 0)).toFixed(1)}`, color: "#60a5fa" },
+    { label: "Points Leader", owner: topScorer?.displayName, sub: `${topScorer?.pointsFor.toFixed(1)} PF`, color: "#E8B84B" },
+    { label: "Most Wins", owner: topWins?.displayName, sub: `${topWins?.wins}-${topWins?.losses} record`, color: "#4ade80" },
+    { label: "Hot Streak", owner: hotStreak?.displayName, sub: hotStreak?.streak || "—", color: "#FD4A48" },
+    { label: "Most Balanced", owner: tightest?.displayName, sub: `±${Math.abs((tightest?.pointsFor || 0) - (tightest?.pointsAgainst || 0)).toFixed(1)}`, color: "#60a5fa" },
   ];
 
   return (
@@ -120,7 +121,9 @@ function StatSummary({ standings }: { standings: StandingsEntry[] }) {
       {stats.map(s => (
         <div key={s.label} className="bg-card border border-border rounded-[10px] px-4 py-3.5">
           <div className="text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground mb-1.5">{s.label}</div>
-          <div className="font-heading text-[22px] font-extrabold leading-none" style={{ color: s.color }}>{s.value}</div>
+          <div className="font-heading text-[22px] font-extrabold leading-none" style={{ color: s.color }}>
+            {s.owner ? <OwnerLink name={s.owner} className="hover:underline underline-offset-2" style={{ color: s.color }}>{s.owner}</OwnerLink> : "—"}
+          </div>
           <div className="text-[11px] text-muted-foreground mt-1">{s.sub}</div>
         </div>
       ))}
@@ -270,7 +273,7 @@ export function StandingsClient({
                           {isPlayoff && <div className="w-0.5 h-7 bg-ittwa rounded-sm opacity-70" />}
                         </td>
                         <td className="px-4 py-3 pl-2">
-                          <div className="flex items-center gap-2.5">
+                          <OwnerLink name={entry.displayName} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
                             <OwnerAvatar name={entry.displayName} division={entry.division} />
                             <div>
                               <div className="text-[13px] font-semibold">{entry.displayName}</div>
@@ -281,7 +284,7 @@ export function StandingsClient({
                                 <DivisionBadge division={entry.division} />
                               </div>
                             </div>
-                          </div>
+                          </OwnerLink>
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell">
                           <DivisionBadge division={entry.division} />
@@ -374,10 +377,10 @@ export function StandingsClient({
                               <div className="flex justify-center"><RankBadge rank={entry.rank} /></div>
                             </td>
                             <td className="px-4 py-3 pl-2">
-                              <div className="flex items-center gap-2.5">
+                              <OwnerLink name={entry.displayName} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
                                 <OwnerAvatar name={entry.displayName} division={entry.division} />
                                 <span className="text-[13px] font-semibold">{entry.displayName}</span>
-                              </div>
+                              </OwnerLink>
                             </td>
                             <td className="px-4 py-3 text-center">
                               <span className="font-mono text-[13px] font-bold">

@@ -3,6 +3,7 @@
 import { useState, useRef, useMemo, useCallback } from "react";
 import { OWNER_DIVISION, ALL_OWNERS } from "@/lib/config";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { OwnerLink } from "@/components/owner-link";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -196,7 +197,7 @@ function HighlightCard({ kind, match, ownerA, ownerB }: {
           </span>
         </div>
         <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
-          <span style={{ color: winnerColor, fontWeight: 700 }}>{winner}</span>
+          <OwnerLink name={winner} className="hover:underline underline-offset-2" style={{ color: winnerColor, fontWeight: 700 }}>{winner}</OwnerLink>
           {" · "}
           {match.season} {match.playoff ? "Playoffs" : `Week ${match.week}`}
         </div>
@@ -262,12 +263,12 @@ function H2HMatrix({ owners, activeSeasons, allMatchups, mode, showDivColors, on
                 borderLeft: "1px solid var(--border)",
               }}>
                 <OwnerAvatar owner={owner} size={22} />
-                <span style={{
+                <OwnerLink name={owner} className="hover:underline underline-offset-2" style={{
                   fontSize: 9, fontWeight: 700, letterSpacing: "0.04em",
                   color: dc ? dc.text : "var(--muted-foreground)",
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   maxWidth: CELL_W - 4,
-                }}>{owner}</span>
+                }}>{owner}</OwnerLink>
               </div>
             );
           })}
@@ -290,11 +291,11 @@ function H2HMatrix({ owners, activeSeasons, allMatchups, mode, showDivColors, on
                 position: "sticky", left: 0, zIndex: 2, height: CELL_H,
               }}>
                 <OwnerAvatar owner={rowOwner} size={22} />
-                <span style={{
+                <OwnerLink name={rowOwner} className="hover:underline underline-offset-2" style={{
                   fontSize: 12, fontWeight: 600,
                   color: dc ? dc.text : "var(--foreground)",
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}>{rowOwner}</span>
+                }}>{rowOwner}</OwnerLink>
               </div>
 
               {owners.map((_, j) => {
@@ -522,7 +523,7 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
                 {OWNER_DIVISION[ownerA] || ""}
               </div>
               <div style={{ fontFamily: HEADER_FONT, fontSize: 28, fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.01em", lineHeight: 1 }}>
-                {ownerA}
+                <OwnerLink name={ownerA} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{ownerA}</OwnerLink>
               </div>
             </div>
           </div>
@@ -544,7 +545,7 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
                 {OWNER_DIVISION[ownerB] || ""}
               </div>
               <div style={{ fontFamily: HEADER_FONT, fontSize: 28, fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.01em", lineHeight: 1 }}>
-                {ownerB}
+                <OwnerLink name={ownerB} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{ownerB}</OwnerLink>
               </div>
             </div>
           </div>
@@ -586,13 +587,13 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
                       {m.playoff ? <span style={{ color: GOLD, fontWeight: 700 }}>PLAYOFF</span> : `WK ${m.week}`}
                     </span>
                     <span style={{ textAlign: "right", fontWeight: aWin ? 700 : 500, color: aWin ? WIN_COLOR : "var(--muted-foreground)" }}>
-                      {ownerA}{" "}
+                      <OwnerLink name={ownerA} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{ownerA}</OwnerLink>{" "}
                       <span style={{ fontFamily: MONO_FONT, marginLeft: 6 }}>{m.scoreA.toFixed(1)}</span>
                     </span>
                     <span style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600 }}>vs</span>
                     <span style={{ fontWeight: m.scoreB > m.scoreA ? 700 : 500, color: m.scoreB > m.scoreA ? WIN_COLOR : "var(--muted-foreground)" }}>
                       <span style={{ fontFamily: MONO_FONT, marginRight: 6 }}>{m.scoreB.toFixed(1)}</span>
-                      {ownerB}
+                      <OwnerLink name={ownerB} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{ownerB}</OwnerLink>
                     </span>
                   </div>
                 );

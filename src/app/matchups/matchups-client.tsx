@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { MatchupPair } from "@/types/sleeper";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { OwnerLink } from "@/components/owner-link";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -277,10 +278,10 @@ function WinProbBar({ winProb, aDivision, bDivision, aName, bName }: {
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
           <span style={{ fontFamily: T.monoFont, fontSize: 13, fontWeight: 700, color: dcA.color }}>{aPct.toFixed(0)}%</span>
-          <span style={{ fontSize: 9, color: T.muted, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>{aName}</span>
+          <span style={{ fontSize: 9, color: T.muted, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}><OwnerLink name={aName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{aName}</OwnerLink></span>
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-          <span style={{ fontSize: 9, color: T.muted, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>{bName}</span>
+          <span style={{ fontSize: 9, color: T.muted, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}><OwnerLink name={bName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{bName}</OwnerLink></span>
           <span style={{ fontFamily: T.monoFont, fontSize: 13, fontWeight: 700, color: dcB.color }}>{bPct.toFixed(0)}%</span>
         </div>
       </div>
@@ -315,7 +316,7 @@ function TeamSide({ name, meta, align, isWinning }: {
             letterSpacing: "-0.005em", lineHeight: 1.05, whiteSpace: "nowrap",
             overflow: "hidden", textOverflow: "ellipsis",
           }}>
-            {name}
+            <OwnerLink name={name} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{name}</OwnerLink>
           </div>
           {meta?.teamName && (
             <div style={{ fontSize: 11, color: T.muted, fontFamily: T.bodyFont, marginTop: 2 }}>
@@ -475,7 +476,7 @@ function TeamRow({ name, meta, score, proj, status, winner }: {
         <OwnerAvatar name={name} division={meta?.division || ""} size={36} />
         <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-            <span style={{ fontFamily: T.headerFont, fontSize: 16, fontWeight: 800, color: winner ? T.emerald : T.text, letterSpacing: "-0.005em" }}>{name}</span>
+            <span style={{ fontFamily: T.headerFont, fontSize: 16, fontWeight: 800, color: winner ? T.emerald : T.text, letterSpacing: "-0.005em" }}><OwnerLink name={name} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{name}</OwnerLink></span>
             {meta?.seed && <span style={{ fontSize: 9, fontWeight: 700, color: T.gold, letterSpacing: "0.06em" }}>#{meta.seed}</span>}
           </div>
           <div style={{ fontSize: 10, color: T.muted, fontFamily: T.bodyFont, marginTop: 1, display: "flex", alignItems: "center", gap: 6 }}>
@@ -533,11 +534,11 @@ function ExpandedDetails({ m }: { m: EnrichedMatchup }) {
         </DetailBlock>
         <DetailBlock label="Win probability">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <span style={{ fontSize: 11, color: dcA.color, fontWeight: 600 }}>{m.aName}</span>
+            <span style={{ fontSize: 11, color: dcA.color, fontWeight: 600 }}><OwnerLink name={m.aName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.aName}</OwnerLink></span>
             <span style={{ fontFamily: T.monoFont, fontSize: 14, fontWeight: 700, color: T.text }}>{(m.winProb * 100).toFixed(0)}%</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 4 }}>
-            <span style={{ fontSize: 11, color: dcB.color, fontWeight: 600 }}>{m.bName}</span>
+            <span style={{ fontSize: 11, color: dcB.color, fontWeight: 600 }}><OwnerLink name={m.bName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.bName}</OwnerLink></span>
             <span style={{ fontFamily: T.monoFont, fontSize: 14, fontWeight: 700, color: T.text }}>{((1 - m.winProb) * 100).toFixed(0)}%</span>
           </div>
           <div style={{ height: 4, borderRadius: 2, overflow: "hidden", display: "flex", background: T.cardBorder, marginTop: 6 }}>
@@ -547,13 +548,13 @@ function ExpandedDetails({ m }: { m: EnrichedMatchup }) {
         </DetailBlock>
         <DetailBlock label="Season stats">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <span style={{ fontSize: 11, color: dcA.color, fontWeight: 600 }}>{m.aName}</span>
+            <span style={{ fontSize: 11, color: dcA.color, fontWeight: 600 }}><OwnerLink name={m.aName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.aName}</OwnerLink></span>
             <span style={{ fontFamily: T.monoFont, fontSize: 12, fontWeight: 700, color: T.text }}>
               {record(m.aMeta)} &middot; PF {(m.aMeta?.pointsFor ?? 0).toFixed(0)}
             </span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 4 }}>
-            <span style={{ fontSize: 11, color: dcB.color, fontWeight: 600 }}>{m.bName}</span>
+            <span style={{ fontSize: 11, color: dcB.color, fontWeight: 600 }}><OwnerLink name={m.bName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.bName}</OwnerLink></span>
             <span style={{ fontFamily: T.monoFont, fontSize: 12, fontWeight: 700, color: T.text }}>
               {record(m.bMeta)} &middot; PF {(m.bMeta?.pointsFor ?? 0).toFixed(0)}
             </span>
@@ -675,9 +676,9 @@ function SummaryRow({ label, m, kind }: { label: string; m: EnrichedMatchup; kin
       <div style={{ fontSize: 9, color: T.muted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: T.bodyFont, marginBottom: 6 }}>{label}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: T.surface, border: `1px solid ${T.cardBorder}`, borderRadius: 6 }}>
         <OwnerAvatar name={m.aName} division={m.aMeta?.division || ""} size={22} />
-        <span style={{ fontSize: 11, fontWeight: 600, color: dcA.color, fontFamily: T.bodyFont }}>{m.aName}</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: dcA.color, fontFamily: T.bodyFont }}><OwnerLink name={m.aName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.aName}</OwnerLink></span>
         <span style={{ fontSize: 10, color: T.muted }}>vs</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: dcB.color, fontFamily: T.bodyFont }}>{m.bName}</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: dcB.color, fontFamily: T.bodyFont }}><OwnerLink name={m.bName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.bName}</OwnerLink></span>
         <OwnerAvatar name={m.bName} division={m.bMeta?.division || ""} size={22} />
         <span style={{ flex: 1 }} />
         <span style={{ fontFamily: T.monoFont, fontSize: 11, fontWeight: 700, color: kind === "closest" ? T.gold : T.accent }}>&plusmn;{margin.toFixed(1)}</span>
@@ -748,7 +749,7 @@ function StandingsSnapshot({ teamMeta }: { teamMeta: Record<string, TeamMeta> })
               <span style={{ fontFamily: T.monoFont, fontSize: 10, color: T.muted, fontWeight: 700, textAlign: "center" }}>{i + 1}</span>
               <OwnerAvatar name={t.displayName} division={t.division} size={20} />
               <div style={{ minWidth: 0 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: T.text, fontFamily: T.bodyFont }}>{t.displayName}</span>
+                <OwnerLink name={t.displayName} className="hover:underline underline-offset-2" style={{ fontSize: 12, fontWeight: 600, color: T.text, fontFamily: T.bodyFont }}>{t.displayName}</OwnerLink>
               </div>
               <span style={{ fontFamily: T.monoFont, fontSize: 11, color: T.textDim, fontWeight: 600 }}>{record(t)}</span>
             </div>

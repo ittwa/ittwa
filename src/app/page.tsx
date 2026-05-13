@@ -17,6 +17,7 @@ import {
 import { getDisplayName } from "@/lib/sleeper";
 import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
 import { SleeperAvatarImage } from "@/components/owner-avatar";
+import { OwnerLink } from "@/components/owner-link";
 import { SleeperTransaction, SleeperPlayersMap, MatchupPair } from "@/types/sleeper";
 import { StandingsEntry } from "@/lib/standings";
 import { PowerRankingEntry } from "@/lib/power-rankings";
@@ -165,10 +166,10 @@ function MatchupsSection({ pairs, week, ownerAvatars, divisionMap }: { pairs: Ma
                   background: i % 2 === 1 ? "var(--secondary)" : undefined,
                 }}
               >
-                <div className={`flex items-center justify-end gap-1.5 min-w-0 ${pair.completed && t1Winning ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                <OwnerLink name={pair.team1.displayName} className={`flex items-center justify-end gap-1.5 min-w-0 hover:opacity-80 transition-opacity ${pair.completed && t1Winning ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
                   <span className="text-[13px] truncate">{pair.team1.displayName}</span>
                   <DashboardAvatar name={pair.team1.displayName} avatarId={ownerAvatars[pair.team1.displayName]} division={divisionMap[pair.team1.displayName]} size={22} />
-                </div>
+                </OwnerLink>
                 <div className="flex items-center gap-2 font-mono text-[13px]">
                   <span className={pair.completed && t1Winning ? "text-foreground font-bold" : "text-muted-foreground"}>
                     {pair.team1.points > 0 ? pair.team1.points.toFixed(2) : "—"}
@@ -178,10 +179,10 @@ function MatchupsSection({ pairs, week, ownerAvatars, divisionMap }: { pairs: Ma
                     {pair.team2.points > 0 ? pair.team2.points.toFixed(2) : "—"}
                   </span>
                 </div>
-                <div className={`flex items-center gap-1.5 min-w-0 ${pair.completed && !t1Winning ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                <OwnerLink name={pair.team2.displayName} className={`flex items-center gap-1.5 min-w-0 hover:opacity-80 transition-opacity ${pair.completed && !t1Winning ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
                   <DashboardAvatar name={pair.team2.displayName} avatarId={ownerAvatars[pair.team2.displayName]} division={divisionMap[pair.team2.displayName]} size={22} />
                   <span className="text-[13px] truncate">{pair.team2.displayName}</span>
-                </div>
+                </OwnerLink>
               </div>
             );
           })}
@@ -237,10 +238,10 @@ function StandingsSection({ standings, ownerAvatars }: { standings: StandingsEnt
                     )}
                   </td>
                   <td className="px-2 py-2.5 font-medium">
-                    <div className="flex items-center gap-2 max-w-[160px]">
+                    <OwnerLink name={entry.displayName} className="flex items-center gap-2 max-w-[160px] hover:opacity-80 transition-opacity">
                       <DashboardAvatar name={entry.displayName} avatarId={ownerAvatars[entry.displayName]} division={entry.division} />
                       <span className="truncate">{entry.displayName}</span>
-                    </div>
+                    </OwnerLink>
                   </td>
                   <td className="px-2 py-2.5 text-center tabular-nums text-muted-foreground">
                     {entry.wins}-{entry.losses}
@@ -309,7 +310,7 @@ function PowerRankingsSection({ rankings, ownerAvatars }: { rankings: PowerRanki
                 )}
                 <DashboardAvatar name={entry.displayName} avatarId={ownerAvatars[entry.displayName]} division={entry.division} size={28} />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{entry.displayName}</p>
+                  <OwnerLink name={entry.displayName} className="font-medium text-sm truncate block hover:underline underline-offset-2">{entry.displayName}</OwnerLink>
                   <div>
                     <Badge variant={getDivisionVariant(entry.division)} className="text-[10px] px-1.5 py-0">
                       {entry.division}
