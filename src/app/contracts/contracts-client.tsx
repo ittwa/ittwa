@@ -385,7 +385,7 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
 
   function toggleSort(field: SortKey) {
     if (sortKey === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(field); setSortDir("desc"); }
+    else { setSortKey(field); setSortDir(field === "position" ? "asc" : "desc"); }
   }
 
   function clearAll() {
