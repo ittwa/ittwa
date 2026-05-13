@@ -178,7 +178,7 @@ function StatusPill({ status }: { status: "live" | "final" | "upcoming" }) {
 function SeasonSelector({ seasons, current }: { seasons: string[]; current: string }) {
   const router = useRouter();
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
       <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: T.muted, fontFamily: T.bodyFont, marginRight: 4 }}>
         Season
       </span>
@@ -397,8 +397,8 @@ function HeroMatchup({ m, week, season }: { m: EnrichedMatchup; week: number; se
       {/* Top stripe */}
       <div style={{
         background: `linear-gradient(90deg, ${dcA.bg} 0%, transparent 35%, transparent 65%, ${dcB.bg} 100%)`,
-        padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center",
-        borderBottom: `1px solid ${T.cardBorder}`,
+        padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center",
+        borderBottom: `1px solid ${T.cardBorder}`, flexWrap: "wrap", gap: 8,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{
@@ -414,9 +414,9 @@ function HeroMatchup({ m, week, season }: { m: EnrichedMatchup; week: number; se
       </div>
 
       {/* Score row */}
-      <div style={{ padding: "32px 32px 24px", display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 28, alignItems: "center" }}>
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-7 items-center p-4 pb-3 md:px-8 md:pt-8 md:pb-6">
         <TeamSide name={m.aName} meta={m.aMeta} align="left" isWinning={aWinning && m.status !== "upcoming"} />
-        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
           <ScoreBlock value={m.pair.team1.points} proj={m.aProj} isWinning={aWinning && m.status !== "upcoming"} status={m.status} />
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
             <span style={{ fontFamily: T.headerFont, fontSize: 18, color: T.muted, fontWeight: 700, letterSpacing: "0.1em" }}>VS</span>
@@ -434,7 +434,7 @@ function HeroMatchup({ m, week, season }: { m: EnrichedMatchup; week: number; se
       </div>
 
       {/* Win prob bar */}
-      <div style={{ padding: "0 32px 20px" }}>
+      <div className="px-4 pb-4 md:px-8 md:pb-5">
         <WinProbBar
           winProb={m.winProb}
           aDivision={m.aMeta?.division || ""}
@@ -445,8 +445,7 @@ function HeroMatchup({ m, week, season }: { m: EnrichedMatchup; week: number; se
       </div>
 
       {/* Stats strip */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0,
+      <div className="grid grid-cols-2 md:grid-cols-4" style={{
         borderTop: `1px solid ${T.cardBorder}`, background: T.surface,
       }}>
         <HeroStat label="Spread" value={`${spreadOwner} ${Math.abs(m.spread).toFixed(1)}`} />
@@ -831,7 +830,7 @@ export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playof
       {hero && <HeroMatchup m={hero} week={week} season={season} />}
 
       {/* Two-column: matchup grid + sidebar */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20, alignItems: "start" }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 items-start">
         <div>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
             <span style={{ fontFamily: T.headerFont, fontSize: 14, fontWeight: 800, color: T.textDim, letterSpacing: "0.1em", textTransform: "uppercase" }}>
@@ -839,7 +838,7 @@ export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playof
             </span>
             <span style={{ fontSize: 11, color: T.muted, fontFamily: T.bodyFont }}>{others.length} matchups</span>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 14 }}>
+          <div className="grid grid-cols-1" style={{ gap: 14 }}>
             {others.map((m) => {
               const realIdx = matchups.indexOf(m);
               return (
@@ -855,7 +854,7 @@ export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playof
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, position: "sticky", top: 70 }}>
+        <div className="flex flex-col gap-4 lg:sticky lg:top-[70px]">
           <WeekSummary matchups={matchups} week={week} season={season} />
           <StandingsSnapshot teamMeta={teamMeta} />
         </div>
