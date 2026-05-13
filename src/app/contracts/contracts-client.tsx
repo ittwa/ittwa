@@ -365,7 +365,7 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
       switch (sortKey) {
         case "rosterSeason": cmp = a.rosterSeason.localeCompare(b.rosterSeason); break;
         case "player": cmp = a.player.localeCompare(b.player); break;
-        case "position": cmp = a.position.localeCompare(b.position); break;
+        case "position": cmp = a.position.localeCompare(b.position) || (a.posRank ?? 9999) - (b.posRank ?? 9999); break;
         case "owner": cmp = a.owner.localeCompare(b.owner); break;
         case "salary": cmp = a.salary - b.salary; break;
         case "years": cmp = a.years - b.years; break;
