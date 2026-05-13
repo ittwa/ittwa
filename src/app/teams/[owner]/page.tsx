@@ -9,10 +9,11 @@ import { OWNER_LAST_NAME_MAP, AUCTION_DATE, SALARY_CAP, ROSTER_SIZE } from "@/li
 import { TradeCard } from "@/components/trade-card";
 import type { EnrichedTrade } from "@/components/trade-card";
 import { buildContractLookup, enrichTrades } from "@/lib/trade-utils";
-import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha, getPositionVariant, getSalaryBarColor } from "@/lib/ui-utils";
+import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
 import { ContractWithValue } from "@/types/contracts";
 import { SleeperPlayersMap } from "@/types/sleeper";
-import { PlayerAvatar } from "@/components/player-avatar";
+import { RosterTable } from "./roster-table";
+import type { RosterPlayer } from "./roster-table";
 import { SleeperAvatarImage } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 
@@ -23,18 +24,6 @@ function getOwnerLastName(displayName: string): string {
     if (fullName === displayName) return lastName;
   }
   return displayName.split(" ").pop() || displayName;
-}
-
-interface RosterPlayer {
-  playerId: string;
-  name: string;
-  position: string;
-  nflTeam: string;
-  salary: number | null;
-  years: number | null;
-  dpOriginalOwner: string;
-  isMidSeasonPickup: boolean;
-  hasContract: boolean;
 }
 
 function buildMergedRoster(
@@ -289,76 +278,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
           <SectionTick label={`Roster (${rosterPlayers.length} players)`} />
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-card text-muted-foreground">
-                  <th className="px-4 py-3 text-left font-medium">Player</th>
-                  <th className="px-4 py-3 text-left font-medium">Pos</th>
-                  <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Team</th>
-                  <th className="px-4 py-3 text-left font-medium hidden md:table-cell">DP Owner</th>
-                  <th className="px-4 py-3 text-right font-medium">Salary</th>
-                  <th className="px-4 py-3 text-center font-medium">Years</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rosterPlayers.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground italic">
-                      No players on this roster. Rebuild season, apparently.
-                    </td>
-                  </tr>
-                ) : (
-                  rosterPlayers.map((p) => (
-                    <tr key={p.playerId} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
-                      <td className="px-4 py-2.5 font-medium">
-                        <div className="flex items-center gap-2">
-                          <PlayerAvatar playerId={p.playerId} playerName={p.name} position={p.position} />
-                          {p.name}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <Badge variant={getPositionVariant(p.position)}>{p.position}</Badge>
-                      </td>
-                      <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell">{p.nflTeam}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground text-xs hidden md:table-cell">{p.dpOriginalOwner || "—"}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">
-                        {p.isMidSeasonPickup ? (
-                          <Badge variant="warning">Pickup</Badge>
-                        ) : p.salary !== null ? (
-                          <div className="flex flex-col items-end">
-                            <span>${p.salary.toFixed(1)}</span>
-                            <div className="mt-0.5 rounded-full bg-secondary overflow-hidden" style={{ width: "64px", height: "3px" }}>
-                              <div
-                                className="h-full rounded-full"
-                                style={{
-                                  width: `${Math.max((p.salary / maxRosterSalary) * 100, 6)}%`,
-                                  backgroundColor: getSalaryBarColor(p.salary),
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-center tabular-nums">
-                        {p.years !== null ? p.years : <span className="text-muted-foreground">—</span>}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex items-center gap-4 px-4 py-2.5 border-t border-border bg-secondary">
-            <span className="text-[10px] font-semibold tracking-[0.06em] uppercase text-muted-foreground">Salary scale</span>
-            <div className="flex items-center gap-1">
-              <div className="w-8 h-[3px] rounded-sm" style={{ background: "linear-gradient(90deg, #E8B84B, #FD4A48)" }} />
-              <span className="text-[10px] text-muted-foreground">{`$1 → $${maxRosterSalary}`}</span>
-            </div>
-            <span className="text-[10px] text-muted-foreground ml-auto">Total: <span className="text-ittwa font-semibold">{fmtDollar(rosterSalary)}</span> / $270</span>
-          </div>
+          <RosterTable players={rosterPlayers} maxRosterSalary={maxRosterSalary} rosterSalary={rosterSalary} />
         </CardContent>
       </Card>
 
