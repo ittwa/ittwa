@@ -9,7 +9,7 @@ export interface ContractEntry extends ContractWithValue {
   rosterSeason: string;
 }
 
-type SortKey = "player" | "position" | "owner" | "salary" | "years" | "contractStartYear";
+type SortKey = "rosterSeason" | "player" | "position" | "owner" | "salary" | "years" | "contractStartYear";
 type SortDir = "asc" | "desc";
 
 interface ContractsClientProps {
@@ -373,6 +373,7 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
     result.sort((a, b) => {
       let cmp = 0;
       switch (sortKey) {
+        case "rosterSeason": cmp = a.rosterSeason.localeCompare(b.rosterSeason); break;
         case "player": cmp = a.player.localeCompare(b.player); break;
         case "position": cmp = a.position.localeCompare(b.position); break;
         case "owner": cmp = a.owner.localeCompare(b.owner); break;
@@ -450,19 +451,20 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
           <table className="w-full border-collapse">
             <thead>
               <tr>
+                <SortTh label="Season" field="rosterSeason" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="center" />
                 <SortTh label="Player" field="player" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <SortTh label="Pos" field="position" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <SortTh label="Owner" field="owner" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <SortTh label="Salary" field="salary" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
                 <SortTh label="Yrs" field="years" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="center" />
-                <SortTh label="Season" field="contractStartYear" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="center" />
+                <SortTh label="Signed" field="contractStartYear" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="center" />
                 <th className="px-3 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground text-center border-b border-border bg-secondary whitespace-nowrap">Tags</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground italic text-sm">
+                  <td colSpan={8} className="px-5 py-12 text-center text-muted-foreground italic text-sm">
                     No contracts match your filters.
                   </td>
                 </tr>
@@ -473,6 +475,7 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
                     className="border-b border-border last:border-b-0 hover:bg-accent transition-colors"
                     style={i % 2 === 1 ? { backgroundColor: "var(--secondary)" } : undefined}
                   >
+                    <td className="px-3 py-2 text-center text-xs text-muted-foreground font-mono">{c.rosterSeason}</td>
                     <td className="px-3 py-2 pl-4">
                       <div className="flex items-center gap-2.5">
                         <PlayerAvatar playerId={c.playerId} name={c.player} pos={c.position} />
