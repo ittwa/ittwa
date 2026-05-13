@@ -40,10 +40,10 @@ const ROSE = "#f87171";
 const CARD = "var(--card)";
 const CARD_BORDER = "var(--border)";
 const SURFACE = "var(--secondary)";
-const MUTED = "#555";
-const MUTED_TEXT = "#777";
+const MUTED = "var(--muted-foreground)";
+const MUTED_TEXT = "var(--muted-foreground)";
 const TEXT = "var(--foreground)";
-const TEXT_DIM = "#bbb";
+const TEXT_DIM = "var(--muted-foreground)";
 const HEADER_FONT = "'Barlow Condensed', sans-serif";
 const MONO_FONT = "'JetBrains Mono', monospace";
 
@@ -200,7 +200,7 @@ function CapBarSmall({ used, cap, color, label }: { used: number; cap: number; c
           <span style={{ color }}>{display}</span><span style={{ color: MUTED }}> / {cap}</span>
         </span>
       </div>
-      <div style={{ height: 3, background: "#1e1e1e", borderRadius: 2, overflow: "hidden" }}>
+      <div style={{ height: 3, background: "var(--secondary)", borderRadius: 2, overflow: "hidden" }}>
         <div style={{ width: `${pct * 100}%`, height: "100%", background: color, borderRadius: 2 }} />
       </div>
     </div>
@@ -467,7 +467,7 @@ function CapBarRow({ team, max, isHover, onHover }: {
       }}
     >
       <span style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</span>
-      <div style={{ position: "relative", height: 16, background: "#15151a", borderRadius: 3, overflow: "hidden", border: `1px solid ${CARD_BORDER}` }}>
+      <div style={{ position: "relative", height: 16, background: "var(--secondary)", borderRadius: 3, overflow: "hidden", border: `1px solid ${CARD_BORDER}` }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${pctCommit * 100}%`, background: EMERALD }} />
         <div style={{ position: "absolute", left: `${pctCommit * 100}%`, top: 0, bottom: 0, width: `${pctDead * 100}%`, background: ROSE }} />
         <div style={{ position: "absolute", left: `${(pctCommit + pctDead) * 100}%`, top: 0, bottom: 0, width: `${pctRem * 100}%`, background: GOLD, opacity: 0.85 }} />
@@ -533,7 +533,7 @@ function RosterRow({ team, maxRoster, isHover, onHover }: {
       }}
     >
       <span style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</span>
-      <div style={{ position: "relative", height: 16, background: "#15151a", borderRadius: 3, overflow: "hidden", border: `1px solid ${CARD_BORDER}`, display: "flex" }}>
+      <div style={{ position: "relative", height: 16, background: "var(--secondary)", borderRadius: 3, overflow: "hidden", border: `1px solid ${CARD_BORDER}`, display: "flex" }}>
         {POS_ORDER.map((pos) => {
           const n = team.pos[pos] || 0;
           if (!n) return null;
@@ -605,7 +605,7 @@ function YearsRow({ team, max, isHover, onHover }: {
       }}
     >
       <span style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</span>
-      <div style={{ position: "relative", height: 16, background: "#15151a", borderRadius: 3, overflow: "hidden", border: `1px solid ${CARD_BORDER}`, display: "flex" }}>
+      <div style={{ position: "relative", height: 16, background: "var(--secondary)", borderRadius: 3, overflow: "hidden", border: `1px solid ${CARD_BORDER}`, display: "flex" }}>
         {isOver && (
           <div style={{ width: `${pctOver * 100}%`, background: ROSE, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO_FONT, fontSize: 9, fontWeight: 700, color: "#3b0d0f" }}>
             {rem}
@@ -675,13 +675,13 @@ function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
         count="Cap · Roster · Years"
         color={GOLD}
         right={
-          <span style={{ fontSize: 10, color: MUTED, fontFamily: MONO_FONT, letterSpacing: "0.04em" }}>
+          <span className="hidden md:inline" style={{ fontSize: 10, color: MUTED, fontFamily: MONO_FONT, letterSpacing: "0.04em" }}>
             Hover any row to highlight across charts
           </span>
         }
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 14 }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3.5">
         {[
           { label: "Tight on Cap", count: tightOnSpace.length, names: tightOnSpace.map((t) => t.owner).join(" · ") || "—", color: ACCENT, hint: "<$30 remaining" },
           { label: "Cap Flush", count: flush.length, names: flush.map((t) => t.owner).join(" · ") || "—", color: GOLD, hint: ">$80 remaining" },
@@ -716,7 +716,7 @@ function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.15fr 1fr 0.95fr", gap: 12 }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <CapChart teams={teams} hovered={hovered} onHover={setHovered} />
         <RosterChart teams={teams} hovered={hovered} onHover={setHovered} />
         <YearsChart teams={teams} hovered={hovered} onHover={setHovered} />
@@ -748,7 +748,7 @@ function LeagueRibbon({ teams }: { teams: TeamDirectoryEntry[] }) {
   }, [teams]);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 28 }}>
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-7">
       {items.map((s) => (
         <div key={s.label} style={{ background: CARD, border: `1px solid ${CARD_BORDER}`, borderRadius: 10, padding: "12px 14px" }}>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: MUTED, marginBottom: 4 }}>{s.label}</div>
@@ -829,15 +829,17 @@ export function TeamsClient({ teams, season, ownerAvatars }: { teams: TeamDirect
   };
 
   const renderGrid = (teamList: TeamDirectoryEntry[]) => (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {teamList.map((t) => <TeamCard key={t.owner} team={t} />)}
     </div>
   );
 
   const renderList = (teamList: TeamDirectoryEntry[]) => (
-    <div style={{ background: CARD, border: `1px solid ${CARD_BORDER}`, borderRadius: 10, overflow: "hidden" }}>
-      <ListHeader />
-      {teamList.map((t, i) => <TeamRow key={t.owner} team={t} rank={i + 1} />)}
+    <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+      <div style={{ background: CARD, border: `1px solid ${CARD_BORDER}`, borderRadius: 10, overflow: "hidden", minWidth: 780 }}>
+        <ListHeader />
+        {teamList.map((t, i) => <TeamRow key={t.owner} team={t} rank={i + 1} />)}
+      </div>
     </div>
   );
 
@@ -862,8 +864,8 @@ export function TeamsClient({ teams, season, ownerAvatars }: { teams: TeamDirect
 
       <InsightsBoard teams={teams} />
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
+        <div className="flex items-center gap-3">
           <Segmented<ViewMode>
             value={view}
             onChange={setView}
@@ -934,7 +936,7 @@ export function TeamsClient({ teams, season, ownerAvatars }: { teams: TeamDirect
         </section>
       )}
 
-      <div style={{ marginTop: 40, paddingTop: 20, borderTop: `1px solid ${CARD_BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+      <div className="mt-10 pt-5 border-t border-border flex items-center justify-between gap-3 flex-wrap">
         <span style={{ fontSize: 11, color: MUTED, fontFamily: MONO_FONT }}>
           {season} season
         </span>
