@@ -420,7 +420,7 @@ export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
           </div>
 
           {/* Season filter */}
-          <div className="flex items-center gap-1.5 overflow-x-auto flex-shrink-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 max-w-full">
             <span className="text-[11px] text-muted-foreground font-semibold tracking-[0.06em] uppercase mr-1 flex-shrink-0">Season</span>
             {seasons.map((yr) => (
               <button
