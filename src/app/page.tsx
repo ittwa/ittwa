@@ -162,7 +162,7 @@ function MatchupsSection({ pairs, week, ownerAvatars, divisionMap }: { pairs: Ma
                 style={{
                   gridTemplateColumns: "1fr auto 1fr",
                   borderTop: i > 0 ? "1px solid var(--border)" : undefined,
-                  background: i % 2 === 1 ? "rgba(22,22,22,0.3)" : undefined,
+                  background: i % 2 === 1 ? "var(--secondary)" : undefined,
                 }}
               >
                 <div className={`flex items-center justify-end gap-1.5 min-w-0 ${pair.completed && t1Winning ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
