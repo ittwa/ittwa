@@ -518,8 +518,7 @@ export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
                     {/* Pick cells */}
                     {Array.from({ length: draft.rounds }, (_, i) => i + 1).map((r) => {
                       const pick = pickLookup[r]?.[slot];
-                      const originalOwner = draft.slotToOwner[slot];
-                      const traded = pick && originalOwner && pick.ownerName !== originalOwner;
+                      const traded = pick && pick.ownerName !== ownerName;
                       const numTeams = draft.numTeams || 12;
                       const isSnake = draft.type === "snake";
                       const pickNum = isSnake && r % 2 === 0 ? (numTeams - slot + 1) : slot;
@@ -548,16 +547,9 @@ export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
                                 </span>
                                 <span className="text-[10px] text-muted-foreground">{pick.team}</span>
                                 {traded && (
-                                  <div
-                                    className="inline-flex items-center gap-1 mt-0.5 self-start px-1.5 py-[2px] rounded"
-                                    style={{ background: "rgba(232,184,75,0.13)", border: "1px solid rgba(232,184,75,0.35)" }}
-                                  >
-                                    <OwnerAvatar name={pick.ownerName} division={pick.ownerDivision} size={14} />
-                                    <span className="text-[8px] text-[#e8b84b] font-bold tracking-[0.03em]">traded to</span>
-                                    <OwnerLink name={pick.ownerName} className="text-[9px] text-[#e8b84b] font-semibold hover:underline underline-offset-2">
-                                      {pick.ownerName.split(" ")[0]}
-                                    </OwnerLink>
-                                  </div>
+                                  <OwnerLink name={pick.ownerName} className="text-[9px] text-muted-foreground italic hover:underline underline-offset-2">
+                                    via {pick.ownerName}
+                                  </OwnerLink>
                                 )}
                               </div>
                             </div>
