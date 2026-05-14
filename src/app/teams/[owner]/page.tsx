@@ -14,6 +14,8 @@ import { ContractWithValue } from "@/types/contracts";
 import { SleeperPlayersMap } from "@/types/sleeper";
 import { RosterTable } from "./roster-table";
 import type { RosterPlayer } from "./roster-table";
+import { CapHitsTable } from "./cap-hits-table";
+import type { CapHitEntry } from "./cap-hits-table";
 import { SleeperAvatarImage } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 
@@ -166,6 +168,21 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
       return (isBeforeAuction ? y >= currentSeasonNum : y > currentSeasonNum) && value > 0;
     })
   );
+
+  const nameToPlayerId = new Map<string, string>();
+  for (const [pid, p] of Object.entries(nflPlayers)) {
+    const name = p.full_name || `${p.first_name} ${p.last_name}`;
+    nameToPlayerId.set(name.toLowerCase().trim(), pid);
+  }
+  const capHitEntries: CapHitEntry[] = ownerCapHits.map((ch) => ({
+    player: ch.player,
+    playerId: nameToPlayerId.get(ch.player.toLowerCase().trim()) || "",
+    position: ch.position,
+    salary: ch.salary,
+    years: ch.years,
+    capHit: ch.capHit,
+    seasonCapHit: ch.yearlyHits[displaySeason] || 0,
+  }));
 
   // Schedule — use allScheduleMatchups which includes future/unplayed weeks
   const schedule: { week: number; opponent: string; myScore: number; oppScore: number; completed: boolean }[] = [];
@@ -396,37 +413,12 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
           <SectionTick label="Cap Hits" />
         </CardHeader>
         <CardContent>
-          {ownerCapHits.length === 0 ? (
+          {capHitEntries.length === 0 ? (
             <p className="text-sm text-muted-foreground italic">
               No open cap hits. Remarkable financial discipline from this franchise.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground">
-                    <th className="px-4 py-2 text-left font-medium">Player</th>
-                    <th className="px-4 py-2 text-left font-medium">Pos</th>
-                    <th className="px-4 py-2 text-right font-medium">Salary</th>
-                    <th className="px-4 py-2 text-center font-medium">Years</th>
-                    <th className="px-4 py-2 text-right font-medium">Cap Hit</th>
-                    <th className="px-4 py-2 text-right font-medium">{displaySeason} Cap Hit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ownerCapHits.map((ch, i) => (
-                    <tr key={i} className="border-b border-border/50">
-                      <td className="px-4 py-2 font-medium">{ch.player}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{ch.position}</td>
-                      <td className="px-4 py-2 text-right tabular-nums">${ch.salary.toFixed(1)}</td>
-                      <td className="px-4 py-2 text-center tabular-nums">{ch.years}</td>
-                      <td className="px-4 py-2 text-right text-ittwa font-medium tabular-nums">${ch.capHit.toFixed(1)}</td>
-                      <td className="px-4 py-2 text-right text-ittwa font-medium tabular-nums">${(ch.yearlyHits[displaySeason] || 0).toFixed(1)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <CapHitsTable entries={capHitEntries} displaySeason={displaySeason} />
           )}
         </CardContent>
       </Card>
