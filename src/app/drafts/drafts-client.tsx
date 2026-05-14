@@ -5,6 +5,7 @@ import { getPositionColors, getDivisionColor, getDivisionColorAlpha } from "@/li
 import { OWNER_DIVISION } from "@/lib/config";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
+import { PlayerAvatar as PlayerHeadshot } from "@/components/player-avatar";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,18 +94,6 @@ function OwnerAvatar({ name, division, size = 28 }: { name: string; division: st
   );
 }
 
-function PlayerAvatar({ name, pos, size = 34 }: { name: string; pos: string; size?: number }) {
-  const pc = posColors(pos);
-  const ini = initials(name);
-  return (
-    <div
-      className="rounded-md flex-shrink-0 flex items-center justify-center"
-      style={{ width: size, height: size, background: pc.bg, border: `1.5px solid ${pc.border}` }}
-    >
-      <span className="font-heading font-extrabold" style={{ fontSize: size * 0.33, color: pc.text, letterSpacing: "-0.01em" }}>{ini}</span>
-    </div>
-  );
-}
 
 function PosBadge({ pos }: { pos: string }) {
   const pc = posColors(pos);
@@ -534,7 +523,7 @@ export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
                         >
                           {pick ? (
                             <div className="flex gap-2 items-start">
-                              <PlayerAvatar name={pick.playerName} pos={pick.position} size={36} />
+                              <PlayerHeadshot playerId={pick.playerId} playerName={pick.playerName} position={pick.position} size={36} />
                               <div className="flex flex-col gap-[3px] min-w-0 flex-1">
                                 <div className="flex items-center gap-[5px]">
                                   <PosBadge pos={pick.position} />
