@@ -1,14 +1,40 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-import { getTeamsData, calculatePowerRankings, calculateRankChanges } from "@/lib/data";
-import { OWNER_DIVISION } from "@/lib/config";
+import { getTeamsData, getLeagueUsers, calculatePowerRankings, calculateRankChanges } from "@/lib/data";
+import { getDisplayName } from "@/lib/sleeper";
+import { LEAGUE_ID } from "@/lib/config";
 import { PowerRankingEntry } from "@/lib/power-rankings";
+import { SleeperMatchup } from "@/types/sleeper";
 import { RankingsClient } from "./rankings-client";
 
 export const revalidate = 300;
 
+function computeWeekAllPlay(
+  matchups: SleeperMatchup[],
+): Record<number, [number, number]> {
+  const valid = matchups.filter((m) => m.points > 0);
+  const result: Record<number, [number, number]> = {};
+  for (const team of valid) {
+    let wins = 0,
+      losses = 0;
+    for (const opp of valid) {
+      if (opp.roster_id === team.roster_id) continue;
+      if (team.points > opp.points) wins++;
+      else if (team.points < opp.points) losses++;
+    }
+    result[team.roster_id] = [wins, losses];
+  }
+  return result;
+}
+
 export default async function PowerRankingsPage() {
-  const { teams, season, currentWeek, allMatchups } = await getTeamsData();
+  const [{ teams, season, currentWeek, allMatchups }, users] =
+    await Promise.all([getTeamsData(), getLeagueUsers(LEAGUE_ID)]);
+
+  const ownerAvatars: Record<string, string> = {};
+  for (const user of users) {
+    if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
+  }
 
   const rosterInfo = new Map<
     number,
@@ -25,9 +51,7 @@ export default async function PowerRankingsPage() {
 
   const completedWeeks = Math.max(currentWeek - 1, 1);
 
-  // Pre-calculate rankings for every week snapshot
   const weeklyRankings: Record<number, PowerRankingEntry[]> = {};
-
   for (let w = 1; w <= completedWeeks; w++) {
     const current = calculatePowerRankings(allMatchups, rosterInfo, w);
     if (w > 1) {
@@ -38,9 +62,34 @@ export default async function PowerRankingsPage() {
     }
   }
 
+  const allPlayByWeek: Record<number, Record<number, [number, number]>> = {};
+  for (let w = 1; w <= completedWeeks; w++) {
+    const matchups = allMatchups.get(w);
+    if (matchups) {
+      allPlayByWeek[w] = computeWeekAllPlay(matchups);
+    }
+  }
+
+  const weeklyRankHistory: Record<number, number[]> = {};
+  const teamStreaks: Record<number, string> = {};
+  for (const team of teams) {
+    teamStreaks[team.rosterId] = team.streak;
+  }
+  for (let w = 1; w <= completedWeeks; w++) {
+    const rankings = weeklyRankings[w];
+    if (!rankings) continue;
+    for (const entry of rankings) {
+      (weeklyRankHistory[entry.rosterId] ??= []).push(entry.rank);
+    }
+  }
+
   return (
     <RankingsClient
       weeklyRankings={weeklyRankings}
+      allPlayByWeek={allPlayByWeek}
+      weeklyRankHistory={weeklyRankHistory}
+      teamStreaks={teamStreaks}
+      ownerAvatars={ownerAvatars}
       season={season}
       currentWeek={completedWeeks}
     />
