@@ -40,7 +40,7 @@ export interface ScoreRow {
 }
 
 export async function getScores(): Promise<ScoreRow[]> {
-  const rows = await fetchSheet("Scores", "A2:L5000");
+  const rows = await fetchSheet("Scores", "A2:L");
 
   return rows
     .filter((row) => row.length >= 6 && row[2])
@@ -72,7 +72,7 @@ function parseNum(val: string | undefined, fallback: number = 0): number {
 }
 
 export async function getContracts(): Promise<ContractRow[]> {
-  const rows = await fetchSheet("Contracts", "A2:O5000");
+  const rows = await fetchSheet("Contracts", "A2:O");
 
   return rows
     .filter((row) => row.length >= 7)
@@ -98,7 +98,7 @@ export async function getContracts(): Promise<ContractRow[]> {
 // --- Cap Hits ---
 
 export async function getCapHits(): Promise<CapHitRow[]> {
-  const rows = await fetchSheet("CapHits", "A2:AJ5000");
+  const rows = await fetchSheet("CapHits", "A2:AJ");
 
   return rows
     .filter((row) => row.length >= 10)
