@@ -75,7 +75,7 @@ export async function getContracts(): Promise<ContractRow[]> {
   const rows = await fetchSheet("Contracts", "A2:O5000");
 
   return rows
-    .filter((row) => row.length >= 10)
+    .filter((row) => row.length >= 7)
     .map((row) => ({
       playerId: (row[0] || "").trim(),
       season: (row[1] || "").trim(),
@@ -86,7 +86,7 @@ export async function getContracts(): Promise<ContractRow[]> {
       salary: parseNum(row[6]),
       dpOriginalOwner: (row[7] || "").trim(),
       draftPickId: (row[8] || "").trim(),
-      contractStatus: (row[9] || "").trim(),
+      contractStatus: (row[9] || "Active").trim(),
       contractStartYear: (row[10] || "").trim(),
       originalPick: (row[11] || "").trim(),
       franchiseTag: (row[12] || "").trim().toUpperCase() === "Y",
