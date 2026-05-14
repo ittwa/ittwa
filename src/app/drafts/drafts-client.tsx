@@ -547,8 +547,9 @@ export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
                                 </span>
                                 <span className="text-[10px] text-muted-foreground">{pick.team}</span>
                                 {traded && (
-                                  <OwnerLink name={pick.ownerName} className="text-[9px] text-muted-foreground italic hover:underline underline-offset-2">
-                                    via {pick.ownerName}
+                                  <OwnerLink name={pick.ownerName} className="inline-flex items-center gap-1 mt-0.5 hover:opacity-80 transition-opacity">
+                                    <OwnerAvatar name={pick.ownerName} division={pick.ownerDivision} size={13} />
+                                    <span className="text-[9px] text-muted-foreground italic">sel. by {pick.ownerName}</span>
                                   </OwnerLink>
                                 )}
                               </div>
