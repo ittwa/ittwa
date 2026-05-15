@@ -149,10 +149,10 @@ function OwnerAvatar({ name }: { name: string }) {
 function TradeSide({ side, isLeft }: { side: TradeSideData; isLeft: boolean }) {
   return (
     <div className="flex-1 min-w-0">
-      <div className={`flex items-center gap-2.5 mb-2.5 ${isLeft ? "justify-start" : "justify-end"}`}>
-        <div className={`flex items-center gap-2 ${isLeft ? "flex-row" : "flex-row-reverse"}`}>
+      <div className={`flex items-center gap-2.5 mb-2.5 justify-start ${!isLeft ? "sm:justify-end" : ""}`}>
+        <div className={`flex items-center gap-2 flex-row ${!isLeft ? "sm:flex-row-reverse" : ""}`}>
           <OwnerAvatar name={side.owner} />
-          <div style={{ textAlign: isLeft ? "left" : "right" }}>
+          <div className={`text-left ${!isLeft ? "sm:text-right" : ""}`}>
             <OwnerLink name={side.owner} className="text-sm font-bold text-foreground hover:underline underline-offset-2">{side.owner}</OwnerLink>
             <div className="text-[11px] text-muted-foreground">
               received {side.received.length} item{side.received.length !== 1 ? "s" : ""}
@@ -171,10 +171,16 @@ function TradeSide({ side, isLeft }: { side: TradeSideData; isLeft: boolean }) {
 
 function TradeArrows() {
   return (
-    <div className="flex flex-col items-center justify-center gap-1.5 flex-shrink-0 px-1">
-      <span className="text-lg text-[#FD4A48] leading-none">→</span>
-      <span className="text-lg text-[#4ade80] leading-none" style={{ transform: "scaleX(-1)", display: "inline-block" }}>→</span>
-    </div>
+    <>
+      <div className="hidden sm:flex flex-col items-center justify-center gap-1.5 flex-shrink-0 px-1">
+        <span className="text-lg text-[#FD4A48] leading-none">→</span>
+        <span className="text-lg text-[#4ade80] leading-none" style={{ transform: "scaleX(-1)", display: "inline-block" }}>→</span>
+      </div>
+      <div className="flex sm:hidden items-center justify-center gap-1.5 flex-shrink-0 py-1">
+        <span className="text-lg text-[#FD4A48] leading-none">↓</span>
+        <span className="text-lg text-[#4ade80] leading-none">↑</span>
+      </div>
+    </>
   );
 }
 
@@ -195,10 +201,10 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
     <div id={trade.id} className="bg-card border border-border rounded-xl overflow-hidden scroll-mt-20">
       <div
         onClick={() => setExpanded((e) => !e)}
-        className="flex items-center justify-between px-5 py-3.5 cursor-pointer bg-secondary select-none"
+        className="flex items-center justify-between px-4 sm:px-5 py-3.5 cursor-pointer bg-secondary select-none gap-2 flex-wrap"
         style={{ borderBottom: expanded ? "1px solid var(--border)" : "none" }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap">
           <span className="font-mono text-[11px] font-semibold text-muted-foreground tracking-[0.06em]">
             #{trade.id}
           </span>
@@ -231,7 +237,7 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-3.5 flex-shrink-0">
           <div className="text-right">
             <div className="text-xs text-muted-foreground font-mono">{date}</div>
             <div className="text-[10px] text-muted-foreground mt-0.5">{weekLabel}</div>
@@ -244,15 +250,15 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
       </div>
 
       {expanded && (
-        <div className="px-5 py-4">
-          <div className="flex gap-3 items-start">
+        <div className="px-4 sm:px-5 py-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-start">
             <TradeSide side={trade.sides[0]} isLeft={true} />
             <TradeArrows />
             {trade.sides[1] && <TradeSide side={trade.sides[1]} isLeft={false} />}
           </div>
 
           <div className="mt-3.5 pt-3 border-t border-border flex items-center justify-between gap-3">
-            <div className="flex gap-2 flex-1">
+            <div className="flex flex-col sm:flex-row gap-2 flex-1">
               {trade.sides.map((side, si) => {
                 const otherSide = trade.sides[1 - si];
                 if (!otherSide) return null;
