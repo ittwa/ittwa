@@ -173,7 +173,7 @@ export function StandingsClient({
 
   return (
     <OwnerAvatarsProvider avatars={ownerAvatars}>
-    <div className="max-w-[1320px] mx-auto px-6 py-8 pb-16">
+    <div>
       {/* Page header */}
       <div className="pb-6 border-b border-border mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">

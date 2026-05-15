@@ -52,7 +52,7 @@ export function CapHitsClient({ rows, season: currentSeason, allSeasons, ownerDi
   const ownersFilter = selectedOwners.length === owners.length ? null : selectedOwners;
 
   return (
-    <div className="max-w-[1320px] mx-auto px-6 py-8 pb-16">
+    <div>
       <PageHeader season={season} />
       <FilterBar
         season={season} setSeason={setSeason}

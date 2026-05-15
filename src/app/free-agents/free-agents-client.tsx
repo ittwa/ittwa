@@ -235,7 +235,7 @@ export function FreeAgentsClient({ players, season, ownerAvatars, owners }: Prop
   const activeFilters = [posFilter, statusFilter.length > 0, maxAge, ownerFilter, minSalary].filter(Boolean).length;
 
   return (
-    <div className="max-w-[1320px] mx-auto px-6 py-8 pb-16">
+    <div>
       {/* TODO: PageHeader — gold bar + "Free Agents" title + subtitle */}
       <div className="pb-6 border-b border-border mb-6">
         <div className="flex items-center gap-3 mb-1.5">

@@ -185,7 +185,7 @@ export function ScheduleClient({
   const isCurrentSeason = season === currentSeason;
 
   return (
-    <div className="max-w-[1320px] mx-auto px-6 py-8 pb-16">
+    <div>
       {/* Page header */}
       <PageHeader season={season} currentSeason={currentSeason} currentWeek={currentWeek} />
 
