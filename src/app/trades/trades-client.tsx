@@ -70,7 +70,7 @@ export function TradesClient({ trades, season, ownerAvatars }: TradesClientProps
 
   return (
     <OwnerAvatarsProvider avatars={ownerAvatars}>
-    <div>
+    <div className="max-w-[1320px] mx-auto px-6 py-8 pb-16">
       {/* Page header */}
       <div className="pb-6 border-b border-border mb-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">

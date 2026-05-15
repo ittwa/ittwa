@@ -806,7 +806,7 @@ export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playof
   if (matchups.length === 0) {
     return (
       <OwnerAvatarsProvider avatars={ownerAvatars}>
-      <div style={{ fontFamily: T.bodyFont }}>
+      <div className="max-w-[1320px] mx-auto px-6 py-8 pb-16">
         <div className="pb-6 border-b border-border mb-6">
           <div className="flex items-center gap-3 mb-1.5">
             <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
@@ -828,7 +828,7 @@ export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playof
 
   return (
     <OwnerAvatarsProvider avatars={ownerAvatars}>
-    <div style={{ fontFamily: T.bodyFont }}>
+    <div className="max-w-[1320px] mx-auto px-6 py-8 pb-16">
       {/* Page header */}
       <div className="pb-6 border-b border-border mb-6">
         <div className="flex items-center gap-3 mb-1.5">

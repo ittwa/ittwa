@@ -865,7 +865,7 @@ export function RivalryClient({ allMatchups, availableSeasons, ownerAvatars }: R
 
   return (
     <OwnerAvatarsProvider avatars={ownerAvatars}>
-    <div style={{ paddingBottom: 80 }}>
+    <div className="max-w-[1320px] mx-auto px-6 py-8 pb-16">
       {/* Page header */}
       <div className="pb-6 border-b border-border mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
