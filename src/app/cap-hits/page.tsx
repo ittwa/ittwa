@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import { getCapHits, getNFLState, getLeagueUsers } from "@/lib/data";
+import { getCapHits, getLeagueUsers } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
-import { OWNER_DIVISION, ALL_OWNERS } from "@/lib/config";
+import { OWNER_DIVISION, ALL_OWNERS, SEASON_LEAGUE_IDS } from "@/lib/config";
 import { OwnerAvatarsProvider } from "@/components/owner-avatar";
 import { CapHitsClient } from "./cap-hits-client";
 import type { CapHitRow } from "@/types/contracts";
@@ -35,13 +35,13 @@ function buildClientRows(capHits: CapHitRow[]): CapHitClientRow[] {
 }
 
 export default async function CapHitsPage() {
-  const [capHits, nflState, users] = await Promise.all([
+  const season = Object.keys(SEASON_LEAGUE_IDS).sort().reverse()[0];
+
+  const [capHits, users] = await Promise.all([
     getCapHits(),
-    getNFLState(),
-    getLeagueUsers(),
+    getLeagueUsers().catch(() => []),
   ]);
 
-  const season = nflState.season;
   const ownerAvatars: Record<string, string> = {};
   for (const user of users) {
     if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
