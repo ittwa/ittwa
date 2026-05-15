@@ -16,7 +16,7 @@ import { RosterTable } from "./roster-table";
 import type { RosterPlayer } from "./roster-table";
 import { CapHitsTable } from "./cap-hits-table";
 import type { CapHitEntry } from "./cap-hits-table";
-import { SleeperAvatarImage } from "@/components/owner-avatar";
+import { SleeperAvatarImage, OwnerAvatarsProvider } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 
 export const revalidate = 300;
@@ -437,11 +437,13 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
             </CardContent>
           </Card>
         ) : (
-          <div className="flex flex-col gap-3.5">
-            {enrichedTrades.map((trade) => (
-              <TradeCard key={trade.id} trade={trade} defaultExpanded={false} />
-            ))}
-          </div>
+          <OwnerAvatarsProvider avatars={ownerAvatars}>
+            <div className="flex flex-col gap-3.5">
+              {enrichedTrades.map((trade) => (
+                <TradeCard key={trade.id} trade={trade} defaultExpanded={false} />
+              ))}
+            </div>
+          </OwnerAvatarsProvider>
         )}
       </div>
     </div>
