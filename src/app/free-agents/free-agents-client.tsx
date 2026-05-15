@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import type { FreeAgentRow } from "./page";
 
 // ── Design tokens from prototype ─────────────────────────────────────────────
@@ -26,11 +27,8 @@ const STATUS_COLORS: Record<string, { label: string; text: string; bg: string; b
   IR:     { label: "IR",     text: "#a78bfa", bg: "rgba(167,139,250,0.1)", border: "rgba(167,139,250,0.3)" },
 };
 
-const FT_COST: Record<string, number> = { QB: 48, RB: 52, WR: 66, TE: 30, K: 8 };
 const ALL_POS = ["QB", "RB", "WR", "TE", "K"] as const;
 const ALL_STATUS = ["UFA", "RFA", "ROOKIE", "CUT", "IR"] as const;
-
-const MAX_FT_COST = Math.max(...Object.values(FT_COST));
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
@@ -67,15 +65,32 @@ function PlayerAvatar({ playerId, name, pos, size = 32 }: { playerId: string; na
   );
 }
 
-function PosBadge({ pos }: { pos: string }) {
+function PosBadge({ pos, rank }: { pos: string; rank?: number | null }) {
   const pc = posColor(pos);
   return (
     <span
       className="text-[10px] font-bold tracking-[0.04em] whitespace-nowrap"
       style={{ padding: "2px 6px", borderRadius: 4, background: pc.bg, color: pc.text, border: `1px solid ${pc.border}` }}
     >
-      {pos}
+      {pos}{rank != null && <span style={{ opacity: 0.7 }}>{rank}</span>}
     </span>
+  );
+}
+
+function OwnerAvatar({ name, size = 20 }: { name: string; size?: number }) {
+  const avatarId = useOwnerAvatar(name);
+  const initials = name.slice(0, 2).toUpperCase();
+  return (
+    <div
+      className="flex-shrink-0 flex items-center justify-center overflow-hidden rounded-md"
+      style={{ width: size, height: size, background: "var(--secondary)", border: "1px solid var(--border)" }}
+    >
+      <SleeperAvatarImage
+        avatarId={avatarId}
+        name={name}
+        fallback={<span className="font-heading font-extrabold" style={{ fontSize: size * 0.36, color: "var(--muted-foreground)", letterSpacing: "-0.01em" }}>{initials}</span>}
+      />
+    </div>
   );
 }
 
@@ -108,29 +123,60 @@ function SortTh({ label, field, sortKey: sk, sortDir: sd, onSort, align = "left"
   );
 }
 
+function FilterSelect({ value, onChange, placeholder, options }: {
+  value: string; onChange: (v: string) => void; placeholder: string;
+  options: { value: string; label: string }[];
+}) {
+  const active = !!value;
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="bg-secondary border border-border rounded-lg py-[6px] pl-3 pr-8 text-[13px] cursor-pointer"
+        style={{
+          background: active ? "rgba(232,184,75,0.08)" : undefined,
+          borderColor: active ? "rgba(232,184,75,0.35)" : undefined,
+          color: active ? "#E8B84B" : "var(--muted-foreground)",
+          fontWeight: active ? 600 : 400,
+        }}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[10px]" style={{ color: active ? "#E8B84B" : "var(--muted-foreground)" }}>▼</span>
+    </div>
+  );
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type SortKey = "player" | "pos" | "status" | "owner" | "salary" | "last" | "ftCost";
+type SortKey = "player" | "pos" | "status" | "owner" | "points" | "salary" | "contract";
 
 interface Props {
   players: FreeAgentRow[];
   season: string;
   ownerAvatars: Record<string, string>;
+  owners: string[];
 }
 
 // ── Main Client Component ────────────────────────────────────────────────────
 
-export function FreeAgentsClient({ players, season, ownerAvatars }: Props) {
+export function FreeAgentsClient({ players, season, ownerAvatars, owners }: Props) {
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [maxAge, setMaxAge] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("salary");
+  const [ownerFilter, setOwnerFilter] = useState("");
+  const [minSalary, setMinSalary] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("points");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   function onSort(field: SortKey) {
     if (sortKey === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(field); setSortDir("desc"); }
+    else { setSortKey(field); setSortDir(field === "player" || field === "pos" || field === "status" || field === "owner" ? "asc" : "desc"); }
   }
 
   function toggleStatus(s: string) {
@@ -144,6 +190,8 @@ export function FreeAgentsClient({ players, season, ownerAvatars }: Props) {
     setPosFilter("");
     setStatusFilter([]);
     setMaxAge("");
+    setOwnerFilter("");
+    setMinSalary("");
   }
 
   const statusCounts = useMemo(() => {
@@ -160,27 +208,31 @@ export function FreeAgentsClient({ players, season, ownerAvatars }: Props) {
     return m;
   }, [players]);
 
+  const maxSalaryValue = useMemo(() => Math.max(1, ...players.map((p) => p.lastSalary)), [players]);
+
   const filtered = useMemo(() => {
     let r = [...players];
     if (search) r = r.filter((p) => p.player.toLowerCase().includes(search.toLowerCase()));
     if (posFilter) r = r.filter((p) => p.pos === posFilter);
     if (statusFilter.length > 0) r = r.filter((p) => statusFilter.includes(p.status));
     if (maxAge) r = r.filter((p) => p.age <= Number(maxAge));
+    if (ownerFilter) r = r.filter((p) => p.lastOwner === ownerFilter);
+    if (minSalary) r = r.filter((p) => p.lastSalary >= Number(minSalary));
     r.sort((a, b) => {
       let cmp = 0;
       if (sortKey === "player") cmp = a.player.localeCompare(b.player);
-      else if (sortKey === "pos") cmp = a.pos.localeCompare(b.pos);
+      else if (sortKey === "pos") cmp = a.pos.localeCompare(b.pos) || (a.posRank ?? 9999) - (b.posRank ?? 9999);
       else if (sortKey === "status") cmp = a.status.localeCompare(b.status);
       else if (sortKey === "owner") cmp = (a.lastOwner || "zz").localeCompare(b.lastOwner || "zz");
+      else if (sortKey === "points") cmp = a.lastPoints - b.lastPoints;
       else if (sortKey === "salary") cmp = a.lastSalary - b.lastSalary;
-      else if (sortKey === "last") cmp = (a.lastYear || "").localeCompare(b.lastYear || "");
-      else if (sortKey === "ftCost") cmp = (FT_COST[a.pos] || 0) - (FT_COST[b.pos] || 0);
+      else if (sortKey === "contract") cmp = (a.lastYear || "").localeCompare(b.lastYear || "");
       return sortDir === "asc" ? cmp : -cmp;
     });
     return r;
-  }, [players, search, posFilter, statusFilter, maxAge, sortKey, sortDir]);
+  }, [players, search, posFilter, statusFilter, maxAge, ownerFilter, minSalary, sortKey, sortDir]);
 
-  const activeFilters = [posFilter, statusFilter.length > 0, maxAge].filter(Boolean).length;
+  const activeFilters = [posFilter, statusFilter.length > 0, maxAge, ownerFilter, minSalary].filter(Boolean).length;
 
   return (
     <div className="max-w-[1320px] mx-auto px-6 py-8 pb-16">
@@ -206,7 +258,9 @@ export function FreeAgentsClient({ players, season, ownerAvatars }: Props) {
       <div className="flex gap-2.5 mb-5 flex-wrap">
         {ALL_POS.map((pos) => {
           const pc = posColor(pos);
-          const cost = FT_COST[pos];
+          const count = posCounts[pos];
+          const total = players.length;
+          const pct = total > 0 ? Math.round((count / total) * 100) : 0;
           return (
             <div
               key={pos}
@@ -215,20 +269,19 @@ export function FreeAgentsClient({ players, season, ownerAvatars }: Props) {
               <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: pc.text, opacity: 0.7 }} />
               <div className="flex items-center justify-between">
                 <span className="font-heading text-lg font-extrabold tracking-[0.06em]" style={{ color: pc.text }}>{pos}</span>
-                <span className="font-mono text-[13px] font-semibold">{posCounts[pos]}</span>
+                <span className="font-mono text-[13px] font-semibold">{count}</span>
               </div>
               <div className="flex items-baseline justify-between mt-1">
-                <span className="text-[10px] text-muted-foreground tracking-[0.08em] uppercase font-semibold">FT Tag</span>
-                <span className="font-mono text-sm font-bold text-[#E8B84B]">${cost}.0</span>
+                <span className="text-[10px] text-muted-foreground tracking-[0.08em] uppercase font-semibold">Available</span>
+                <span className="font-mono text-sm font-bold text-muted-foreground">{pct}%</span>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Status pills */}
-      <div className="flex gap-2 mb-3 flex-wrap items-center">
-        <span className="text-[10px] text-muted-foreground tracking-[0.08em] uppercase font-bold mr-1">Status</span>
+      {/* Status pills + Filters — single row */}
+      <div className="flex flex-wrap gap-2 mb-5 items-center">
         {ALL_STATUS.map((s) => {
           const sc = STATUS_COLORS[s];
           const active = statusFilter.includes(s);
@@ -240,15 +293,15 @@ export function FreeAgentsClient({ players, season, ownerAvatars }: Props) {
               style={{
                 background: active ? sc.bg : "var(--secondary)",
                 border: `1px solid ${active ? sc.border : "var(--border)"}`,
-                borderRadius: 8, padding: "7px 12px",
-                fontSize: 12, fontWeight: active ? 700 : 500,
+                borderRadius: 8, padding: "6px 10px",
+                fontSize: 11, fontWeight: active ? 700 : 500,
                 color: active ? sc.text : "var(--muted-foreground)",
                 letterSpacing: "0.04em",
               }}
             >
               <span
                 className="rounded-full"
-                style={{ width: 6, height: 6, background: sc.text, opacity: active ? 1 : 0.5 }}
+                style={{ width: 5, height: 5, background: sc.text, opacity: active ? 1 : 0.5 }}
               />
               {sc.label}
               <span className="font-mono font-semibold" style={{ color: active ? sc.text : "var(--muted-foreground)", opacity: 0.7 }}>
@@ -257,10 +310,7 @@ export function FreeAgentsClient({ players, season, ownerAvatars }: Props) {
             </button>
           );
         })}
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-5 items-center">
+        <div className="w-px h-5 bg-border mx-1" />
         <div className="relative">
           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-[13px]">⌕</span>
           <input
@@ -268,51 +318,26 @@ export function FreeAgentsClient({ players, season, ownerAvatars }: Props) {
             placeholder="Search player…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-secondary border border-border rounded-lg pl-7 pr-3 py-[7px] text-[13px] text-foreground placeholder:text-muted-foreground/50 w-[180px]"
+            className="bg-secondary border border-border rounded-lg pl-7 pr-3 py-[6px] text-[13px] text-foreground placeholder:text-muted-foreground/50 w-[160px]"
           />
         </div>
-        <div className="relative">
-          <select
-            value={posFilter}
-            onChange={(e) => setPosFilter(e.target.value)}
-            className="bg-secondary border border-border rounded-lg py-[7px] pl-3 pr-8 text-[13px] cursor-pointer"
-            style={{
-              background: posFilter ? "rgba(232,184,75,0.08)" : undefined,
-              borderColor: posFilter ? "rgba(232,184,75,0.35)" : undefined,
-              color: posFilter ? "#E8B84B" : "var(--muted-foreground)",
-              fontWeight: posFilter ? 600 : 400,
-            }}
-          >
-            <option value="">All Positions</option>
-            {ALL_POS.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[10px]" style={{ color: posFilter ? "#E8B84B" : "var(--muted-foreground)" }}>▼</span>
-        </div>
-        <div className="relative">
-          <select
-            value={maxAge}
-            onChange={(e) => setMaxAge(e.target.value)}
-            className="bg-secondary border border-border rounded-lg py-[7px] pl-3 pr-8 text-[13px] cursor-pointer"
-            style={{
-              background: maxAge ? "rgba(232,184,75,0.08)" : undefined,
-              borderColor: maxAge ? "rgba(232,184,75,0.35)" : undefined,
-              color: maxAge ? "#E8B84B" : "var(--muted-foreground)",
-              fontWeight: maxAge ? 600 : 400,
-            }}
-          >
-            <option value="">Any Age</option>
-            <option value="25">Under 26</option>
-            <option value="28">Under 29</option>
-            <option value="31">Under 32</option>
-          </select>
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[10px]" style={{ color: maxAge ? "#E8B84B" : "var(--muted-foreground)" }}>▼</span>
-        </div>
+        <FilterSelect value={posFilter} onChange={setPosFilter} placeholder="All Positions" options={ALL_POS.map((p) => ({ value: p, label: p }))} />
+        <FilterSelect value={ownerFilter} onChange={setOwnerFilter} placeholder="All Owners" options={[...owners].sort().map((o) => ({ value: o, label: o }))} />
+        <FilterSelect value={minSalary} onChange={setMinSalary} placeholder="Any Salary" options={[
+          { value: "5", label: "≥ $5M" },
+          { value: "10", label: "≥ $10M" },
+          { value: "20", label: "≥ $20M" },
+          { value: "30", label: "≥ $30M" },
+        ]} />
+        <FilterSelect value={maxAge} onChange={setMaxAge} placeholder="Any Age" options={[
+          { value: "25", label: "Under 26" },
+          { value: "28", label: "Under 29" },
+          { value: "31", label: "Under 32" },
+        ]} />
         {activeFilters > 0 && (
           <button
             onClick={clearAll}
-            className="text-xs text-[#FD4A48] font-semibold cursor-pointer bg-transparent border-none px-2 py-[7px]"
+            className="text-xs text-[#FD4A48] font-semibold cursor-pointer bg-transparent border-none px-2 py-[6px]"
           >
             Clear all ×
           </button>
@@ -329,9 +354,9 @@ export function FreeAgentsClient({ players, season, ownerAvatars }: Props) {
                 <SortTh label="Pos" field="pos" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <SortTh label="Status" field="status" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <SortTh label="Last Owner" field="owner" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+                <SortTh label="Last Pts" field="points" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
                 <SortTh label="Last Salary" field="salary" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
-                <SortTh label="Last Yr" field="last" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="center" />
-                <SortTh label="Est. FT Tag" field="ftCost" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" className="pr-4" />
+                <SortTh label="Last Contract" field="contract" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="center" className="pr-4" />
               </tr>
             </thead>
             <tbody>
@@ -343,9 +368,7 @@ export function FreeAgentsClient({ players, season, ownerAvatars }: Props) {
                 </tr>
               ) : (
                 filtered.map((p, i) => {
-                  const ftCost = FT_COST[p.pos];
-                  const ftPct = ftCost != null ? ftCost / MAX_FT_COST : 0;
-                  const ftHigh = ftPct > 0.6;
+                  const salaryPct = p.lastSalary / maxSalaryValue;
                   return (
                     <tr
                       key={p.playerId}
@@ -364,32 +387,43 @@ export function FreeAgentsClient({ players, season, ownerAvatars }: Props) {
                         </div>
                       </td>
                       <td className="px-3 py-2">
-                        <PosBadge pos={p.pos} />
+                        <PosBadge pos={p.pos} rank={p.posRank} />
                       </td>
                       <td className="px-3 py-2">
                         <StatusBadge status={p.status} />
                       </td>
-                      <td className="px-3 py-2 text-[13px] whitespace-nowrap" style={{ color: p.lastOwner ? "var(--muted-foreground)" : "var(--muted-foreground)", fontStyle: p.lastOwner ? "normal" : "italic", opacity: p.lastOwner ? 1 : 0.6 }}>
-                        {p.lastOwner || "Never signed"}
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {p.lastOwner ? (
+                          <div className="flex items-center gap-1.5">
+                            <OwnerAvatar name={p.lastOwner} size={20} />
+                            <span className="text-[13px] text-muted-foreground">{p.lastOwner}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[13px] text-muted-foreground italic opacity-60">Never signed</span>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-right">
-                        {p.lastSalary > 0 ? (
-                          <span className="font-mono text-[13px] text-muted-foreground font-medium">${p.lastSalary.toFixed(1)}</span>
+                        {p.lastPoints > 0 ? (
+                          <span className="font-mono text-[13px] font-medium">{p.lastPoints.toFixed(1)}</span>
                         ) : (
                           <span className="text-muted-foreground text-xs">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-center text-xs text-muted-foreground font-mono">{p.lastYear}</td>
-                      <td className="px-3 py-2 pr-4 text-right">
-                        {ftCost != null ? (
+                      <td className="px-3 py-2 text-right">
+                        {p.lastSalary > 0 ? (
                           <div className="flex flex-col items-end gap-[3px]">
-                            <span className="font-mono text-[13px] font-semibold" style={{ color: ftHigh ? "#FD4A48" : "var(--foreground)" }}>
-                              ${ftCost.toFixed(1)}
-                            </span>
+                            <span className="font-mono text-[13px] text-muted-foreground font-medium">${p.lastSalary.toFixed(1)}</span>
                             <div className="w-14 h-[2.5px] bg-secondary rounded-sm overflow-hidden">
-                              <div className="h-full rounded-sm" style={{ width: `${ftPct * 100}%`, background: ftHigh ? "#FD4A48" : "#E8B84B" }} />
+                              <div className="h-full rounded-sm" style={{ width: `${salaryPct * 100}%`, background: salaryPct > 0.6 ? "#FD4A48" : "#E8B84B" }} />
                             </div>
                           </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 pr-4 text-center">
+                        {p.lastContractYears > 0 ? (
+                          <span className="font-mono text-xs text-muted-foreground">{p.lastContractYears}yr · {p.lastYear}</span>
                         ) : (
                           <span className="text-muted-foreground text-xs">—</span>
                         )}
@@ -416,7 +450,7 @@ export function FreeAgentsClient({ players, season, ownerAvatars }: Props) {
             })}
           </div>
           <span className="text-[10px] text-muted-foreground tracking-[0.02em]">
-            FT tag = avg of top-5 salaries at position · all figures in $M
+            Positional rankings from previous season · all salary figures in $M
           </span>
         </div>
       </div>

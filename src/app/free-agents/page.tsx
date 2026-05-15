@@ -7,10 +7,12 @@ import {
   getNFLPlayers,
   getLatestActiveContracts,
   getLeagueUsers,
+  getMatchups,
+  getSeasonPosRanks,
 } from "@/lib/data";
 import { resolveOwnerName } from "@/lib/contracts";
 import { getDisplayName } from "@/lib/sleeper";
-import { SEASON_LEAGUE_IDS } from "@/lib/config";
+import { SEASON_LEAGUE_IDS, ALL_OWNERS } from "@/lib/config";
 import { OwnerAvatarsProvider } from "@/components/owner-avatar";
 import { FreeAgentsClient } from "./free-agents-client";
 import type { ContractWithValue } from "@/types/contracts";
@@ -24,6 +26,9 @@ export interface FreeAgentRow {
   lastTeam: string;
   lastOwner: string | null;
   lastSalary: number;
+  lastContractYears: number;
+  lastPoints: number;
+  posRank: number | null;
   status: "UFA" | "RFA" | "ROOKIE" | "CUT" | "IR";
   exp: number;
   age: number;
@@ -55,6 +60,36 @@ export default async function FreeAgentsPage() {
     ]);
 
   const activeContracts = getLatestActiveContracts(rawContracts);
+
+  const availableSeasons = Object.keys(SEASON_LEAGUE_IDS).sort().reverse();
+  const rankSeasonId = availableSeasons.length > 1
+    ? SEASON_LEAGUE_IDS[availableSeasons[1]]
+    : leagueId;
+
+  const [posRanks, playerPoints] = await Promise.all([
+    getSeasonPosRanks(rankSeasonId, nflPlayers).catch(() => new Map<string, number>()),
+    (async () => {
+      const pts = new Map<string, number>();
+      const fetches = [];
+      for (let w = 1; w <= 18; w++) {
+        fetches.push(
+          getMatchups(w, rankSeasonId)
+            .then((matchups) => {
+              for (const m of matchups) {
+                if (m.players_points) {
+                  for (const [pid, p] of Object.entries(m.players_points)) {
+                    pts.set(pid, (pts.get(pid) || 0) + p);
+                  }
+                }
+              }
+            })
+            .catch(() => {}),
+        );
+      }
+      await Promise.all(fetches);
+      return pts;
+    })(),
+  ]);
 
   const contractedPlayerIds = new Set<string>();
   const contractByPlayerId = new Map<string, ContractWithValue>();
@@ -99,6 +134,9 @@ export default async function FreeAgentsPage() {
       lastTeam: p.team || "—",
       lastOwner: lastContract ? resolveOwnerName(lastContract.owner) : null,
       lastSalary: lastContract?.salary ?? 0,
+      lastContractYears: lastContract?.years ?? 0,
+      lastPoints: Math.round((playerPoints.get(pid) || 0) * 10) / 10,
+      posRank: posRanks.get(pid) ?? null,
       status,
       exp: p.years_exp ?? 0,
       age: p.age ?? 0,
@@ -119,6 +157,7 @@ export default async function FreeAgentsPage() {
         players={freeAgents}
         season={season}
         ownerAvatars={ownerAvatars}
+        owners={ALL_OWNERS}
       />
     </OwnerAvatarsProvider>
   );
