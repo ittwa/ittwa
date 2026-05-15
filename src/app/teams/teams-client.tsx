@@ -58,7 +58,7 @@ const DIV_COLORS: Record<string, { color: string; bg: string; border: string }> 
 
 const FALLBACK_DC = { color: "#94a3b8", bg: "rgba(148,163,184,0.1)", border: "rgba(148,163,184,0.2)" };
 
-const POS_ORDER = ["QB", "RB", "WR", "TE", "K", "DEF"] as const;
+const POS_ORDER = ["QB", "RB", "WR", "TE", "DEF"] as const;
 const POS_COLORS: Record<string, string> = {
   QB: "#f87171", RB: "#4ade80", WR: "#60a5fa", TE: "#fb923c", K: "#a78bfa", DEF: "#94a3b8",
 };

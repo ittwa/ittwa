@@ -515,7 +515,7 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
         {/* Footer legend */}
         <div className="px-4 py-3 border-t border-border bg-secondary flex items-center justify-between gap-3 flex-wrap">
           <div className="flex gap-4 items-center">
-            {(["QB", "RB", "WR", "TE", "K", "DEF"] as const).map((pos) => {
+            {(["QB", "RB", "WR", "TE", "DEF"] as const).map((pos) => {
               const pc = getPositionColors(pos);
               return (
                 <div key={pos} className="flex items-center gap-1.5">

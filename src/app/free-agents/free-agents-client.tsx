@@ -27,7 +27,7 @@ const STATUS_COLORS: Record<string, { label: string; text: string; bg: string; b
   IR:     { label: "IR",     text: "#a78bfa", bg: "rgba(167,139,250,0.1)", border: "rgba(167,139,250,0.3)" },
 };
 
-const ALL_POS = ["QB", "RB", "WR", "TE", "K"] as const;
+const ALL_POS = ["QB", "RB", "WR", "TE"] as const;
 const ALL_STATUS = ["UFA", "RFA", "ROOKIE", "CUT", "IR"] as const;
 
 // ── Sub-components ───────────────────────────────────────────────────────────

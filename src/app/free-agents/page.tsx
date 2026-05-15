@@ -112,7 +112,7 @@ export default async function FreeAgentsPage() {
   }
 
   const freeAgents: FreeAgentRow[] = [];
-  const validPositions = new Set(["QB", "RB", "WR", "TE", "K"]);
+  const validPositions = new Set(["QB", "RB", "WR", "TE"]);
 
   for (const [pid, p] of Object.entries(nflPlayers)) {
     if (!validPositions.has(p.position)) continue;
