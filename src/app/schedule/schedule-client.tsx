@@ -526,110 +526,117 @@ function MatrixView({
       </div>
 
       <div style={{ overflowX: "auto" }}>
-        <div style={{ minWidth: 900 }}>
-          {/* Column headers */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: `140px repeat(${regCount}, minmax(48px, 1fr))${hasPlayoff ? ` repeat(${playoffWeeks.length}, 56px)` : ""}`,
-              borderBottom: "1px solid var(--border)",
-              background: "var(--secondary)",
-            }}
-          >
-            <div
-              className="px-3.5 py-2.5 text-[10px] text-muted-foreground font-bold tracking-[0.1em] uppercase"
-              style={{ position: "sticky", left: 0, zIndex: 2, background: "var(--secondary)", borderRight: "1px solid var(--border)" }}
-            >
-              Team
-            </div>
-            {regularWeeks.map((w) => {
-              const isCurrent = isCurrentSeason && w === currentWeek;
-              return (
-                <div
+        <table className="w-full border-collapse" style={{ minWidth: 900 }}>
+          <thead>
+            <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--secondary)" }}>
+              <th
+                className="px-2.5 py-2.5 text-left text-[10px] text-muted-foreground font-bold tracking-[0.1em] uppercase"
+                style={{
+                  position: "sticky",
+                  left: 0,
+                  zIndex: 2,
+                  background: "var(--secondary)",
+                  borderRight: "1px solid var(--border)",
+                  width: 140,
+                  minWidth: 140,
+                }}
+              >
+                Team
+              </th>
+              {regularWeeks.map((w) => {
+                const isCurrent = isCurrentSeason && w === currentWeek;
+                return (
+                  <th
+                    key={w}
+                    className="py-2.5 text-center font-mono text-[11px] font-bold"
+                    style={{
+                      color: isCurrent ? "#FD4A48" : "var(--muted-foreground)",
+                      background: isCurrent ? "rgba(253,74,72,0.12)" : "transparent",
+                      borderLeft: "1px solid var(--border)",
+                      fontWeight: 700,
+                      minWidth: 48,
+                    }}
+                  >
+                    {w}
+                  </th>
+                );
+              })}
+              {playoffWeeks.map((w) => (
+                <th
                   key={w}
-                  className="py-2.5 text-center font-mono text-[11px] font-bold"
+                  className="py-2.5 text-center font-heading text-[10px] font-extrabold tracking-[0.08em]"
                   style={{
-                    color: isCurrent ? "#FD4A48" : "var(--muted-foreground)",
-                    background: isCurrent ? "rgba(253,74,72,0.12)" : "transparent",
+                    color: "#E8B84B",
+                    background: "rgba(232,184,75,0.12)",
                     borderLeft: "1px solid var(--border)",
+                    minWidth: 56,
                   }}
                 >
-                  {w}
-                </div>
+                  {PLAYOFF_LABELS[w]?.label || `W${w}`}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedTeams.map(([name, info]) => {
+              const dc = getDivColor(info.division);
+              const dim = focusTeam !== null && focusTeam !== name;
+              return (
+                <tr
+                  key={name}
+                  style={{
+                    borderBottom: "1px solid var(--border)",
+                    opacity: dim ? 0.35 : 1,
+                    transition: "opacity 0.2s",
+                  }}
+                >
+                  <td
+                    className="px-2.5 py-2.5"
+                    style={{
+                      position: "sticky",
+                      left: 0,
+                      zIndex: 1,
+                      background: "var(--card)",
+                      borderRight: "1px solid var(--border)",
+                      width: 140,
+                      minWidth: 140,
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <OwnerAvatar name={name} avatarId={ownerAvatars[name]} size={26} division={info.division} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div className="font-heading text-[12px] font-extrabold text-foreground leading-tight truncate">
+                          <OwnerLink name={name}>{name}</OwnerLink>
+                        </div>
+                        <div className="text-[9px] font-semibold mt-0.5 flex items-center gap-1" style={{ color: dc.text }}>
+                          <DivDot division={info.division} size={4} /> {info.division}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  {regularWeeks.map((w) => (
+                    <MatrixCell
+                      key={w}
+                      cell={lookup[name]?.[w]}
+                      highlight={isCurrentSeason && w === currentWeek}
+                      ownerAvatars={ownerAvatars}
+                      teams={data.teams}
+                    />
+                  ))}
+                  {playoffWeeks.map((w) => (
+                    <MatrixCell
+                      key={w}
+                      cell={lookup[name]?.[w]}
+                      playoff
+                      ownerAvatars={ownerAvatars}
+                      teams={data.teams}
+                    />
+                  ))}
+                </tr>
               );
             })}
-            {playoffWeeks.map((w) => (
-              <div
-                key={w}
-                className="py-2.5 text-center font-heading text-[10px] font-extrabold tracking-[0.08em]"
-                style={{
-                  color: "#E8B84B",
-                  background: "rgba(232,184,75,0.12)",
-                  borderLeft: "1px solid var(--border)",
-                }}
-              >
-                {PLAYOFF_LABELS[w]?.label || `W${w}`}
-              </div>
-            ))}
-          </div>
-
-          {/* Team rows */}
-          {sortedTeams.map(([name, info]) => {
-            const dc = getDivColor(info.division);
-            const dim = focusTeam !== null && focusTeam !== name;
-            return (
-              <div
-                key={name}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: `140px repeat(${regCount}, minmax(48px, 1fr))${hasPlayoff ? ` repeat(${playoffWeeks.length}, 56px)` : ""}`,
-                  borderBottom: "1px solid var(--border)",
-                  opacity: dim ? 0.35 : 1,
-                  transition: "opacity 0.2s",
-                }}
-              >
-                <div
-                  className="px-2.5 py-2.5 flex items-center gap-2"
-                  style={{
-                    borderRight: "1px solid var(--border)",
-                    position: "sticky",
-                    left: 0,
-                    zIndex: 1,
-                    background: "var(--card)",
-                  }}
-                >
-                  <OwnerAvatar name={name} avatarId={ownerAvatars[name]} size={26} division={info.division} />
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="font-heading text-[12px] font-extrabold text-foreground leading-tight truncate">
-                      <OwnerLink name={name}>{name}</OwnerLink>
-                    </div>
-                    <div className="text-[9px] font-semibold mt-0.5 flex items-center gap-1" style={{ color: dc.text }}>
-                      <DivDot division={info.division} size={4} /> {info.division}
-                    </div>
-                  </div>
-                </div>
-                {regularWeeks.map((w) => (
-                  <MatrixCell
-                    key={w}
-                    cell={lookup[name]?.[w]}
-                    highlight={isCurrentSeason && w === currentWeek}
-                    ownerAvatars={ownerAvatars}
-                    teams={data.teams}
-                  />
-                ))}
-                {playoffWeeks.map((w) => (
-                  <MatrixCell
-                    key={w}
-                    cell={lookup[name]?.[w]}
-                    playoff
-                    ownerAvatars={ownerAvatars}
-                    teams={data.teams}
-                  />
-                ))}
-              </div>
-            );
-          })}
-        </div>
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -650,22 +657,21 @@ function MatrixCell({
 }) {
   if (!cell) {
     return (
-      <div
+      <td
         style={{
           borderLeft: "1px solid var(--border)",
           background: playoff ? "rgba(232,184,75,0.12)" : highlight ? "rgba(253,74,72,0.12)" : "transparent",
           opacity: 0.3,
+          textAlign: "center",
+          padding: "6px 4px",
         }}
       >
-        <div className="h-full flex items-center justify-center p-1.5">
-          <span className="text-xs text-muted-foreground">—</span>
-        </div>
-      </div>
+        <span className="text-xs text-muted-foreground">—</span>
+      </td>
     );
   }
 
   const oppInfo = teams[cell.opp];
-  const dc = getDivColor(oppInfo?.division || "");
   const isWin = cell.completed && cell.my > cell.op;
   const isLoss = cell.completed && cell.my < cell.op;
 
@@ -677,29 +683,33 @@ function MatrixCell({
   }
 
   return (
-    <div
-      className="flex flex-col items-center gap-1 cursor-pointer transition-[background] duration-150"
+    <td
+      className="cursor-pointer transition-[background] duration-150"
       style={{
         borderLeft: "1px solid var(--border)",
         background: bg,
         padding: "8px 4px",
+        textAlign: "center",
+        verticalAlign: "middle",
       }}
       title={`${cell.opp} · ${cell.completed ? `${cell.my}–${cell.op}` : "upcoming"}`}
       onMouseEnter={(e) => { e.currentTarget.style.background = "var(--accent)"; }}
       onMouseLeave={(e) => { e.currentTarget.style.background = bg; }}
     >
-      <OwnerAvatar name={cell.opp} avatarId={ownerAvatars[cell.opp]} size={24} division={oppInfo?.division} />
-      {cell.completed ? (
-        <div
-          className="font-mono text-[9px] font-bold tracking-tight"
-          style={{ color: isWin ? "#4ade80" : isLoss ? "#f87171" : "var(--muted-foreground)" }}
-        >
-          {resultMark} {Math.round(cell.my)}-{Math.round(cell.op)}
-        </div>
-      ) : (
-        <div className="font-mono text-[9px] font-semibold text-muted-foreground">—</div>
-      )}
-    </div>
+      <div className="flex flex-col items-center gap-1">
+        <OwnerAvatar name={cell.opp} avatarId={ownerAvatars[cell.opp]} size={24} division={oppInfo?.division} />
+        {cell.completed ? (
+          <div
+            className="font-mono text-[9px] font-bold tracking-tight"
+            style={{ color: isWin ? "#4ade80" : isLoss ? "#f87171" : "var(--muted-foreground)" }}
+          >
+            {resultMark} {Math.round(cell.my)}-{Math.round(cell.op)}
+          </div>
+        ) : (
+          <div className="font-mono text-[9px] font-semibold text-muted-foreground">—</div>
+        )}
+      </div>
+    </td>
   );
 }
 
