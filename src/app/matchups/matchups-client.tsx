@@ -73,6 +73,22 @@ const DIV_COLORS: Record<string, { color: string; bg: string; border: string }> 
 
 const DEFAULT_DIV = { color: "#94a3b8", bg: "rgba(148,163,184,0.1)", border: "rgba(148,163,184,0.2)" };
 
+const SAME_DIV_ALT: Record<string, string> = {
+  Concussion:          "#60a5fa",
+  "Hey Arnold":        "#facc15",
+  Replacements:        "#86efac",
+  "Dark Knight Rises": "#c4b5fd",
+};
+
+function barColors(aDivision: string, bDivision: string) {
+  const dcA = divColor(aDivision);
+  const dcB = divColor(bDivision);
+  if (aDivision === bDivision && aDivision in SAME_DIV_ALT) {
+    return { aColor: dcA.color, bColor: SAME_DIV_ALT[aDivision] };
+  }
+  return { aColor: dcA.color, bColor: dcB.color };
+}
+
 const WEEKS = Array.from({ length: 18 }, (_, i) => i + 1);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -271,23 +287,22 @@ function WinProbBar({ winProb, aDivision, bDivision, aName, bName }: {
 }) {
   const aPct = winProb * 100;
   const bPct = 100 - aPct;
-  const dcA = divColor(aDivision);
-  const dcB = divColor(bDivision);
+  const { aColor, bColor } = barColors(aDivision, bDivision);
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-          <span style={{ fontFamily: T.monoFont, fontSize: 13, fontWeight: 700, color: dcA.color }}>{aPct.toFixed(0)}%</span>
+          <span style={{ fontFamily: T.monoFont, fontSize: 13, fontWeight: 700, color: aColor }}>{aPct.toFixed(0)}%</span>
           <span style={{ fontSize: 9, color: T.muted, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}><OwnerLink name={aName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{aName}</OwnerLink></span>
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
           <span style={{ fontSize: 9, color: T.muted, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}><OwnerLink name={bName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{bName}</OwnerLink></span>
-          <span style={{ fontFamily: T.monoFont, fontSize: 13, fontWeight: 700, color: dcB.color }}>{bPct.toFixed(0)}%</span>
+          <span style={{ fontFamily: T.monoFont, fontSize: 13, fontWeight: 700, color: bColor }}>{bPct.toFixed(0)}%</span>
         </div>
       </div>
       <div style={{ height: 6, borderRadius: 3, overflow: "hidden", display: "flex", background: T.cardBorder }}>
-        <div style={{ width: `${aPct}%`, background: dcA.color, opacity: 0.9 }} />
-        <div style={{ width: `${bPct}%`, background: dcB.color, opacity: 0.9 }} />
+        <div style={{ width: `${aPct}%`, background: aColor, opacity: 0.9 }} />
+        <div style={{ width: `${bPct}%`, background: bColor, opacity: 0.9 }} />
       </div>
       <div style={{ marginTop: 6, fontSize: 10, color: T.muted, fontFamily: T.bodyFont, textAlign: "center", letterSpacing: "0.04em" }}>
         Projected win probability
@@ -515,6 +530,7 @@ function DetailBlock({ label, children }: { label: string; children: React.React
 function ExpandedDetails({ m }: { m: EnrichedMatchup }) {
   const dcA = divColor(m.aMeta?.division || "");
   const dcB = divColor(m.bMeta?.division || "");
+  const { aColor: barA, bColor: barB } = barColors(m.aMeta?.division || "", m.bMeta?.division || "");
   const spreadOwner = m.spread >= 0 ? m.aName : m.bName;
 
   return (
@@ -534,16 +550,16 @@ function ExpandedDetails({ m }: { m: EnrichedMatchup }) {
         </DetailBlock>
         <DetailBlock label="Win probability">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <span style={{ fontSize: 11, color: dcA.color, fontWeight: 600 }}><OwnerLink name={m.aName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.aName}</OwnerLink></span>
+            <span style={{ fontSize: 11, color: barA, fontWeight: 600 }}><OwnerLink name={m.aName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.aName}</OwnerLink></span>
             <span style={{ fontFamily: T.monoFont, fontSize: 14, fontWeight: 700, color: T.text }}>{(m.winProb * 100).toFixed(0)}%</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 4 }}>
-            <span style={{ fontSize: 11, color: dcB.color, fontWeight: 600 }}><OwnerLink name={m.bName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.bName}</OwnerLink></span>
+            <span style={{ fontSize: 11, color: barB, fontWeight: 600 }}><OwnerLink name={m.bName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.bName}</OwnerLink></span>
             <span style={{ fontFamily: T.monoFont, fontSize: 14, fontWeight: 700, color: T.text }}>{((1 - m.winProb) * 100).toFixed(0)}%</span>
           </div>
           <div style={{ height: 4, borderRadius: 2, overflow: "hidden", display: "flex", background: T.cardBorder, marginTop: 6 }}>
-            <div style={{ width: `${m.winProb * 100}%`, background: dcA.color, opacity: 0.85 }} />
-            <div style={{ width: `${(1 - m.winProb) * 100}%`, background: dcB.color, opacity: 0.85 }} />
+            <div style={{ width: `${m.winProb * 100}%`, background: barA, opacity: 0.85 }} />
+            <div style={{ width: `${(1 - m.winProb) * 100}%`, background: barB, opacity: 0.85 }} />
           </div>
         </DetailBlock>
         <DetailBlock label="Season stats">
@@ -586,6 +602,7 @@ function MatchupCard({ m, idx, expanded, onToggle }: {
 }) {
   const dcA = divColor(m.aMeta?.division || "");
   const dcB = divColor(m.bMeta?.division || "");
+  const { aColor: barA, bColor: barB } = barColors(m.aMeta?.division || "", m.bMeta?.division || "");
   const aWinning = m.pair.team1.points > m.pair.team2.points;
   const margin = Math.abs(m.pair.team1.points - m.pair.team2.points);
   const showLive = m.status === "live" || m.status === "final";
@@ -629,12 +646,12 @@ function MatchupCard({ m, idx, expanded, onToggle }: {
           <>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 9, color: T.muted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: T.bodyFont }}>Win prob</span>
-              <span style={{ fontFamily: T.monoFont, fontSize: 11, fontWeight: 700, color: dcA.color }}>{(m.winProb * 100).toFixed(0)}%</span>
+              <span style={{ fontFamily: T.monoFont, fontSize: 11, fontWeight: 700, color: barA }}>{(m.winProb * 100).toFixed(0)}%</span>
               <div style={{ width: 70, height: 4, borderRadius: 2, overflow: "hidden", display: "flex", background: T.cardBorder }}>
-                <div style={{ width: `${m.winProb * 100}%`, background: dcA.color, opacity: 0.85 }} />
-                <div style={{ width: `${(1 - m.winProb) * 100}%`, background: dcB.color, opacity: 0.85 }} />
+                <div style={{ width: `${m.winProb * 100}%`, background: barA, opacity: 0.85 }} />
+                <div style={{ width: `${(1 - m.winProb) * 100}%`, background: barB, opacity: 0.85 }} />
               </div>
-              <span style={{ fontFamily: T.monoFont, fontSize: 11, fontWeight: 700, color: dcB.color }}>{((1 - m.winProb) * 100).toFixed(0)}%</span>
+              <span style={{ fontFamily: T.monoFont, fontSize: 11, fontWeight: 700, color: barB }}>{((1 - m.winProb) * 100).toFixed(0)}%</span>
             </div>
             <button onClick={onToggle} style={detailsBtnStyle}>{expanded ? "Hide" : "Details"}</button>
           </>
