@@ -313,7 +313,7 @@ export function RecordsClient({
                     className="grid items-center gap-0 px-4 py-2.5 border-b border-border/50 last:border-0"
                     style={{
                       gridTemplateColumns: "56px 1fr 1fr 1fr",
-                      background: i % 2 === 1 ? "rgba(22,22,22,0.3)" : undefined,
+                      background: i % 2 === 1 ? "var(--secondary)" : undefined,
                     }}
                   >
                     <span className="font-mono text-[13px] font-bold text-gold text-center">{row.year}</span>
@@ -410,7 +410,7 @@ export function RecordsClient({
                         return (
                           <tr
                             key={t.owner}
-                            style={{ background: i === 0 ? "rgba(232,184,75,0.04)" : i % 2 === 1 ? "rgba(22,22,22,0.3)" : undefined }}
+                            style={{ background: i === 0 ? "rgba(232,184,75,0.04)" : i % 2 === 1 ? "var(--secondary)" : undefined }}
                             className="border-b border-border/50 last:border-0"
                           >
                             <td className="px-3.5 py-2.5">
@@ -560,7 +560,7 @@ export function RecordsClient({
                         const total = t.wins + t.losses;
                         const pct = total > 0 ? (t.wins / total * 100).toFixed(1) : "0.0";
                         return (
-                          <tr key={t.rosterId} className="border-b border-border/50 last:border-0" style={{ background: i === 0 ? "rgba(232,184,75,0.04)" : i % 2 === 1 ? "rgba(22,22,22,0.3)" : undefined }}>
+                          <tr key={t.rosterId} className="border-b border-border/50 last:border-0" style={{ background: i === 0 ? "rgba(232,184,75,0.04)" : i % 2 === 1 ? "var(--secondary)" : undefined }}>
                             <td className="px-3.5 py-2.5 text-center font-mono text-[11px] text-muted-foreground">{i + 1}</td>
                             <td className="px-3.5 py-2.5 text-[13px] font-medium">{t.displayName && t.displayName !== "—" ? <OwnerLink name={t.displayName} className="hover:underline underline-offset-2">{t.displayName}</OwnerLink> : "—"}</td>
                             <td className="px-3.5 py-2.5 text-center font-mono text-[13px] text-emerald-400 font-semibold">{t.wins}</td>
