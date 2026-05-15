@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { Fragment } from "react";
 import Link from "next/link";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -338,11 +339,13 @@ function TransactionsSection({
   rosterOwnerMap,
   nflPlayers,
   season,
+  ownerAvatars,
 }: {
   transactions: SleeperTransaction[];
   rosterOwnerMap: Record<number, string>;
   nflPlayers: SleeperPlayersMap;
   season: string;
+  ownerAvatars: Record<string, string>;
 }) {
   const filtered = transactions
     .filter((tx) => tx.status === "complete" && (tx.type === "trade" || (tx.adds !== null && Object.keys(tx.adds).length > 0)))
@@ -417,11 +420,27 @@ function TransactionsSection({
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="text-sm font-medium truncate">{playerName}</span>
-                        <span className="text-xs text-muted-foreground truncate">{ownerName}</span>
+                        <div className="flex items-center gap-1 min-w-0">
+                          <DashboardAvatar name={ownerName} avatarId={ownerAvatars[ownerName]} size={14} />
+                          <span className="text-xs text-muted-foreground truncate">{ownerName}</span>
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground truncate">{teams}</span>
+                    <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                      {tx.roster_ids.map((id, idx) => {
+                        const name = rosterOwnerMap[id] || `Team ${id}`;
+                        return (
+                          <Fragment key={id}>
+                            {idx > 0 && <span className="text-xs text-muted-foreground">·</span>}
+                            <div className="flex items-center gap-1 min-w-0">
+                              <DashboardAvatar name={name} avatarId={ownerAvatars[name]} size={18} />
+                              <span className="text-sm text-muted-foreground truncate">{name}</span>
+                            </div>
+                          </Fragment>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
                 <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{formatDate(tx.created)}</span>
@@ -516,7 +535,7 @@ export default async function HomePage() {
         </div>
         <div className="space-y-6">
           <StandingsSection standings={standings} ownerAvatars={ownerAvatars} />
-          <TransactionsSection transactions={transactions} rosterOwnerMap={rosterOwnerMap} nflPlayers={nflPlayers} season={season} />
+          <TransactionsSection transactions={transactions} rosterOwnerMap={rosterOwnerMap} nflPlayers={nflPlayers} season={season} ownerAvatars={ownerAvatars} />
         </div>
       </div>
     </div>

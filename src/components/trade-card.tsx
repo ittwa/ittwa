@@ -129,18 +129,18 @@ function PlayerCard({ item }: { item: TradeItem }) {
   );
 }
 
-function OwnerAvatar({ name }: { name: string }) {
+function OwnerAvatar({ name, size = 32 }: { name: string; size?: number }) {
   const avatarId = useOwnerAvatar(name);
   const initials = name.slice(0, 2).toUpperCase();
   return (
     <div
-      className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden"
-      style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+      className="rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden"
+      style={{ width: size, height: size, background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
     >
       <SleeperAvatarImage
         avatarId={avatarId}
         name={name}
-        fallback={<span className="font-heading text-[13px] font-extrabold text-[#60a5fa]">{initials}</span>}
+        fallback={<span className="font-heading font-extrabold text-[#60a5fa]" style={{ fontSize: size * 0.38 }}>{initials}</span>}
       />
     </div>
   );
@@ -211,7 +211,10 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
           <div className="flex items-center gap-1">
             {trade.sides.map((s, i) => (
               <Fragment key={s.owner}>
-                <OwnerLink name={s.owner} className="text-[13px] font-semibold text-foreground hover:underline underline-offset-2">{s.owner}</OwnerLink>
+                <div className="flex items-center gap-1.5">
+                  <OwnerAvatar name={s.owner} size={22} />
+                  <OwnerLink name={s.owner} className="text-[13px] font-semibold text-foreground hover:underline underline-offset-2">{s.owner}</OwnerLink>
+                </div>
                 {i < trade.sides.length - 1 && (
                   <span className="text-[11px] text-muted-foreground mx-0.5">↔</span>
                 )}
