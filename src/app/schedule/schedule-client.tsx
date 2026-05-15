@@ -204,7 +204,7 @@ export function ScheduleClient({
       />
 
       {/* Body: main content + sidebar */}
-      <div className="grid gap-5" style={{ gridTemplateColumns: "minmax(0, 1fr) 320px", alignItems: "start" }}>
+      <div className="flex flex-col lg:grid lg:gap-5" style={{ gridTemplateColumns: "minmax(0, 1fr) 320px", alignItems: "start" }}>
         <div style={{ minWidth: 0 }}>
           {view === "matrix" ? (
             <MatrixView
@@ -228,7 +228,7 @@ export function ScheduleClient({
             />
           )}
         </div>
-        <div style={{ position: "sticky", top: 70, minWidth: 0 }}>
+        <div className="mt-5 lg:mt-0 lg:sticky lg:top-[70px]" style={{ minWidth: 0 }}>
           {team ? (
             <TeamFocusPanel
               data={data}
@@ -257,37 +257,24 @@ export function ScheduleClient({
 function PageHeader({ season, currentSeason, currentWeek }: { season: string; currentSeason: string; currentWeek: number }) {
   const isCurrentSeason = season === currentSeason;
   return (
-    <div className="pb-4 border-b border-border flex items-end justify-between flex-wrap gap-4">
-      <div>
-        <div className="flex items-center gap-3 mb-1.5">
-          <span className="font-heading text-[32px] font-black tracking-[0.02em] uppercase leading-none text-foreground">
-            Schedule
-          </span>
-          <span
-            className="text-[11px] font-bold px-2.5 py-0.5 rounded font-sans tracking-[0.06em]"
-            style={{
-              background: isCurrentSeason ? "rgba(253,74,72,0.12)" : "rgba(232,184,75,0.12)",
-              color: isCurrentSeason ? "#FD4A48" : "#E8B84B",
-              border: `1px solid ${isCurrentSeason ? "rgba(253,74,72,0.3)" : "rgba(232,184,75,0.3)"}`,
-            }}
-          >
-            {season} &middot; {isCurrentSeason ? `WK ${String(currentWeek).padStart(2, "0")}` : "ARCHIVE"}
-          </span>
-        </div>
-        <p className="text-[13px] text-muted-foreground">
-          Every game, every week — filter by team or jump back through the archives to relive past seasons.
-        </p>
-      </div>
-      <div className="flex gap-2 items-center text-[11px] text-muted-foreground font-mono tracking-[0.04em]">
+    <div className="pb-6 border-b border-border">
+      <div className="flex items-center gap-3 mb-1.5">
+        <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
+        <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Schedule</h1>
         <span
-          className="w-1.5 h-1.5 rounded-full"
+          className="text-[11px] font-bold px-2.5 py-0.5 rounded font-sans tracking-[0.06em]"
           style={{
-            background: isCurrentSeason ? "#FD4A48" : "var(--muted-foreground)",
-            animation: isCurrentSeason ? "pulse 1.5s infinite" : "none",
+            background: isCurrentSeason ? "rgba(253,74,72,0.12)" : "rgba(232,184,75,0.12)",
+            color: isCurrentSeason ? "#FD4A48" : "#E8B84B",
+            border: `1px solid ${isCurrentSeason ? "rgba(253,74,72,0.3)" : "rgba(232,184,75,0.3)"}`,
           }}
-        />
-        {isCurrentSeason ? "Live season" : "Archived season"}
+        >
+          {season} &middot; {isCurrentSeason ? `WK ${String(currentWeek).padStart(2, "0")}` : "ARCHIVE"}
+        </span>
       </div>
+      <p className="text-[13px] text-muted-foreground ml-[19px]">
+        Every game, every week — filter by team or jump back through the archives to relive past seasons.
+      </p>
     </div>
   );
 }
@@ -319,11 +306,8 @@ function FilterBar({
 }) {
   return (
     <div
-      className="rounded-[10px] p-3 mb-5"
+      className="rounded-[10px] p-3 mb-5 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3"
       style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr auto",
-        gap: 12,
         alignItems: "stretch",
         background: "var(--card)",
         border: "1px solid var(--border)",
@@ -834,7 +818,7 @@ function WeekBlock({
           {status === "final" ? "Final" : status === "live" ? "● Live" : "Upcoming"}
         </span>
       </div>
-      <div className="p-2.5 grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+      <div className="p-2.5 grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(300px, 100%), 1fr))" }}>
         {matches.map((m, i) => (
           <MatchRow key={i} m={m} focusTeam={focusTeam} teams={teams} ownerAvatars={ownerAvatars} />
         ))}
