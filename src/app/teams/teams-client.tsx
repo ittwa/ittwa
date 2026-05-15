@@ -845,7 +845,7 @@ export function TeamsClient({ teams, season, ownerAvatars }: { teams: TeamDirect
 
   return (
     <OwnerAvatarsProvider avatars={ownerAvatars}>
-    <div>
+    <div className="max-w-[1320px] mx-auto px-6 py-8 pb-16">
       <div className="pb-6 border-b border-border mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>

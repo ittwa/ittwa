@@ -185,18 +185,18 @@ export function RecordsClient({
 
   return (
     <OwnerAvatarsProvider avatars={ownerAvatars}>
-    <div className="space-y-8">
+    <div className="max-w-[1320px] mx-auto px-6 py-8 pb-16">
       {/* Page Header */}
-      <div className="border-b border-border pb-6">
+      <div className="pb-6 border-b border-border mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1.5">
-              <div className="w-1 h-7 bg-gold rounded-sm" />
-              <h1 className="font-heading text-4xl font-black uppercase tracking-wider">
+              <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
+              <h1 className="font-heading text-4xl font-black uppercase tracking-[0.04em]">
                 Records
               </h1>
             </div>
-            <p className="text-sm text-muted-foreground ml-4">
+            <p className="text-[13px] text-muted-foreground ml-4">
               {showAllTime
                 ? `All-time records across ${champions.length} seasons · `
                 : `${activeTab} season records · `}

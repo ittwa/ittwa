@@ -185,7 +185,7 @@ export function ScheduleClient({
   const isCurrentSeason = season === currentSeason;
 
   return (
-    <div className="space-y-5">
+    <div className="max-w-[1320px] mx-auto px-6 py-8 pb-16">
       {/* Page header */}
       <PageHeader season={season} currentSeason={currentSeason} currentWeek={currentWeek} />
 
@@ -257,23 +257,13 @@ export function ScheduleClient({
 function PageHeader({ season, currentSeason, currentWeek }: { season: string; currentSeason: string; currentWeek: number }) {
   const isCurrentSeason = season === currentSeason;
   return (
-    <div className="pb-6 border-b border-border">
+    <div className="pb-6 border-b border-border mb-6">
       <div className="flex items-center gap-3 mb-1.5">
         <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
         <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Schedule</h1>
-        <span
-          className="text-[11px] font-bold px-2.5 py-0.5 rounded font-sans tracking-[0.06em]"
-          style={{
-            background: isCurrentSeason ? "rgba(253,74,72,0.12)" : "rgba(232,184,75,0.12)",
-            color: isCurrentSeason ? "#FD4A48" : "#E8B84B",
-            border: `1px solid ${isCurrentSeason ? "rgba(253,74,72,0.3)" : "rgba(232,184,75,0.3)"}`,
-          }}
-        >
-          {season} &middot; {isCurrentSeason ? `WK ${String(currentWeek).padStart(2, "0")}` : "ARCHIVE"}
-        </span>
       </div>
-      <p className="text-[13px] text-muted-foreground ml-[19px]">
-        Every game, every week — filter by team or jump back through the archives to relive past seasons.
+      <p className="text-[13px] text-muted-foreground ml-4">
+        {season} season{isCurrentSeason ? ` · Week ${currentWeek}` : " · Archive"}
       </p>
     </div>
   );
