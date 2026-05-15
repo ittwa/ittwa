@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { getCapHits, getLeagueUsers } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
 import { OWNER_DIVISION, ALL_OWNERS, SEASON_LEAGUE_IDS } from "@/lib/config";
+import { resolveOwnerName } from "@/lib/contracts";
 import { OwnerAvatarsProvider } from "@/components/owner-avatar";
 import { CapHitsClient } from "./cap-hits-client";
 import type { CapHitRow } from "@/types/contracts";
@@ -24,7 +25,7 @@ function buildClientRows(capHits: CapHitRow[]): CapHitClientRow[] {
     const total = Object.values(ch.yearlyHits).reduce((s, v) => s + v, 0);
     return {
       id: i,
-      owner: ch.owner,
+      owner: resolveOwnerName(ch.owner),
       player: ch.player,
       pos: ch.position,
       cutYear: ch.season,

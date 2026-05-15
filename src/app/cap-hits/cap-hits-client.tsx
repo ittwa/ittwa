@@ -424,7 +424,7 @@ function SeasonBarChart({ rows, season, ownersFilter, owners, ownerDivisions, ow
     for (const o of owners) byOwner[o] = 0;
     for (const h of rows) {
       if (ownersFilter && !ownersFilter.includes(h.owner)) continue;
-      if (h.yearlyHits[season]) byOwner[h.owner] += h.yearlyHits[season];
+      if (h.yearlyHits[season] && byOwner[h.owner] !== undefined) byOwner[h.owner] += h.yearlyHits[season];
     }
     const sorted = owners.map((o) => ({ owner: o, amount: byOwner[o] || 0 })).sort((a, b) => b.amount - a.amount);
     const max = Math.max(1, ...sorted.map((r) => r.amount));
@@ -503,6 +503,7 @@ function HistoricalHeatmap({ rows, season, ownersFilter, allSeasons, owners, own
     for (const o of owners) g[o] = {};
     for (const h of rows) {
       if (ownersFilter && !ownersFilter.includes(h.owner)) continue;
+      if (!g[h.owner]) continue;
       for (const [y, v] of Object.entries(h.yearlyHits)) {
         g[h.owner][Number(y)] = (g[h.owner][Number(y)] || 0) + v;
       }
