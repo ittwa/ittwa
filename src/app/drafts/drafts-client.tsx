@@ -35,9 +35,30 @@ interface DraftData {
   picks: DraftPick[];
 }
 
+interface FuturePick {
+  round: number;
+  slot: number;
+  pickLabel: string;
+  originalOwner: string;
+  originalOwnerDivision: string;
+  originalRosterId: number;
+  currentOwner: string;
+  currentOwnerDivision: string;
+  traded: boolean;
+  salary: number;
+  years: number;
+}
+
+interface FuturePicksSeason {
+  season: string;
+  picks: FuturePick[];
+}
+
 interface DraftsClientProps {
   drafts: DraftData[];
   ownerAvatars: Record<string, string>;
+  futurePicksBySeason: Record<string, FuturePicksSeason>;
+  futureSeasons: string[];
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -289,9 +310,213 @@ function TradedPicksChart({ data }: { data: { name: string; cnt: number; divisio
   );
 }
 
+// ── Future Picks View ───────────────────────────────────────────────────────
+
+function FuturePicksView({
+  futurePicksBySeason,
+  futureSeasons,
+}: {
+  futurePicksBySeason: Record<string, FuturePicksSeason>;
+  futureSeasons: string[];
+}) {
+  const [selectedSeason, setSelectedSeason] = useState(futureSeasons[0] || "");
+  const [ownerFilter, setOwnerFilter] = useState("All");
+
+  const seasonData = futurePicksBySeason[selectedSeason];
+  const picks = seasonData?.picks || [];
+
+  const allOwners = useMemo(() => {
+    const names = new Set<string>();
+    for (const p of picks) {
+      names.add(p.originalOwner);
+      names.add(p.currentOwner);
+    }
+    return [...names].sort();
+  }, [picks]);
+
+  const filteredPicks = useMemo(() => {
+    if (ownerFilter === "All") return picks;
+    return picks.filter((p) => p.currentOwner === ownerFilter);
+  }, [picks, ownerFilter]);
+
+  const ownerSummaries = useMemo(() => {
+    const map: Record<string, { name: string; division: string; total: number; own: number; acquired: number }> = {};
+    for (const owner of allOwners) {
+      map[owner] = { name: owner, division: OWNER_DIVISION[owner] || "", total: 0, own: 0, acquired: 0 };
+    }
+    for (const p of picks) {
+      const entry = map[p.currentOwner];
+      if (entry) {
+        entry.total++;
+        if (p.traded) entry.acquired++;
+        else entry.own++;
+      }
+    }
+    return Object.values(map).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+  }, [picks, allOwners]);
+
+  const tradedCount = picks.filter((p) => p.traded).length;
+
+  return (
+    <div>
+      {/* Season selector + filter */}
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] text-muted-foreground font-semibold tracking-[0.06em] uppercase mr-1 flex-shrink-0">Season</span>
+          {futureSeasons.map((yr) => (
+            <button
+              key={yr}
+              onClick={() => setSelectedSeason(yr)}
+              className="px-3.5 py-1.5 rounded-md cursor-pointer text-[13px] font-heading tracking-[0.04em] flex-shrink-0"
+              style={{
+                background: selectedSeason === yr ? "#FD4A48" : "transparent",
+                border: `1px solid ${selectedSeason === yr ? "#FD4A48" : "var(--border)"}`,
+                color: selectedSeason === yr ? "#fff" : "var(--muted-foreground)",
+                fontWeight: selectedSeason === yr ? 700 : 500,
+                transition: "all 0.15s",
+              }}
+            >
+              {yr}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground font-semibold tracking-[0.06em] uppercase flex-shrink-0">Owner</span>
+          <select
+            value={ownerFilter}
+            onChange={(e) => setOwnerFilter(e.target.value)}
+            className="bg-card border border-border rounded-md px-3 py-1.5 text-[13px] text-foreground font-heading cursor-pointer"
+          >
+            <option value="All">All Teams</option>
+            {allOwners.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+          {ownerFilter !== "All" && (
+            <button
+              onClick={() => setOwnerFilter("All")}
+              className="text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Owner summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 mb-5">
+        {ownerSummaries.map((s) => {
+          const dc = s.division ? divColors(s.division) : null;
+          const isHighlighted = ownerFilter === s.name;
+          return (
+            <button
+              key={s.name}
+              onClick={() => setOwnerFilter(ownerFilter === s.name ? "All" : s.name)}
+              className="bg-card border rounded-lg p-3 text-left cursor-pointer transition-all hover:border-[#E8B84B]/50"
+              style={{
+                borderColor: isHighlighted ? "#E8B84B" : "var(--border)",
+                boxShadow: isHighlighted ? "0 0 0 1px #E8B84B" : "none",
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <OwnerAvatar name={s.name} division={s.division} size={24} />
+                <span className="text-[12px] font-semibold text-foreground truncate">{s.name}</span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-heading text-[22px] font-black text-foreground leading-none">{s.total}</span>
+                <span className="text-[10px] text-muted-foreground">picks</span>
+              </div>
+              <div className="flex gap-2 mt-1.5">
+                <span className="text-[10px] text-muted-foreground">{s.own} own</span>
+                {s.acquired > 0 && (
+                  <span className="text-[10px] font-semibold" style={{ color: dc?.text || "#E8B84B" }}>
+                    +{s.acquired} acquired
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Traded picks count */}
+      {tradedCount > 0 && (
+        <p className="text-[12px] text-muted-foreground mb-3">
+          <span className="text-[#E8B84B] font-semibold">{tradedCount}</span> of {picks.length} picks have been traded.
+        </p>
+      )}
+
+      {/* Pick ownership grid */}
+      <div className="bg-card border border-border rounded-[10px] overflow-hidden">
+        <div className="overflow-auto">
+          <table className="w-full border-collapse" style={{ minWidth: 700 }}>
+            <thead>
+              <tr className="border-b-2 border-border bg-background">
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground w-[72px]">Pick</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground">Original Owner</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground">Current Owner</th>
+                <th className="text-right px-4 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground w-[100px]">Salary</th>
+                <th className="text-right px-4 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground w-[80px]">Years</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPicks.map((p, i) => {
+                const isRoundBreak = i > 0 && p.round !== filteredPicks[i - 1].round;
+                const isEven = i % 2 === 0;
+
+                return (
+                  <tr
+                    key={p.pickLabel}
+                    className="border-b border-border hover:!bg-[rgba(253,74,72,0.08)] transition-colors"
+                    style={{
+                      background: isEven ? "transparent" : "var(--secondary)",
+                      borderTopWidth: isRoundBreak ? 2 : undefined,
+                    }}
+                  >
+                    <td className="px-4 py-2.5">
+                      <span className="font-heading text-[14px] font-extrabold text-foreground">{p.pickLabel}</span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <OwnerLink name={p.originalOwner} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                        <OwnerAvatar name={p.originalOwner} division={p.originalOwnerDivision} size={26} />
+                        <span className="text-[13px] text-foreground">{p.originalOwner}</span>
+                      </OwnerLink>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <OwnerLink name={p.currentOwner} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                        <OwnerAvatar name={p.currentOwner} division={p.currentOwnerDivision} size={26} />
+                        <span className={`text-[13px] ${p.traded ? "font-semibold" : ""}`} style={{ color: p.traded ? "#E8B84B" : "var(--foreground)" }}>
+                          {p.currentOwner}
+                        </span>
+                        {p.traded && (
+                          <span className="text-[10px] text-muted-foreground italic ml-1">via {p.originalOwner}</span>
+                        )}
+                      </OwnerLink>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <span className="font-heading text-[13px] font-bold text-foreground">${p.salary}M</span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <span className="text-[13px] text-muted-foreground">{p.years}yr</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Component ───────────────────────────────────────────────────────────
 
-export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
+type PageView = "history" | "future";
+
+export function DraftsClient({ drafts, ownerAvatars, futurePicksBySeason, futureSeasons }: DraftsClientProps) {
+  const [view, setView] = useState<PageView>("history");
   const seasons = useMemo(() => [...new Set(drafts.map((d) => d.season))].sort().reverse(), [drafts]);
   const [selectedSeason, setSelectedSeason] = useState(seasons[0] || "");
 
@@ -393,9 +618,9 @@ export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
     });
   }, [draft]);
 
-  if (!draft) return null;
+  if (!draft && view === "history") return null;
 
-  const draftTypeLabel = draft.type === "snake" ? "Startup" : "Rookie";
+  const draftTypeLabel = draft ? (draft.type === "snake" ? "Startup" : "Rookie") : "";
 
   return (
     <OwnerAvatarsProvider avatars={ownerAvatars}>
@@ -409,31 +634,60 @@ export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
               <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Drafts</h1>
             </div>
             <p className="text-[13px] text-muted-foreground ml-4">
-              {draftTypeLabel} · {draft.rounds} Rounds · {draft.picks.length} Picks
+              {view === "history"
+                ? `${draftTypeLabel} · ${draft?.rounds || 0} Rounds · ${draft?.picks.length || 0} Picks`
+                : `Future draft capital across ${futureSeasons.length} seasons`}
             </p>
           </div>
-
-          {/* Season filter */}
-          <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 max-w-full">
-            <span className="text-[11px] text-muted-foreground font-semibold tracking-[0.06em] uppercase mr-1 flex-shrink-0">Season</span>
-            {seasons.map((yr) => (
-              <button
-                key={yr}
-                onClick={() => setSelectedSeason(yr)}
-                className="px-3.5 py-1.5 rounded-md cursor-pointer text-[13px] font-heading tracking-[0.04em] flex-shrink-0"
-                style={{
-                  background: selectedSeason === yr ? "#FD4A48" : "transparent",
-                  border: `1px solid ${selectedSeason === yr ? "#FD4A48" : "var(--border)"}`,
-                  color: selectedSeason === yr ? "#fff" : "var(--muted-foreground)",
-                  fontWeight: selectedSeason === yr ? 700 : 500,
-                  transition: "all 0.15s",
-                }}
-              >
-                {yr}
-              </button>
-            ))}
-          </div>
         </div>
+
+        {/* View toggle */}
+        <div className="flex gap-1.5 mt-4">
+          {(["history", "future"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className="px-4 py-1.5 rounded-md cursor-pointer text-[13px] font-heading tracking-[0.04em]"
+              style={{
+                background: view === v ? "#FD4A48" : "transparent",
+                border: `1px solid ${view === v ? "#FD4A48" : "var(--border)"}`,
+                color: view === v ? "#fff" : "var(--muted-foreground)",
+                fontWeight: view === v ? 700 : 500,
+                transition: "all 0.15s",
+              }}
+            >
+              {v === "history" ? "Draft History" : "Future Picks"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {view === "future" ? (
+        <FuturePicksView
+          futurePicksBySeason={futurePicksBySeason}
+          futureSeasons={futureSeasons}
+        />
+      ) : (
+      <>
+      {/* Season filter */}
+      <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 max-w-full mb-5">
+        <span className="text-[11px] text-muted-foreground font-semibold tracking-[0.06em] uppercase mr-1 flex-shrink-0">Season</span>
+        {seasons.map((yr) => (
+          <button
+            key={yr}
+            onClick={() => setSelectedSeason(yr)}
+            className="px-3.5 py-1.5 rounded-md cursor-pointer text-[13px] font-heading tracking-[0.04em] flex-shrink-0"
+            style={{
+              background: selectedSeason === yr ? "#FD4A48" : "transparent",
+              border: `1px solid ${selectedSeason === yr ? "#FD4A48" : "var(--border)"}`,
+              color: selectedSeason === yr ? "#fff" : "var(--muted-foreground)",
+              fontWeight: selectedSeason === yr ? 700 : 500,
+              transition: "all 0.15s",
+            }}
+          >
+            {yr}
+          </button>
+        ))}
       </div>
 
       {/* Two-column layout */}
@@ -587,6 +841,8 @@ export function DraftsClient({ drafts, ownerAvatars }: DraftsClientProps) {
           </SidebarCard>
         </div>
       </div>
+      </>
+      )}
     </div>
     </OwnerAvatarsProvider>
   );

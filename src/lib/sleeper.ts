@@ -7,6 +7,7 @@ import {
   SleeperTransaction,
   SleeperDraft,
   SleeperDraftPick,
+  SleeperTradePick,
   SleeperPlayersMap,
 } from "@/types/sleeper";
 import { LEAGUE_ID, SLEEPER_API_BASE, REVALIDATE, USERNAME_OVERRIDES } from "./config";
@@ -91,6 +92,12 @@ export async function getDrafts(leagueId: string = LEAGUE_ID): Promise<SleeperDr
 
 export async function getDraftPicks(draftId: string): Promise<SleeperDraftPick[]> {
   return fetchSleeper<SleeperDraftPick[]>(`/draft/${draftId}/picks`, REVALIDATE.roster);
+}
+
+// --- Traded Picks (future draft capital) ---
+
+export async function getTradedPicks(leagueId: string = LEAGUE_ID): Promise<SleeperTradePick[]> {
+  return fetchSleeper<SleeperTradePick[]>(`/league/${leagueId}/traded_picks`, 3600);
 }
 
 // --- NFL Players (very large — cache 24 hours) ---
