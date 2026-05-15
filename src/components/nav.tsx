@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: "/schedule", label: "Schedule" },
   { href: "/matchups", label: "Matchups" },
   { href: "/contracts", label: "Contracts" },
+  { href: "/cap-hits", label: "Cap Hits" },
   { href: "/trades", label: "Trades" },
   { href: "/drafts", label: "Drafts" },
   { href: "/power-rankings", label: "Power Rankings" },
