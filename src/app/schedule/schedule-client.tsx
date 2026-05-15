@@ -526,17 +526,20 @@ function MatrixView({
       </div>
 
       <div style={{ overflowX: "auto" }}>
-        <div style={{ minWidth: 980 }}>
+        <div style={{ minWidth: 900 }}>
           {/* Column headers */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: `220px repeat(${regCount}, minmax(48px, 1fr))${hasPlayoff ? ` repeat(${playoffWeeks.length}, 56px)` : ""}`,
+              gridTemplateColumns: `140px repeat(${regCount}, minmax(48px, 1fr))${hasPlayoff ? ` repeat(${playoffWeeks.length}, 56px)` : ""}`,
               borderBottom: "1px solid var(--border)",
               background: "var(--secondary)",
             }}
           >
-            <div className="px-3.5 py-2.5 text-[10px] text-muted-foreground font-bold tracking-[0.1em] uppercase">
+            <div
+              className="px-3.5 py-2.5 text-[10px] text-muted-foreground font-bold tracking-[0.1em] uppercase"
+              style={{ position: "sticky", left: 0, zIndex: 2, background: "var(--secondary)", borderRight: "1px solid var(--border)" }}
+            >
               Team
             </div>
             {regularWeeks.map((w) => {
@@ -579,20 +582,29 @@ function MatrixView({
                 key={name}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: `220px repeat(${regCount}, minmax(48px, 1fr))${hasPlayoff ? ` repeat(${playoffWeeks.length}, 56px)` : ""}`,
+                  gridTemplateColumns: `140px repeat(${regCount}, minmax(48px, 1fr))${hasPlayoff ? ` repeat(${playoffWeeks.length}, 56px)` : ""}`,
                   borderBottom: "1px solid var(--border)",
                   opacity: dim ? 0.35 : 1,
                   transition: "opacity 0.2s",
                 }}
               >
-                <div className="px-3.5 py-2.5 flex items-center gap-2.5" style={{ borderRight: "1px solid var(--border)" }}>
-                  <OwnerAvatar name={name} avatarId={ownerAvatars[name]} size={28} division={info.division} />
+                <div
+                  className="px-2.5 py-2.5 flex items-center gap-2"
+                  style={{
+                    borderRight: "1px solid var(--border)",
+                    position: "sticky",
+                    left: 0,
+                    zIndex: 1,
+                    background: "var(--card)",
+                  }}
+                >
+                  <OwnerAvatar name={name} avatarId={ownerAvatars[name]} size={26} division={info.division} />
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="font-heading text-sm font-extrabold text-foreground leading-tight">
+                    <div className="font-heading text-[12px] font-extrabold text-foreground leading-tight truncate">
                       <OwnerLink name={name}>{name}</OwnerLink>
                     </div>
-                    <div className="text-[10px] font-semibold mt-0.5 flex items-center gap-1" style={{ color: dc.text }}>
-                      <DivDot division={info.division} size={5} /> {info.division}
+                    <div className="text-[9px] font-semibold mt-0.5 flex items-center gap-1" style={{ color: dc.text }}>
+                      <DivDot division={info.division} size={4} /> {info.division}
                     </div>
                   </div>
                 </div>
