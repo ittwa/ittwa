@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, Fragment } from "react";
-import Link from "next/link";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 import type { CapHitClientRow } from "./page";
@@ -54,7 +53,7 @@ export function CapHitsClient({ rows, season: currentSeason, allSeasons, ownerDi
 
   return (
     <div className="max-w-[1320px] mx-auto px-6 py-8 pb-16">
-      <PageHeader season={season} currentSeason={parseInt(currentSeason)} />
+      <PageHeader season={season} />
       <FilterBar
         season={season} setSeason={setSeason}
         selectedOwners={selectedOwners} setSelectedOwners={setSelectedOwners}
@@ -102,20 +101,43 @@ function OwnerAvatar({ name, division, size = 32, dim = false }: { name: string;
   );
 }
 
-function PlayerAvatar({ name, pos, size = 28 }: { name: string; pos: string; size?: number }) {
+function PlayerAvatar({ playerId, name, pos, size = 28 }: { playerId?: string; name: string; pos: string; size?: number }) {
+  const [err, setErr] = useState(false);
   const pc = posColor(pos);
   const ini = name.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("");
+  const validId = playerId && playerId !== "#N/A" && playerId !== "N/A" && playerId !== "";
+
+  if (!validId || err || pos === "TAX") {
+    return (
+      <div
+        className="flex-shrink-0 flex items-center justify-center"
+        style={{
+          width: size, height: size, borderRadius: 6,
+          background: pc.bg, border: `1px solid ${pc.border}`,
+        }}
+      >
+        <span className="font-heading font-bold" style={{ fontSize: size * 0.36, color: pc.text, letterSpacing: "0.02em" }}>
+          {pos === "TAX" ? "$" : ini}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div
-      className="flex-shrink-0 flex items-center justify-center"
+      className="flex-shrink-0 overflow-hidden"
       style={{
         width: size, height: size, borderRadius: 6,
         background: pc.bg, border: `1px solid ${pc.border}`,
       }}
     >
-      <span className="font-heading font-bold" style={{ fontSize: size * 0.36, color: pc.text, letterSpacing: "0.02em" }}>
-        {pos === "TAX" ? "$" : ini}
-      </span>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`}
+        alt={name}
+        onError={() => setErr(true)}
+        className="w-full h-full object-cover object-top"
+      />
     </div>
   );
 }
@@ -139,36 +161,16 @@ function DivDot({ division, size = 6 }: { division: string; size?: number }) {
 
 // ─── Page Header ──────────────────────────────────────────────────────────────
 
-function PageHeader({ season, currentSeason }: { season: number; currentSeason: number }) {
-  const isActive = season === currentSeason;
+function PageHeader({ season }: { season: number }) {
   return (
-    <div className="pb-6 border-b border-border mb-5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-      <div>
-        <div className="flex items-center gap-3 mb-1.5">
-          <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
-          <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Cap Hits</h1>
-          <span
-            className="text-[11px] font-bold px-2.5 py-0.5 rounded tracking-[0.08em] uppercase"
-            style={{
-              background: isActive ? "rgba(253,74,72,0.12)" : "rgba(232,184,75,0.12)",
-              color: isActive ? "#FD4A48" : "#E8B84B",
-              border: `1px solid ${isActive ? "rgba(253,74,72,0.3)" : "rgba(232,184,75,0.3)"}`,
-            }}
-          >
-            {season} Season
-          </span>
-        </div>
-        <p className="text-[13px] text-muted-foreground max-w-[720px] leading-relaxed ml-[19px]">
-          Dead money carried against each franchise&apos;s salary cap from cut, traded, or luxury-tax-flagged contracts.
-          Use the filters below to slice the league by season, owner, and position.
-        </p>
+    <div className="pb-6 border-b border-border mb-6">
+      <div className="flex items-center gap-3 mb-1.5">
+        <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
+        <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Cap Hits</h1>
       </div>
-      <Link
-        href="/contracts"
-        className="text-[11px] font-heading font-bold tracking-[0.08em] uppercase px-3.5 py-2 rounded-lg border border-border bg-card text-foreground/80 hover:text-foreground transition-colors inline-flex items-center gap-1.5 shrink-0"
-      >
-        → Active Contracts
-      </Link>
+      <p className="text-[13px] text-muted-foreground ml-4">
+        Dead money carried against each franchise&apos;s salary cap · {season} season
+      </p>
     </div>
   );
 }
@@ -218,14 +220,13 @@ function FilterBar({
               <button
                 key={s}
                 onClick={() => setSeason(s)}
-                className="flex items-center gap-1 cursor-pointer transition-all duration-150"
+                className="flex items-center gap-1 cursor-pointer transition-all duration-150 font-heading"
                 style={{
                   padding: "5px 10px",
                   border: `1px solid ${on ? "#FD4A48" : "var(--border)"}`,
                   background: on ? "rgba(253,74,72,0.12)" : "var(--secondary)",
                   color: on ? "#FD4A48" : isCurrent ? "#E8B84B" : "var(--muted-foreground)",
                   borderRadius: 6, fontSize: 11, fontWeight: 700, letterSpacing: "0.04em",
-                  fontFamily: "var(--font-heading)",
                 }}
               >
                 {s}
@@ -820,7 +821,7 @@ function BreakdownRow({ h, i, total, season, maxCellValue, showOwner, ownerDivis
     >
       <td className="px-3 py-1.5 pl-4">
         <div className="flex items-center gap-2.5">
-          <PlayerAvatar name={h.player} pos={h.pos} size={26} />
+          <PlayerAvatar playerId={h.playerId} name={h.player} pos={h.pos} size={26} />
           <span className="text-xs font-medium whitespace-nowrap">{h.player}</span>
         </div>
       </td>
