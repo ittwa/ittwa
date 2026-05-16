@@ -1,19 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
   <defs>
     <clipPath id="ball">
-      <path d="M 5,50 Q 50,-8 95,50 Q 50,108 5,50 Z" transform="rotate(-40 50 50)"/>
+      <ellipse cx="100" cy="100" rx="88" ry="88"/>
     </clipPath>
   </defs>
-  <!-- Football body -->
-  <path d="M 5,50 Q 50,-8 95,50 Q 50,108 5,50 Z" transform="rotate(-40 50 50)" fill="#FD4A48"/>
-  <!-- Lace stripes (perpendicular to long axis, clipped to football) -->
+  <!-- Football body (circular crop of rotated ellipse) -->
+  <ellipse cx="100" cy="100" rx="88" ry="88" fill="#FD4A48"/>
+  <!-- Football shape overlay — two white curved stripes -->
   <g clip-path="url(#ball)">
-    <rect x="19" y="-15" width="13" height="130" fill="white" transform="rotate(-40 50 50)"/>
-    <rect x="68" y="-15" width="13" height="130" fill="white" transform="rotate(-40 50 50)"/>
+    <!-- Top-left stripe -->
+    <path d="M -10,60 Q 40,10 80,-10 L 65,-10 Q 25,10 -10,48 Z" fill="white" transform="rotate(-5 100 100)"/>
+    <!-- Bottom-right stripe -->
+    <path d="M 210,140 Q 160,190 120,210 L 135,210 Q 175,190 210,152 Z" fill="white" transform="rotate(-5 100 100)"/>
+    <!-- Center lacing line -->
+    <line x1="60" y1="160" x2="140" y2="40" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Stitch marks -->
+    <line x1="77" y1="138" x2="86" y2="144" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="83" y1="128" x2="92" y2="134" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="89" y1="118" x2="98" y2="124" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="95" y1="108" x2="104" y2="114" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="101" y1="98" x2="110" y2="104" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="107" y1="88" x2="116" y2="94" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="113" y1="78" x2="122" y2="84" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="119" y1="68" x2="128" y2="74" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
   </g>
-  <!-- ITTWA text -->
-  <text x="50" y="52" fill="white"
-        font-family="Impact, 'Arial Narrow', Arial, sans-serif"
-        font-weight="bold" font-size="13" letter-spacing="1"
-        text-anchor="middle" dominant-baseline="middle">ITTWA</text>
+  <!-- ITTWA text along the lacing -->
+  <text x="100" y="102" fill="white"
+        font-family="'Barlow Condensed', Impact, 'Arial Narrow', sans-serif"
+        font-weight="800" font-size="26" letter-spacing="3"
+        text-anchor="middle" dominant-baseline="middle"
+        transform="rotate(-35 100 100)">ITTWA</text>
 </svg>
