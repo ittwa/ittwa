@@ -91,6 +91,7 @@ function OwnerAvatar({ name, size = 24 }: { name: string; size?: number }) {
 }
 
 type SortKey = "owner" | "wins" | "losses" | "winPct" | "pf" | "rings" | "playoffs";
+type HardwareSortKey = "owner" | "golds" | "silvers" | "bronzes" | "total";
 
 export function RecordsClient({
   matchupsArray,
@@ -110,6 +111,8 @@ export function RecordsClient({
   const [activeTab, setActiveTab] = useState("all-time");
   const [sortKey, setSortKey] = useState<SortKey>("wins");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [hwSortKey, setHwSortKey] = useState<HardwareSortKey>("total");
+  const [hwSortDir, setHwSortDir] = useState<"asc" | "desc">("desc");
 
   const showAllTime = activeTab === "all-time";
   const showCurrentSeason = activeTab === season;
@@ -131,6 +134,44 @@ export function RecordsClient({
   const ringLeaders = useMemo(() => {
     return [...allTimeStandings].sort((a, b) => b.rings - a.rings || b.playoffs - a.playoffs);
   }, [allTimeStandings]);
+
+  const hardwareData = useMemo(() => {
+    const map = new Map<string, { golds: string[]; silvers: string[]; bronzes: string[] }>();
+    for (const c of champions) {
+      for (const [name, key] of [
+        [c.champion, "golds"], [c.runnerUp, "silvers"], [c.third, "bronzes"],
+      ] as [string, "golds" | "silvers" | "bronzes"][]) {
+        if (!name || name === "—") continue;
+        if (!map.has(name)) map.set(name, { golds: [], silvers: [], bronzes: [] });
+        map.get(name)![key].push(c.year);
+      }
+    }
+    const rows = [...map.entries()].map(([name, hw]) => ({
+      name,
+      golds: hw.golds,
+      silvers: hw.silvers,
+      bronzes: hw.bronzes,
+      total: hw.golds.length + hw.silvers.length + hw.bronzes.length,
+    }));
+    rows.sort((a, b) => {
+      let cmp = 0;
+      switch (hwSortKey) {
+        case "owner": cmp = a.name.localeCompare(b.name); break;
+        case "golds": cmp = a.golds.length - b.golds.length; break;
+        case "silvers": cmp = a.silvers.length - b.silvers.length; break;
+        case "bronzes": cmp = a.bronzes.length - b.bronzes.length; break;
+        case "total": cmp = a.total - b.total; break;
+      }
+      if (cmp === 0) cmp = b.total - a.total;
+      return hwSortDir === "asc" ? cmp : -cmp;
+    });
+    return rows;
+  }, [champions, hwSortKey, hwSortDir]);
+
+  function onHwSort(k: HardwareSortKey) {
+    if (hwSortKey === k) setHwSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setHwSortKey(k); setHwSortDir("desc"); }
+  }
 
   const sortedAllTime = useMemo(() => {
     const copy = [...allTimeStandings];
@@ -465,32 +506,88 @@ export function RecordsClient({
                 ))}
               </div>
             </div>
-            {/* Championship Count */}
             <div>
-              <SectionLabel label="Championship Count" />
+              <SectionLabel label="Hardware" />
               <RCard>
-                {ringCounts.filter((r) => r.count > 0).map((t, i, arr) => (
-                  <div
-                    key={t.name}
-                    className={cn("flex items-center gap-4 px-5 py-3", i < arr.length - 1 ? "border-b border-border/50" : "")}
-                    style={{ background: i === 0 ? "rgba(232,184,75,0.05)" : undefined }}
-                  >
-                    <span className="font-mono text-xs text-muted-foreground min-w-[20px]">{i + 1}</span>
-                    <OwnerAvatar name={t.name} size={20} />
-                    <OwnerLink name={t.name} className={cn("flex-1 text-[13px] hover:underline underline-offset-2", i === 0 ? "font-semibold" : "")}>{t.name}</OwnerLink>
-                    <div className="flex gap-1">
-                      {Array(t.count).fill(0).map((_, j) => (
-                        <span key={j} className="text-base">🏆</span>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr>
+                        <th
+                          onClick={() => onHwSort("owner")}
+                          className={cn(
+                            "px-3.5 py-2.5 text-left text-[10px] font-bold tracking-widest uppercase cursor-pointer select-none border-b border-border bg-secondary whitespace-nowrap",
+                            hwSortKey === "owner" ? "text-gold" : "text-muted-foreground"
+                          )}
+                        >
+                          Owner{hwSortKey === "owner" && <span className="ml-1">{hwSortDir === "asc" ? "↑" : "↓"}</span>}
+                        </th>
+                        {([["golds", "🏆"], ["silvers", "🥈"], ["bronzes", "🥉"], ["total", "Total"]] as [HardwareSortKey, string][]).map(([k, label]) => (
+                          <th
+                            key={k}
+                            onClick={() => onHwSort(k)}
+                            className={cn(
+                              "px-3.5 py-2.5 text-center text-[10px] font-bold tracking-widest uppercase cursor-pointer select-none border-b border-border bg-secondary whitespace-nowrap",
+                              hwSortKey === k ? "text-gold" : "text-muted-foreground"
+                            )}
+                          >
+                            {label}{hwSortKey === k && <span className="ml-1">{hwSortDir === "asc" ? "↑" : "↓"}</span>}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hardwareData.filter((r) => r.total > 0).map((row, i) => (
+                        <tr
+                          key={row.name}
+                          className="border-b border-border/50 last:border-0"
+                          style={{ background: i === 0 ? "rgba(232,184,75,0.04)" : i % 2 === 1 ? "var(--secondary)" : undefined }}
+                        >
+                          <td className="px-3.5 py-2.5">
+                            <OwnerLink name={row.name} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+                              <span className="text-[11px] text-muted-foreground font-mono min-w-[16px]">{i + 1}</span>
+                              <OwnerAvatar name={row.name} />
+                              <span className={cn("text-[13px]", i === 0 ? "font-semibold" : "")}>{row.name}</span>
+                            </OwnerLink>
+                          </td>
+                          <td className="px-3.5 py-2.5 text-center align-top">
+                            {row.golds.length > 0 ? (
+                              <div>
+                                <span className="font-heading text-lg font-extrabold text-gold">{row.golds.length}</span>
+                                <div className="text-[9px] text-muted-foreground leading-tight mt-0.5">
+                                  {row.golds.map((y) => `'${y.slice(2)}`).join(", ")}
+                                </div>
+                              </div>
+                            ) : <span className="text-muted-foreground text-xs">—</span>}
+                          </td>
+                          <td className="px-3.5 py-2.5 text-center align-top">
+                            {row.silvers.length > 0 ? (
+                              <div>
+                                <span className="font-heading text-lg font-extrabold text-slate-400">{row.silvers.length}</span>
+                                <div className="text-[9px] text-muted-foreground leading-tight mt-0.5">
+                                  {row.silvers.map((y) => `'${y.slice(2)}`).join(", ")}
+                                </div>
+                              </div>
+                            ) : <span className="text-muted-foreground text-xs">—</span>}
+                          </td>
+                          <td className="px-3.5 py-2.5 text-center align-top">
+                            {row.bronzes.length > 0 ? (
+                              <div>
+                                <span className="font-heading text-lg font-extrabold text-orange-400">{row.bronzes.length}</span>
+                                <div className="text-[9px] text-muted-foreground leading-tight mt-0.5">
+                                  {row.bronzes.map((y) => `'${y.slice(2)}`).join(", ")}
+                                </div>
+                              </div>
+                            ) : <span className="text-muted-foreground text-xs">—</span>}
+                          </td>
+                          <td className="px-3.5 py-2.5 text-center">
+                            <span className="font-heading text-[22px] font-extrabold text-gold">{row.total}</span>
+                          </td>
+                        </tr>
                       ))}
-                    </div>
-                    <div className="w-20 h-1 rounded-sm" style={{ background: "#222" }}>
-                      <div className="h-full rounded-sm bg-gold" style={{ width: `${(t.count / maxRings) * 100}%` }} />
-                    </div>
-                    <span className="font-heading text-[22px] font-extrabold text-gold min-w-[24px] text-right">
-                      {t.count}
-                    </span>
-                  </div>
-                ))}
+                    </tbody>
+                  </table>
+                </div>
               </RCard>
             </div>
           </>
