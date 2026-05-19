@@ -187,7 +187,7 @@ export function Nav() {
         <div className="flex h-14 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/logo.svg"
+              src="/logo.png"
               alt="ITTWA"
               width={32}
               height={32}
