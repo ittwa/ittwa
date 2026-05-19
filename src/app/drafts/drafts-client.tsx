@@ -310,201 +310,340 @@ function TradedPicksChart({ data }: { data: { name: string; cnt: number; divisio
   );
 }
 
-// ── Future Picks View ───────────────────────────────────────────────────────
+// ── Future Draft Picks (Matrix View) ────────────────────────────────────────
 
-function FuturePicksView({
+const ROUND_TINT: Record<string, { fg: string; bg: string; border: string }> = {
+  "1st": { fg: "#E8B84B", bg: "rgba(232,184,75,0.13)", border: "rgba(232,184,75,0.38)" },
+  "2nd": { fg: "#cbd5e1", bg: "rgba(203,213,225,0.09)", border: "rgba(203,213,225,0.25)" },
+  "3rd": { fg: "#c08457", bg: "rgba(192,132,87,0.11)", border: "rgba(192,132,87,0.32)" },
+};
+
+function roundOrdinal(n: number): string {
+  if (n === 1) return "1st";
+  if (n === 2) return "2nd";
+  if (n === 3) return "3rd";
+  return `${n}th`;
+}
+
+function FuturePickPill({ isOwn, roundLabel, fromOwner, fromDivision }: { isOwn: boolean; roundLabel: string; fromOwner?: string; fromDivision?: string }) {
+  const c = ROUND_TINT[roundLabel] || ROUND_TINT["1st"];
+  return (
+    <span
+      title={isOwn ? `Own ${roundLabel} round pick` : `${roundLabel} round — acquired from ${fromOwner}`}
+      className="inline-flex items-center gap-[5px] leading-none font-heading text-[12px] font-extrabold tracking-[0.03em] whitespace-nowrap"
+      style={{
+        padding: isOwn ? "3px 7px 3px 6px" : "2px 5px 2px 4px",
+        borderRadius: 5,
+        color: c.fg,
+        background: isOwn ? c.bg : "transparent",
+        border: `1px ${isOwn ? "solid" : "dashed"} ${isOwn ? c.border : c.fg + "66"}`,
+        cursor: isOwn ? "default" : "help",
+      }}
+    >
+      {!isOwn && <span className="text-[9px] opacity-85 font-bold font-sans">↘</span>}
+      <span>{roundLabel}</span>
+      {!isOwn && fromOwner && (
+        <OwnerAvatar name={fromOwner} division={fromDivision || ""} size={16} />
+      )}
+    </span>
+  );
+}
+
+interface FutureYear {
+  year: string;
+  rounds: string[];
+}
+
+interface OwnerPickRow {
+  owner: string;
+  division: string;
+  picks: Record<string, Record<string, { isOwn: boolean; from?: string; fromDivision?: string }[]>>;
+  total: number;
+  acquired: number;
+  out: number;
+}
+
+function FutureDraftPicks({
   futurePicksBySeason,
   futureSeasons,
 }: {
   futurePicksBySeason: Record<string, FuturePicksSeason>;
   futureSeasons: string[];
 }) {
-  const [selectedSeason, setSelectedSeason] = useState(futureSeasons[0] || "");
-  const [ownerFilter, setOwnerFilter] = useState("All");
+  const { futureYears, ownerRows, totalTraded, allRoundLabels, mostPicks, mostAcq, mostOut } = useMemo(() => {
+    const futureYears: FutureYear[] = futureSeasons.map((season) => {
+      const data = futurePicksBySeason[season];
+      const rounds = data
+        ? [...new Set(data.picks.map((p) => p.round))].sort((a, b) => a - b)
+        : [1, 2];
+      return { year: season, rounds: rounds.map((r) => roundOrdinal(r)) };
+    });
 
-  const seasonData = futurePicksBySeason[selectedSeason];
-  const picks = seasonData?.picks || [];
+    const baseline = futureYears.reduce((n, y) => n + y.rounds.length, 0);
+    const allPicks = futureSeasons.flatMap((s) => futurePicksBySeason[s]?.picks || []);
+    const ownerNames = [...new Set(allPicks.flatMap((p) => [p.originalOwner, p.currentOwner]))].sort();
+    const allRoundLabels = [...new Set(futureYears.flatMap((y) => y.rounds))];
 
-  const allOwners = useMemo(() => {
-    const names = new Set<string>();
-    for (const p of picks) {
-      names.add(p.originalOwner);
-      names.add(p.currentOwner);
-    }
-    return [...names].sort();
-  }, [picks]);
+    const ownerRows: OwnerPickRow[] = ownerNames.map((ownerName) => {
+      const row: Record<string, Record<string, { isOwn: boolean; from?: string; fromDivision?: string }[]>> = {};
+      let total = 0;
+      let acquired = 0;
+      let ownRemaining = 0;
 
-  const filteredPicks = useMemo(() => {
-    if (ownerFilter === "All") return picks;
-    return picks.filter((p) => p.currentOwner === ownerFilter);
-  }, [picks, ownerFilter]);
-
-  const ownerSummaries = useMemo(() => {
-    const map: Record<string, { name: string; division: string; total: number; own: number; acquired: number }> = {};
-    for (const owner of allOwners) {
-      map[owner] = { name: owner, division: OWNER_DIVISION[owner] || "", total: 0, own: 0, acquired: 0 };
-    }
-    for (const p of picks) {
-      const entry = map[p.currentOwner];
-      if (entry) {
-        entry.total++;
-        if (p.traded) entry.acquired++;
-        else entry.own++;
+      for (const fy of futureYears) {
+        row[fy.year] = {};
+        for (const rl of fy.rounds) row[fy.year][rl] = [];
       }
-    }
-    return Object.values(map).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
-  }, [picks, allOwners]);
 
-  const tradedCount = picks.filter((p) => p.traded).length;
+      for (const season of futureSeasons) {
+        const data = futurePicksBySeason[season];
+        if (!data) continue;
+        for (const pick of data.picks) {
+          if (pick.currentOwner !== ownerName) continue;
+          const rl = roundOrdinal(pick.round);
+          if (!row[season]?.[rl]) continue;
+          if (pick.traded) {
+            row[season][rl].push({ isOwn: false, from: pick.originalOwner, fromDivision: pick.originalOwnerDivision });
+            acquired++;
+          } else {
+            row[season][rl].push({ isOwn: true });
+            ownRemaining++;
+          }
+          total++;
+        }
+      }
+
+      return {
+        owner: ownerName,
+        division: OWNER_DIVISION[ownerName] || "",
+        picks: row,
+        total,
+        acquired,
+        out: baseline - ownRemaining,
+      };
+    });
+
+    const totalTraded = ownerRows.reduce((n, r) => n + r.acquired, 0);
+
+    let mostPicks = ownerRows[0] as OwnerPickRow | undefined;
+    let mostAcq = ownerRows[0] as OwnerPickRow | undefined;
+    let mostOut = ownerRows[0] as OwnerPickRow | undefined;
+    for (const r of ownerRows) {
+      if (!mostPicks || r.total > mostPicks.total) mostPicks = r;
+      if (!mostAcq || r.acquired > mostAcq.acquired) mostAcq = r;
+      if (!mostOut || r.out > mostOut.out) mostOut = r;
+    }
+
+    return { futureYears, ownerRows, totalTraded, allRoundLabels, mostPicks, mostAcq, mostOut };
+  }, [futurePicksBySeason, futureSeasons]);
+
+  if (!mostPicks || !mostAcq || !mostOut) return null;
+
+  const summary = [
+    { label: "Most Picks", owner: mostPicks.owner, division: mostPicks.division, value: mostPicks.total, sub: `across ${futureSeasons.join(" + ")}` },
+    { label: "Most Acquired", owner: mostAcq.owner, division: mostAcq.division, value: mostAcq.acquired, sub: "picks gained via trade" },
+    { label: "Most Traded Away", owner: mostOut.owner, division: mostOut.division, value: mostOut.out, sub: "own picks dealt out" },
+  ];
+
+  const isYearSep = (yi: number, ri: number, rounds: string[]) =>
+    yi < futureYears.length - 1 && ri === rounds.length - 1 ? "1px solid var(--border)" : "none";
 
   return (
-    <div>
-      {/* Season selector + filter */}
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-muted-foreground font-semibold tracking-[0.06em] uppercase mr-1 flex-shrink-0">Season</span>
-          {futureSeasons.map((yr) => (
-            <button
-              key={yr}
-              onClick={() => setSelectedSeason(yr)}
-              className="px-3.5 py-1.5 rounded-md cursor-pointer text-[13px] font-heading tracking-[0.04em] flex-shrink-0"
-              style={{
-                background: selectedSeason === yr ? "#FD4A48" : "transparent",
-                border: `1px solid ${selectedSeason === yr ? "#FD4A48" : "var(--border)"}`,
-                color: selectedSeason === yr ? "#fff" : "var(--muted-foreground)",
-                fontWeight: selectedSeason === yr ? 700 : 500,
-                transition: "all 0.15s",
-              }}
-            >
-              {yr}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-muted-foreground font-semibold tracking-[0.06em] uppercase flex-shrink-0">Owner</span>
-          <select
-            value={ownerFilter}
-            onChange={(e) => setOwnerFilter(e.target.value)}
-            className="bg-card border border-border rounded-md px-3 py-1.5 text-[13px] text-foreground font-heading cursor-pointer"
+    <div className="mt-8">
+      <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+        <div className="flex items-center gap-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-1 h-5 bg-[#E8B84B] rounded-sm" />
+            <span className="font-heading text-[20px] font-extrabold tracking-[0.06em] uppercase text-foreground">
+              Future Draft Picks
+            </span>
+          </div>
+          <span
+            className="text-[11px] font-semibold tracking-[0.04em] px-2.5 py-[2px] rounded"
+            style={{
+              background: "rgba(253,74,72,0.1)",
+              color: "#FD4A48",
+              border: "1px solid rgba(253,74,72,0.3)",
+            }}
           >
-            <option value="All">All Teams</option>
-            {allOwners.map((name) => (
-              <option key={name} value={name}>{name}</option>
-            ))}
-          </select>
-          {ownerFilter !== "All" && (
-            <button
-              onClick={() => setOwnerFilter("All")}
-              className="text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              Clear
-            </button>
-          )}
+            {futureSeasons.join(" – ")} · {totalTraded} traded
+          </span>
+        </div>
+        <div className="flex items-center gap-3.5">
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span
+              className="w-5 h-3.5 rounded-[3px]"
+              style={{ background: ROUND_TINT["1st"].bg, border: `1px solid ${ROUND_TINT["1st"].border}` }}
+            />
+            Own pick
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span
+              className="w-5 h-3.5 rounded-[3px]"
+              style={{ border: `1px dashed ${ROUND_TINT["1st"].fg}88` }}
+            />
+            Acquired (hover for source)
+          </span>
         </div>
       </div>
 
-      {/* Owner summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 mb-5">
-        {ownerSummaries.map((s) => {
-          const dc = s.division ? divColors(s.division) : null;
-          const isHighlighted = ownerFilter === s.name;
-          return (
-            <button
-              key={s.name}
-              onClick={() => setOwnerFilter(ownerFilter === s.name ? "All" : s.name)}
-              className="bg-card border rounded-lg p-3 text-left cursor-pointer transition-all hover:border-[#E8B84B]/50"
-              style={{
-                borderColor: isHighlighted ? "#E8B84B" : "var(--border)",
-                boxShadow: isHighlighted ? "0 0 0 1px #E8B84B" : "none",
-              }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <OwnerAvatar name={s.name} division={s.division} size={24} />
-                <span className="text-[12px] font-semibold text-foreground truncate">{s.name}</span>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        {summary.map((s) => (
+          <div key={s.label} className="bg-card border border-border rounded-[10px] p-3.5 shadow-sm">
+            <div className="text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground mb-2.5">
+              {s.label}
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span
+                className="font-heading text-[34px] font-black leading-none min-w-[40px]"
+                style={{ color: "#E8B84B" }}
+              >
+                {s.value}
+              </span>
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <OwnerAvatar name={s.owner} division={s.division} size={28} />
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <OwnerLink
+                    name={s.owner}
+                    className="text-[13px] font-semibold text-foreground truncate hover:underline underline-offset-2"
+                  >
+                    {s.owner}
+                  </OwnerLink>
+                  <span className="text-[10px] text-muted-foreground">{s.sub}</span>
+                </div>
               </div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="font-heading text-[22px] font-black text-foreground leading-none">{s.total}</span>
-                <span className="text-[10px] text-muted-foreground">picks</span>
-              </div>
-              <div className="flex gap-2 mt-1.5">
-                <span className="text-[10px] text-muted-foreground">{s.own} own</span>
-                {s.acquired > 0 && (
-                  <span className="text-[10px] font-semibold" style={{ color: dc?.text || "#E8B84B" }}>
-                    +{s.acquired} acquired
-                  </span>
-                )}
-              </div>
-            </button>
-          );
-        })}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Traded picks count */}
-      {tradedCount > 0 && (
-        <p className="text-[12px] text-muted-foreground mb-3">
-          <span className="text-[#E8B84B] font-semibold">{tradedCount}</span> of {picks.length} picks have been traded.
-        </p>
-      )}
-
-      {/* Pick ownership grid */}
       <div className="bg-card border border-border rounded-[10px] overflow-hidden">
-        <div className="overflow-auto">
-          <table className="w-full border-collapse" style={{ minWidth: 700 }}>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse" style={{ minWidth: 820 }}>
             <thead>
-              <tr className="border-b-2 border-border bg-background">
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground w-[72px]">Pick</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground">Original Owner</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground">Current Owner</th>
-                <th className="text-right px-4 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground w-[100px]">Salary</th>
-                <th className="text-right px-4 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground w-[80px]">Years</th>
+              <tr className="bg-secondary border-b border-border">
+                <th
+                  rowSpan={2}
+                  className="px-4 py-2.5 text-left align-bottom text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground border-r border-border"
+                >
+                  Team
+                </th>
+                {futureYears.map((y, yi) => (
+                  <th
+                    key={y.year}
+                    colSpan={y.rounds.length}
+                    className="px-3 py-2 text-center font-heading text-[16px] font-extrabold tracking-[0.06em] border-b border-border"
+                    style={{
+                      color: "#E8B84B",
+                      borderRight: yi < futureYears.length - 1 ? "1px solid var(--border)" : "none",
+                    }}
+                  >
+                    {y.year}
+                  </th>
+                ))}
+                <th
+                  rowSpan={2}
+                  className="px-4 py-2.5 text-center align-bottom text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground border-l border-border"
+                >
+                  Total
+                </th>
+              </tr>
+              <tr className="bg-secondary">
+                {futureYears.map((y, yi) =>
+                  y.rounds.map((r, ri) => (
+                    <th
+                      key={`${y.year}-${r}`}
+                      className="px-2.5 py-1.5 pb-2 text-center text-[10px] font-bold tracking-[0.06em] uppercase"
+                      style={{
+                        color: ROUND_TINT[r]?.fg || ROUND_TINT["1st"].fg,
+                        opacity: 0.85,
+                        borderRight: isYearSep(yi, ri, y.rounds),
+                      }}
+                    >
+                      {r}
+                    </th>
+                  ))
+                )}
               </tr>
             </thead>
             <tbody>
-              {filteredPicks.map((p, i) => {
-                const isRoundBreak = i > 0 && p.round !== filteredPicks[i - 1].round;
-                const isEven = i % 2 === 0;
-
+              {ownerRows.map((row, i) => {
+                const dc = row.division ? divColors(row.division) : null;
                 return (
                   <tr
-                    key={p.pickLabel}
-                    className="border-b border-border hover:!bg-[rgba(253,74,72,0.08)] transition-colors"
-                    style={{
-                      background: isEven ? "transparent" : "var(--secondary)",
-                      borderTopWidth: isRoundBreak ? 2 : undefined,
-                    }}
+                    key={row.owner}
+                    className="border-b border-border last:border-b-0 hover:!bg-[rgba(253,74,72,0.08)] transition-colors"
+                    style={{ background: i % 2 === 0 ? "transparent" : "var(--secondary)" }}
                   >
-                    <td className="px-4 py-2.5">
-                      <span className="font-heading text-[14px] font-extrabold text-foreground">{p.pickLabel}</span>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <OwnerLink name={p.originalOwner} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                        <OwnerAvatar name={p.originalOwner} division={p.originalOwnerDivision} size={26} />
-                        <span className="text-[13px] text-foreground">{p.originalOwner}</span>
+                    <td className="px-4 py-2.5 border-r border-border whitespace-nowrap">
+                      <OwnerLink
+                        name={row.owner}
+                        className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+                      >
+                        <OwnerAvatar name={row.owner} division={row.division} size={26} />
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[13px] font-semibold text-foreground">{row.owner}</span>
+                          {dc && (
+                            <span
+                              className="text-[9px] font-semibold tracking-[0.04em] px-[5px] py-[1px] rounded-[3px] self-start"
+                              style={{ background: dc.bg, color: dc.text, border: `1px solid ${dc.border}` }}
+                            >
+                              {row.division}
+                            </span>
+                          )}
+                        </div>
                       </OwnerLink>
                     </td>
-                    <td className="px-4 py-2.5">
-                      <OwnerLink name={p.currentOwner} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                        <OwnerAvatar name={p.currentOwner} division={p.currentOwnerDivision} size={26} />
-                        <span className={`text-[13px] ${p.traded ? "font-semibold" : ""}`} style={{ color: p.traded ? "#E8B84B" : "var(--foreground)" }}>
-                          {p.currentOwner}
-                        </span>
-                        {p.traded && (
-                          <span className="text-[10px] text-muted-foreground italic ml-1">via {p.originalOwner}</span>
-                        )}
-                      </OwnerLink>
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <span className="font-heading text-[13px] font-bold text-foreground">${p.salary}M</span>
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <span className="text-[13px] text-muted-foreground">{p.years}yr</span>
+                    {futureYears.map((y, yi) =>
+                      y.rounds.map((r, ri) => {
+                        const cell = row.picks[y.year]?.[r] || [];
+                        return (
+                          <td
+                            key={`${y.year}-${r}`}
+                            className="px-2 py-2.5 text-center align-middle"
+                            style={{ borderRight: isYearSep(yi, ri, y.rounds) }}
+                          >
+                            {cell.length === 0 ? (
+                              <span className="text-border text-[14px] font-mono">—</span>
+                            ) : (
+                              <div className="inline-flex gap-[3px] flex-wrap justify-center">
+                                {cell.map((p, idx) => (
+                                  <FuturePickPill key={idx} isOwn={p.isOwn} roundLabel={r} fromOwner={p.from} fromDivision={p.fromDivision} />
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })
+                    )}
+                    <td className="px-4 py-2.5 text-center border-l border-border">
+                      <span
+                        className="font-heading text-[20px] font-extrabold"
+                        style={{
+                          color: row.total >= 6 ? "#E8B84B" : row.total <= 3 ? "#FD4A48" : "var(--foreground)",
+                        }}
+                      >
+                        {row.total}
+                      </span>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+        <div className="px-4 py-2.5 border-t border-border bg-secondary/50 text-[11px] text-muted-foreground flex items-center gap-3.5 flex-wrap">
+          <span>Hover any acquired pick for its original owner.</span>
+          <span className="opacity-50">·</span>
+          {allRoundLabels.map(
+            (r) =>
+              ROUND_TINT[r] && (
+                <span key={r} className="inline-flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-sm" style={{ background: ROUND_TINT[r].fg }} />
+                  {r} round
+                </span>
+              )
+          )}
         </div>
       </div>
     </div>
@@ -513,10 +652,7 @@ function FuturePicksView({
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
-type PageView = "history" | "future";
-
 export function DraftsClient({ drafts, ownerAvatars, futurePicksBySeason, futureSeasons }: DraftsClientProps) {
-  const [view, setView] = useState<PageView>("history");
   const seasons = useMemo(() => [...new Set(drafts.map((d) => d.season))].sort().reverse(), [drafts]);
   const [selectedSeason, setSelectedSeason] = useState(seasons[0] || "");
 
@@ -618,9 +754,9 @@ export function DraftsClient({ drafts, ownerAvatars, futurePicksBySeason, future
     });
   }, [draft]);
 
-  if (!draft && view === "history") return null;
+  if (!draft) return null;
 
-  const draftTypeLabel = draft ? (draft.type === "snake" ? "Startup" : "Rookie") : "";
+  const draftTypeLabel = draft.type === "snake" ? "Startup" : "Rookie";
 
   return (
     <OwnerAvatarsProvider avatars={ownerAvatars}>
@@ -634,41 +770,12 @@ export function DraftsClient({ drafts, ownerAvatars, futurePicksBySeason, future
               <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Drafts</h1>
             </div>
             <p className="text-[13px] text-muted-foreground ml-4">
-              {view === "history"
-                ? `${draftTypeLabel} · ${draft?.rounds || 0} Rounds · ${draft?.picks.length || 0} Picks`
-                : `Future draft capital across ${futureSeasons.length} seasons`}
+              {draftTypeLabel} · {draft.rounds} Rounds · {draft.picks.length} Picks
             </p>
           </div>
         </div>
-
-        {/* View toggle */}
-        <div className="flex gap-1.5 mt-4">
-          {(["history", "future"] as const).map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className="px-4 py-1.5 rounded-md cursor-pointer text-[13px] font-heading tracking-[0.04em]"
-              style={{
-                background: view === v ? "#FD4A48" : "transparent",
-                border: `1px solid ${view === v ? "#FD4A48" : "var(--border)"}`,
-                color: view === v ? "#fff" : "var(--muted-foreground)",
-                fontWeight: view === v ? 700 : 500,
-                transition: "all 0.15s",
-              }}
-            >
-              {v === "history" ? "Draft History" : "Future Picks"}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {view === "future" ? (
-        <FuturePicksView
-          futurePicksBySeason={futurePicksBySeason}
-          futureSeasons={futureSeasons}
-        />
-      ) : (
-      <>
       {/* Season filter */}
       <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 max-w-full mb-5">
         <span className="text-[11px] text-muted-foreground font-semibold tracking-[0.06em] uppercase mr-1 flex-shrink-0">Season</span>
@@ -841,8 +948,12 @@ export function DraftsClient({ drafts, ownerAvatars, futurePicksBySeason, future
           </SidebarCard>
         </div>
       </div>
-      </>
-      )}
+
+      {/* Future Draft Picks */}
+      <FutureDraftPicks
+        futurePicksBySeason={futurePicksBySeason}
+        futureSeasons={futureSeasons}
+      />
     </div>
     </OwnerAvatarsProvider>
   );
