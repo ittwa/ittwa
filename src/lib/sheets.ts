@@ -95,6 +95,32 @@ export async function getContracts(): Promise<ContractRow[]> {
     }));
 }
 
+// --- Finances ---
+
+export interface FinanceRow {
+  season: string;
+  owner: string;
+  paid: number;
+  dues: number;
+  winnings: number;
+  notes: string;
+}
+
+export async function getFinances(): Promise<FinanceRow[]> {
+  const rows = await fetchSheet("Finances", "A2:G");
+
+  return rows
+    .filter((row) => row.length >= 6 && row[2])
+    .map((row) => ({
+      season: (row[0] || "").trim(),
+      owner: (row[2] || "").trim(),
+      paid: parseNum(row[3]),
+      dues: parseNum(row[4]),
+      winnings: parseNum(row[5]),
+      notes: (row[6] || "").trim(),
+    }));
+}
+
 // --- Cap Hits ---
 
 export async function getCapHits(): Promise<CapHitRow[]> {

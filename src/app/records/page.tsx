@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import { getTeamsData, buildRosterOwnerMap, getLeagueUsers } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
-import { getScores } from "@/lib/sheets";
+import { getScores, getFinances } from "@/lib/sheets";
+import { OWNER_LAST_NAME_MAP } from "@/lib/config";
 import { computeChampions, computeAllTimeStandings, computeMilestones, computeGameRecords, computeSeasonRecords, computeSeasonSummaries } from "@/lib/historical";
 import { RecordsClient } from "./records-client";
 import { SleeperMatchup } from "@/types/sleeper";
@@ -10,11 +11,12 @@ import { SleeperMatchup } from "@/types/sleeper";
 export const revalidate = 300;
 
 export default async function RecordsPage() {
-  const [teamsData, rosterOwnerMap, scores, users] = await Promise.all([
+  const [teamsData, rosterOwnerMap, scores, users, finances] = await Promise.all([
     getTeamsData(),
     buildRosterOwnerMap(),
     getScores(),
     getLeagueUsers(),
+    getFinances(),
   ]);
 
   const ownerAvatars: Record<string, string> = {};
@@ -44,6 +46,26 @@ export default async function RecordsPage() {
   const seasonSummaries = computeSeasonSummaries(scores);
   const availableSeasons = [...new Set(scores.map((s) => s.season))].filter(Boolean).sort().reverse();
 
+  const ownerFinancials = (() => {
+    const map = new Map<string, { seasons: number; dues: number; winnings: number }>();
+    for (const f of finances) {
+      const owner = OWNER_LAST_NAME_MAP[f.owner] || f.owner;
+      if (!map.has(owner)) map.set(owner, { seasons: 0, dues: 0, winnings: 0 });
+      const agg = map.get(owner)!;
+      agg.seasons++;
+      agg.dues += f.dues;
+      agg.winnings += f.winnings;
+    }
+    return [...map.entries()].map(([owner, agg]) => ({
+      owner,
+      seasons: agg.seasons,
+      totalDues: agg.dues,
+      totalWinnings: agg.winnings,
+      net: agg.winnings - agg.dues,
+      roi: agg.dues > 0 ? ((agg.winnings - agg.dues) / agg.dues) * 100 : 0,
+    }));
+  })();
+
   return (
     <RecordsClient
       matchupsArray={matchupsArray}
@@ -59,6 +81,7 @@ export default async function RecordsPage() {
       seasonSummaries={seasonSummaries}
       availableSeasons={availableSeasons}
       ownerAvatars={ownerAvatars}
+      ownerFinancials={ownerFinancials}
     />
   );
 }
