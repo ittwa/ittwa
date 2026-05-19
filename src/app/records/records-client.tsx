@@ -222,7 +222,6 @@ export function RecordsClient({
   const selectedSummary = !showAllTime ? seasonSummaries[activeTab] : null;
 
   const maxPlayoffs = Math.max(...allTimeStandings.map((s) => s.playoffs), 1);
-  const maxRings = ringCounts[0]?.count || 1;
 
   return (
     <OwnerAvatarsProvider avatars={ownerAvatars}>
@@ -251,7 +250,6 @@ export function RecordsClient({
               {[
                 [String(champions.length), "Seasons"],
                 [String(allTimeStandings.length), "Owners"],
-                [String(maxRings), `${ringCounts[0]?.name} Rings`],
               ].map(([val, lbl]) => (
                 <div key={lbl} className="text-right">
                   <div className="font-heading text-[28px] font-extrabold text-gold leading-none">
