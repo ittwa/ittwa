@@ -11,6 +11,7 @@ import {
   SeasonSummary,
 } from "@/lib/historical";
 import { cn } from "@/lib/utils";
+import { PAYOUTS } from "@/lib/config";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 
@@ -40,13 +41,16 @@ interface RecordsClientProps {
   ownerAvatars: Record<string, string>;
 }
 
-function SectionLabel({ label }: { label: string }) {
+function SectionLabel({ label, right }: { label: string; right?: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2.5 mb-4">
-      <span className="w-1 h-5 rounded-sm shrink-0 bg-gold" />
-      <span className="font-heading text-xl font-extrabold uppercase tracking-widest">
-        {label}
-      </span>
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-2.5">
+        <span className="w-1 h-5 rounded-sm shrink-0 bg-gold" />
+        <span className="font-heading text-xl font-extrabold uppercase tracking-widest">
+          {label}
+        </span>
+      </div>
+      {right}
     </div>
   );
 }
@@ -92,6 +96,7 @@ function OwnerAvatar({ name, size = 24 }: { name: string; size?: number }) {
 
 type SortKey = "owner" | "wins" | "losses" | "winPct" | "pf" | "rings" | "playoffs";
 type HardwareSortKey = "owner" | "golds" | "silvers" | "bronzes" | "total";
+type PayoutSortKey = "owner" | "entries" | "earnings" | "net" | "roi";
 
 export function RecordsClient({
   matchupsArray,
@@ -113,6 +118,8 @@ export function RecordsClient({
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [hwSortKey, setHwSortKey] = useState<HardwareSortKey>("total");
   const [hwSortDir, setHwSortDir] = useState<"asc" | "desc">("desc");
+  const [payoutSortKey, setPayoutSortKey] = useState<PayoutSortKey>("net");
+  const [payoutSortDir, setPayoutSortDir] = useState<"asc" | "desc">("desc");
 
   const showAllTime = activeTab === "all-time";
   const showCurrentSeason = activeTab === season;
@@ -172,6 +179,58 @@ export function RecordsClient({
     if (hwSortKey === k) setHwSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setHwSortKey(k); setHwSortDir("desc"); }
   }
+
+  const payoutData = useMemo(() => {
+    const entryFee = 150;
+    const seasonCount = availableSeasons.length;
+
+    const rows = allTimeStandings.map(standing => {
+      const owner = standing.owner;
+      const entries = entryFee * seasonCount;
+      let earnings = 0;
+
+      for (const c of champions) {
+        if (c.champion === owner) earnings += PAYOUTS.first;
+        if (c.runnerUp === owner) earnings += PAYOUTS.second;
+        if (c.third === owner) earnings += PAYOUTS.third;
+      }
+
+      for (const c of champions) {
+        const summary = seasonSummaries[c.year];
+        const leader = summary?.leaders.find(l => l.label === "Points Leader");
+        if (leader?.name === owner) earnings += PAYOUTS.pointsLeader;
+      }
+
+      const net = earnings - entries;
+      const roi = entries > 0 ? (net / entries) * 100 : 0;
+      return { owner, entries, earnings, net, roi };
+    });
+
+    rows.sort((a, b) => {
+      let cmp: number;
+      if (payoutSortKey === "owner") cmp = a.owner.localeCompare(b.owner);
+      else cmp = a[payoutSortKey] - b[payoutSortKey];
+      if (cmp === 0) cmp = b.net - a.net;
+      return payoutSortDir === "asc" ? cmp : -cmp;
+    });
+
+    const totals = rows.reduce((acc, r) => ({
+      entries: acc.entries + r.entries,
+      earnings: acc.earnings + r.earnings,
+      net: acc.net + r.net,
+    }), { entries: 0, earnings: 0, net: 0 });
+
+    const maxAbsNet = Math.max(...rows.map(r => Math.abs(r.net)), 1);
+
+    return { rows, totals, maxAbsNet };
+  }, [allTimeStandings, champions, seasonSummaries, availableSeasons, payoutSortKey, payoutSortDir]);
+
+  function onPayoutSort(k: PayoutSortKey) {
+    if (payoutSortKey === k) setPayoutSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setPayoutSortKey(k); setPayoutSortDir(k === "owner" ? "asc" : "desc"); }
+  }
+
+  const fmtMoney = (n: number) => (n < 0 ? "−" : "") + "$" + Math.abs(n).toLocaleString("en-US");
 
   const sortedAllTime = useMemo(() => {
     const copy = [...allTimeStandings];
@@ -587,6 +646,127 @@ export function RecordsClient({
                   </table>
                 </div>
               </RCard>
+            </div>
+            {/* Payouts & Earnings */}
+            <div>
+              <SectionLabel
+                label="Payouts & Earnings"
+                right={
+                  <div className="flex gap-4 items-baseline">
+                    <div className="text-right">
+                      <div className="text-[9px] text-muted-foreground tracking-widest uppercase font-bold">Dues / yr</div>
+                      <div className="font-mono text-sm font-semibold">$150</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[9px] text-muted-foreground tracking-widest uppercase font-bold">Payouts</div>
+                      <div className="font-mono text-xs text-muted-foreground">
+                        <span className="text-gold">${PAYOUTS.first.toLocaleString()}</span>
+                        {" / "}
+                        <span className="text-slate-400">${PAYOUTS.second}</span>
+                        {" / "}
+                        <span className="text-orange-400">${PAYOUTS.third}</span>
+                        {" / "}
+                        <span className="text-muted-foreground">${PAYOUTS.pointsLeader}</span>
+                      </div>
+                    </div>
+                  </div>
+                }
+              />
+              <RCard>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr>
+                        {([["owner", "Owner", "text-left"], ["entries", "Entries", "text-right"], ["earnings", "Earnings", "text-right"], ["net", "Net P/L", "text-right"], ["roi", "ROI", "text-right"]] as [PayoutSortKey, string, string][]).map(([k, label, align]) => (
+                          <th
+                            key={k}
+                            onClick={() => onPayoutSort(k)}
+                            className={cn(
+                              "px-3.5 py-2.5 text-[10px] font-bold tracking-widest uppercase cursor-pointer select-none border-b border-border bg-secondary whitespace-nowrap",
+                              payoutSortKey === k ? "text-gold" : "text-muted-foreground",
+                              align
+                            )}
+                          >
+                            {label}{payoutSortKey === k && <span className="ml-1">{payoutSortDir === "asc" ? "↑" : "↓"}</span>}
+                          </th>
+                        ))}
+                        <th className="px-3.5 py-2.5 text-[10px] font-bold tracking-widest uppercase text-muted-foreground border-b border-border bg-secondary whitespace-nowrap text-center">
+                          P/L Chart
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payoutData.rows.map((r, i) => {
+                        const positive = r.net > 0;
+                        const netColor = r.net > 0 ? "#4ade80" : r.net < 0 ? "#FD4A48" : undefined;
+                        const widthPct = (Math.abs(r.net) / payoutData.maxAbsNet) * 50;
+                        return (
+                          <tr
+                            key={r.owner}
+                            className="border-b border-border/50 last:border-0"
+                            style={{ background: i % 2 === 1 ? "var(--secondary)" : undefined }}
+                          >
+                            <td className="px-3.5 py-2.5">
+                              <OwnerLink name={r.owner} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+                                <span className="text-[11px] text-muted-foreground font-mono min-w-[16px]">{i + 1}</span>
+                                <OwnerAvatar name={r.owner} />
+                                <span className={cn("text-[13px]", positive ? "font-semibold" : "")}>{r.owner}</span>
+                              </OwnerLink>
+                            </td>
+                            <td className="px-3.5 py-2.5 text-right font-mono text-[13px] text-muted-foreground">
+                              ${r.entries.toLocaleString("en-US")}
+                            </td>
+                            <td className="px-3.5 py-2.5 text-right font-mono text-[13px]">
+                              ${r.earnings.toLocaleString("en-US")}
+                            </td>
+                            <td className="px-3.5 py-2.5 text-right font-mono text-sm font-bold" style={{ color: netColor }}>
+                              {fmtMoney(r.net)}
+                            </td>
+                            <td className="px-3.5 py-2.5 text-right font-mono text-[13px]" style={{ color: netColor }}>
+                              {r.roi > 0 ? "+" : ""}{r.roi.toFixed(0)}%
+                            </td>
+                            <td className="px-3.5 py-2.5">
+                              <div className="relative h-2 mx-auto rounded-sm" style={{ width: 200, background: "#1a1a1a" }}>
+                                <div className="absolute top-[-2px] bottom-[-2px] left-1/2" style={{ width: 1, background: "#333" }} />
+                                {r.net !== 0 && (
+                                  <div
+                                    className="absolute top-0 bottom-0 rounded-sm"
+                                    style={{
+                                      ...(positive
+                                        ? { left: "50%", width: `${widthPct}%`, background: "#4ade80" }
+                                        : { right: "50%", width: `${widthPct}%`, background: "#FD4A48" }),
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-secondary border-t-2 border-border">
+                        <td className="px-3.5 py-2.5 text-[10px] font-bold tracking-widest uppercase text-muted-foreground">League Totals</td>
+                        <td className="px-3.5 py-2.5 text-right font-mono text-[13px] text-muted-foreground font-semibold">
+                          ${payoutData.totals.entries.toLocaleString("en-US")}
+                        </td>
+                        <td className="px-3.5 py-2.5 text-right font-mono text-[13px] font-semibold">
+                          ${payoutData.totals.earnings.toLocaleString("en-US")}
+                        </td>
+                        <td className="px-3.5 py-2.5 text-right font-mono text-[13px] text-muted-foreground font-semibold">
+                          {fmtMoney(payoutData.totals.net)}
+                        </td>
+                        <td colSpan={2} className="px-3.5 py-2.5 text-left text-[11px] text-muted-foreground italic">
+                          {payoutData.totals.net < 0 && `${season} pot (${fmtMoney(-payoutData.totals.net)}) still in play`}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </RCard>
+              <div className="text-[11px] text-muted-foreground mt-2.5 pl-1">
+                Dues: $150/season × {availableSeasons.length} seasons. Payouts cover {champions.length} completed season{champions.length !== 1 ? "s" : ""}; {season} is still in progress.
+              </div>
             </div>
           </>
         )}
