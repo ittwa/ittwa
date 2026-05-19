@@ -9,9 +9,9 @@ export const metadata: Metadata = {
     "Contract dynasty fantasy football league, founded 2014. 12 teams, too many opinions.",
   icons: {
     icon: [
-      { url: "/logo.svg", type: "image/svg+xml" },
+      { url: "/logo.png", type: "image/png" },
     ],
-    apple: "/logo.svg",
+    apple: "/logo.png",
   },
 };
 
