@@ -23,7 +23,7 @@ const NAV_STRUCTURE: NavGroup[] = [
     ],
   },
   {
-    type: "dropdown", label: "Roster Mgmt", panelLabel: "Roster Management",
+    type: "dropdown", label: "Roster Management", panelLabel: "Roster Management",
     items: [
       { href: "/contracts", label: "Contracts", icon: "doc", desc: "Player deals & extensions" },
       { href: "/cap-hits", label: "Cap Hits", icon: "wallet", desc: "Salary cap, by team" },
@@ -40,7 +40,7 @@ const NAV_STRUCTURE: NavGroup[] = [
     ],
   },
   {
-    type: "dropdown", label: "Teams", panelLabel: "League", panelCaption: "12 owners",
+    type: "dropdown", label: "League", panelLabel: "League", panelCaption: "12 owners",
     items: [
       { href: "/teams", label: "All Teams", icon: "users", desc: "Owner profiles & rosters" },
       { href: "/constitution", label: "Constitution", icon: "scroll", desc: "League bylaws & rules" },
@@ -237,12 +237,12 @@ function DesktopDropdownItem({
       <button
         onClick={onToggle}
         className={cn(
-          "flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-sm font-semibold transition-colors border cursor-pointer",
+          "flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-sm font-semibold transition-all duration-150 cursor-pointer hover:scale-105",
           isActive
-            ? "bg-ittwa/[0.08] border-ittwa/[0.28] text-ittwa"
+            ? "bg-ittwa/[0.08] text-ittwa"
             : isOpen
-              ? "bg-secondary border-border text-foreground"
-              : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
+              ? "bg-secondary text-foreground"
+              : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
         )}
       >
         {group.label}
@@ -289,7 +289,7 @@ export function Nav() {
   }, [pathname]);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className="sticky top-0 z-50 mb-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex h-[72px] items-center justify-between gap-7">
           {/* Logo lockup */}
@@ -310,7 +310,7 @@ export function Nav() {
           <div className="hidden lg:block w-px self-stretch bg-border mx-1" />
 
           {/* Desktop nav */}
-          <div ref={desktopNavRef} className="hidden lg:flex items-center gap-0.5 flex-1">
+          <div ref={desktopNavRef} className="hidden lg:flex items-center gap-2 flex-1">
             {NAV_STRUCTURE.map((group) => {
               if (group.type === "dropdown") {
                 return (
@@ -329,10 +329,10 @@ export function Nav() {
                   key={group.href}
                   href={group.href}
                   className={cn(
-                    "px-3.5 py-2 rounded-[10px] text-sm font-semibold transition-colors border",
+                    "px-3.5 py-2 rounded-[10px] text-sm font-semibold transition-all duration-150 hover:scale-105",
                     pathname === group.href
-                      ? "bg-ittwa/[0.08] border-ittwa/[0.28] text-ittwa"
-                      : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
+                      ? "bg-ittwa/[0.08] text-ittwa"
+                      : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
                   )}
                 >
                   {group.label}
