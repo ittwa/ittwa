@@ -351,7 +351,7 @@ export function Nav() {
           <div className="hidden lg:block w-px self-stretch bg-border" />
 
           {/* Desktop nav */}
-          <div className="hidden lg:flex items-center justify-evenly flex-1">
+          <div className="hidden lg:flex items-center justify-center gap-1 flex-1">
             {NAV_STRUCTURE.map((group) => {
               if (group.type === "dropdown") {
                 return (
