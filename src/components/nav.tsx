@@ -178,7 +178,7 @@ function DesktopNavPanel({
 
   return (
     <div
-      className="absolute top-full left-0 z-50 w-[380px] bg-popover border border-border rounded-[14px] overflow-hidden"
+      className="absolute top-full left-0 z-50 w-[380px] bg-popover border border-border rounded-[14px]"
       style={{ marginTop: 12, boxShadow: "0 20px 48px rgba(20,16,8,0.14), 0 4px 12px rgba(20,16,8,0.06)" }}
     >
       <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5">
@@ -193,7 +193,7 @@ function DesktopNavPanel({
         )}
       </div>
       <div className="px-3 pb-3">
-        <div className="bg-popover border border-border rounded-xl overflow-hidden">
+        <div className="bg-popover border border-border rounded-xl">
           {items.map((item, i) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             const isTeamsRow = item.href === "/teams" && item.label === "All Teams";
