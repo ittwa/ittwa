@@ -314,16 +314,8 @@ export function Nav() {
         {/* Mobile nav */}
         {mobileOpen && (
           <div className="lg:hidden border-t border-border overflow-y-auto" style={{ maxHeight: "calc(100vh - 56px)" }}>
-            {/* Search */}
-            <div className="px-4 pt-3.5 pb-3">
-              <div className="flex items-center gap-2.5 bg-card border border-border rounded-xl px-3.5 py-3">
-                <MobileNavIcon name="search" size={16} color="var(--muted-foreground)" />
-                <span className="text-sm text-muted-foreground">Search owners, weeks, records…</span>
-              </div>
-            </div>
-
             {/* Sections as cards */}
-            <div className="px-4 pb-6">
+            <div className="px-4 pt-3.5 pb-6">
               {MOBILE_NAV_SECTIONS.map((sec, si) => (
                 <div key={si} style={{ marginTop: si === 0 ? 0 : 18 }}>
                   {sec.label && (
