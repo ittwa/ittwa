@@ -1,45 +1,51 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "./theme-provider";
-import { ALL_OWNERS } from "@/lib/config";
 
-type NavLink = { href: string; label: string };
+type NavLink = { href: string; label: string; icon?: string; desc?: string };
 type NavGroup =
-  | { type: "link"; href: string; label: string; muted?: boolean; teamsDropdown?: boolean }
-  | { type: "dropdown"; label: string; items: NavLink[] };
+  | { type: "link"; href: string; label: string }
+  | { type: "dropdown"; label: string; panelLabel: string; panelCaption?: string; items: NavLink[] };
 
 const NAV_STRUCTURE: NavGroup[] = [
   { type: "link", href: "/", label: "Home" },
   {
-    type: "dropdown", label: "Season", items: [
-      { href: "/standings", label: "Standings" },
-      { href: "/schedule", label: "Schedule" },
-      { href: "/matchups", label: "Matchups" },
-      { href: "/power-rankings", label: "Power Rankings" },
+    type: "dropdown", label: "Season", panelLabel: "Season", panelCaption: "2026",
+    items: [
+      { href: "/standings", label: "Standings", icon: "trophy", desc: "League table & playoff line" },
+      { href: "/schedule", label: "Schedule", icon: "calendar", desc: "All 14 weeks + playoffs" },
+      { href: "/matchups", label: "Matchups", icon: "swords", desc: "Head-to-head, this week" },
+      { href: "/power-rankings", label: "Power Rankings", icon: "bolt", desc: "Weekly tiers & movement" },
     ],
   },
   {
-    type: "dropdown", label: "Roster Mgmt", items: [
-      { href: "/contracts", label: "Contracts" },
-      { href: "/cap-hits", label: "Cap Hits" },
-      { href: "/free-agents", label: "Free Agents" },
-      { href: "/trades", label: "Trades" },
-      { href: "/drafts", label: "Drafts" },
+    type: "dropdown", label: "Roster Mgmt", panelLabel: "Roster Management",
+    items: [
+      { href: "/contracts", label: "Contracts", icon: "doc", desc: "Player deals & extensions" },
+      { href: "/cap-hits", label: "Cap Hits", icon: "wallet", desc: "Salary cap, by team" },
+      { href: "/free-agents", label: "Free Agents", icon: "search", desc: "Available players" },
+      { href: "/trades", label: "Trades", icon: "swap", desc: "Recent deals & history" },
+      { href: "/drafts", label: "Drafts", icon: "list", desc: "Rookie & startup drafts" },
     ],
   },
   {
-    type: "dropdown", label: "History", items: [
-      { href: "/records", label: "Records" },
-      { href: "/rivalry", label: "Rivalry" },
+    type: "dropdown", label: "History", panelLabel: "History", panelCaption: "12 seasons",
+    items: [
+      { href: "/records", label: "Records", icon: "medal", desc: "All-time leaderboards" },
+      { href: "/rivalry", label: "Rivalry", icon: "flame", desc: "Head-to-head over time" },
     ],
   },
-  { type: "link", href: "/teams", label: "Teams", teamsDropdown: true },
-  { type: "link", href: "/constitution", label: "Constitution", muted: true },
+  {
+    type: "dropdown", label: "Teams", panelLabel: "League", panelCaption: "12 owners",
+    items: [
+      { href: "/teams", label: "All Teams", icon: "users", desc: "Owner profiles & rosters" },
+      { href: "/constitution", label: "Constitution", icon: "scroll", desc: "League bylaws & rules" },
+    ],
+  },
 ];
 
 interface MobileNavItem { href: string; label: string; icon: string; desc: string }
@@ -94,15 +100,7 @@ function ThemeToggle() {
   );
 }
 
-function ChevronDown() {
-  return (
-    <svg className="h-3 w-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-    </svg>
-  );
-}
-
-function MobileNavIcon({ name, size = 20, color = "currentColor" }: { name: string; size?: number; color?: string }) {
+function NavIcon({ name, size = 20, color = "currentColor" }: { name: string; size?: number; color?: string }) {
   const p = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: 1.75, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   switch (name) {
     case "home":
@@ -135,112 +133,136 @@ function MobileNavIcon({ name, size = 20, color = "currentColor" }: { name: stri
       return <svg {...p}><path d="M6 3h12a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v0"/><path d="M6 9v9a3 3 0 0 0 6 0v-1h6a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3H9"/></svg>;
     case "chevron":
       return <svg {...p}><path d="M9 6l6 6-6 6"/></svg>;
+    case "football":
+      return <svg {...p}><ellipse cx="12" cy="12" rx="9" ry="6" transform="rotate(-30 12 12)" fill={color} stroke="none"/><path d="M8 12h8M10 10v4M12 9v6M14 10v4" stroke="#0a0a0a" strokeWidth="1.5"/></svg>;
     default:
       return null;
   }
 }
 
-function useHoverDelay(enterMs = 150, leaveMs = 300) {
-  const [open, setOpen] = useState(false);
-  const enterTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const leaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const onEnter = useCallback(() => {
-    clearTimeout(leaveTimer.current);
-    enterTimer.current = setTimeout(() => setOpen(true), enterMs);
-  }, [enterMs]);
-  const onLeave = useCallback(() => {
-    clearTimeout(enterTimer.current);
-    leaveTimer.current = setTimeout(() => setOpen(false), leaveMs);
-  }, [leaveMs]);
-  return { open, onEnter, onLeave };
-}
-
-function NavDropdownPanel({ items, pathname }: { items: NavLink[]; pathname: string }) {
+function DesktopNavPanel({
+  panelLabel, panelCaption, items, pathname, onNavigate,
+}: {
+  panelLabel: string;
+  panelCaption?: string;
+  items: NavLink[];
+  pathname: string;
+  onNavigate: () => void;
+}) {
   return (
-    <div className="absolute top-full left-0 pt-1 z-50">
-      <div className="w-48 rounded-lg border border-border bg-popover shadow-md p-2">
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "block px-3 py-2 rounded-md text-sm transition-colors",
-              pathname === item.href
-                ? "bg-ittwa/10 text-ittwa font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent"
-            )}
-          >
-            {item.label}
-          </Link>
-        ))}
+    <div
+      className="absolute top-full left-0 z-50 w-[380px] bg-popover border border-border rounded-[14px] overflow-hidden"
+      style={{ marginTop: 12, boxShadow: "0 20px 48px rgba(20,16,8,0.14), 0 4px 12px rgba(20,16,8,0.06)" }}
+    >
+      <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5">
+        <div className="flex items-center gap-2">
+          <span className="w-[3px] h-3.5 rounded-sm bg-[#E8B84B]" />
+          <span className="font-heading text-[13px] font-extrabold tracking-[0.14em] uppercase text-muted-foreground">
+            {panelLabel}
+          </span>
+        </div>
+        {panelCaption && (
+          <span className="text-[11px] text-muted-foreground font-mono">{panelCaption}</span>
+        )}
+      </div>
+      <div className="px-3 pb-3">
+        <div className="bg-popover border border-border rounded-xl overflow-hidden">
+          {items.map((item, i) => {
+            const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onNavigate}
+                className="flex items-center gap-3.5 no-underline transition-colors hover:bg-accent/50"
+                style={{
+                  padding: "12px 13px",
+                  minHeight: 56,
+                  background: active ? "rgba(253,74,72,0.08)" : undefined,
+                  borderBottom: i < items.length - 1 ? "1px solid var(--border)" : "none",
+                }}
+              >
+                {item.icon && (
+                  <div
+                    className="flex items-center justify-center shrink-0 rounded-[9px]"
+                    style={{
+                      width: 36, height: 36,
+                      background: active ? "rgba(253,74,72,0.10)" : "var(--secondary)",
+                      border: `1px solid ${active ? "rgba(253,74,72,0.28)" : "var(--border)"}`,
+                    }}
+                  >
+                    <NavIcon name={item.icon} size={17} color={active ? "#FD4A48" : "var(--muted-foreground)"} />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className={cn(
+                    "text-sm tracking-[-0.005em]",
+                    active ? "font-semibold text-ittwa" : "font-medium text-foreground"
+                  )}>
+                    {item.label}
+                  </div>
+                  {item.desc && (
+                    <div
+                      className="text-xs mt-0.5 truncate"
+                      style={{ color: active ? "rgba(253,74,72,0.7)" : "var(--muted-foreground)" }}
+                    >
+                      {item.desc}
+                    </div>
+                  )}
+                </div>
+                <NavIcon name="chevron" size={13} color={active ? "#FD4A48" : "var(--muted-foreground)"} />
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
 
-function TeamsDropdownPanel() {
-  return (
-    <div className="absolute top-full left-0 pt-1 z-50">
-      <div className="w-48 rounded-lg border border-border bg-popover shadow-md p-2">
-        <Link
-          href="/teams"
-          className="block px-3 py-2 rounded-md text-sm font-medium text-ittwa hover:bg-accent transition-colors"
-        >
-          All Teams
-        </Link>
-        <div className="border-t border-border my-1" />
-        {[...ALL_OWNERS].sort((a, b) => a.localeCompare(b)).map((owner) => (
-          <Link
-            key={owner}
-            href={`/teams/${encodeURIComponent(owner)}`}
-            className="block px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
-          >
-            {owner}
-          </Link>
-        ))}
-      </div>
-    </div>
+function DesktopDropdownItem({
+  group, pathname, isOpen, onToggle, onNavigate,
+}: {
+  group: Extract<NavGroup, { type: "dropdown" }>;
+  pathname: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  onNavigate: () => void;
+}) {
+  const isActive = group.items.some((item) =>
+    item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
   );
-}
-
-function DesktopDropdownItem({ group, pathname }: { group: Extract<NavGroup, { type: "dropdown" }>; pathname: string }) {
-  const { open, onEnter, onLeave } = useHoverDelay();
-  const isActive = group.items.some((item) => pathname === item.href);
   return (
-    <div className="relative" onMouseEnter={onEnter} onMouseLeave={onLeave}>
+    <div className="relative">
       <button
+        onClick={onToggle}
         className={cn(
-          "px-3 py-1.5 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-1",
+          "flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-sm font-semibold transition-colors border cursor-pointer",
           isActive
-            ? "bg-ittwa/10 text-ittwa"
-            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            ? "bg-ittwa/[0.08] border-ittwa/[0.28] text-ittwa"
+            : isOpen
+              ? "bg-secondary border-border text-foreground"
+              : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
         )}
       >
         {group.label}
-        <ChevronDown />
+        <svg
+          className={cn("opacity-50 transition-transform duration-100", isOpen && "rotate-180")}
+          width={11} height={11} viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+        >
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
       </button>
-      {open && <NavDropdownPanel items={group.items} pathname={pathname} />}
-    </div>
-  );
-}
-
-function DesktopTeamsItem({ pathname }: { pathname: string }) {
-  const { open, onEnter, onLeave } = useHoverDelay();
-  return (
-    <div className="relative" onMouseEnter={onEnter} onMouseLeave={onLeave}>
-      <Link
-        href="/teams"
-        className={cn(
-          "px-3 py-1.5 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-1",
-          pathname.startsWith("/teams")
-            ? "bg-ittwa/10 text-ittwa"
-            : "text-muted-foreground hover:text-foreground hover:bg-accent"
-        )}
-      >
-        Teams
-        <ChevronDown />
-      </Link>
-      {open && <TeamsDropdownPanel />}
+      {isOpen && (
+        <DesktopNavPanel
+          panelLabel={group.panelLabel}
+          panelCaption={group.panelCaption}
+          items={group.items}
+          pathname={pathname}
+          onNavigate={onNavigate}
+        />
+      )}
     </div>
   );
 }
@@ -248,42 +270,69 @@ function DesktopTeamsItem({ pathname }: { pathname: string }) {
 export function Nav() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openPanel, setOpenPanel] = useState<string | null>(null);
+  const desktopNavRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (openPanel && desktopNavRef.current && !desktopNavRef.current.contains(e.target as Node)) {
+        setOpenPanel(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openPanel]);
+
+  useEffect(() => {
+    setOpenPanel(null);
+    setMobileOpen(false);
+  }, [pathname]);
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto max-w-7xl px-4">
-        <div className="flex h-14 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/logo.png"
-              alt="ITTWA"
-              width={32}
-              height={32}
-              unoptimized
-            />
-            <span className="font-bold text-lg hidden sm:inline">ITTWA</span>
+        <div className="flex h-[72px] items-center justify-between gap-7">
+          {/* Logo lockup */}
+          <Link href="/" className="flex items-center gap-3 shrink-0">
+            <div
+              className="flex items-center justify-center rounded-[10px] bg-ittwa"
+              style={{ width: 36, height: 36, boxShadow: "0 6px 16px rgba(253,74,72,0.28)" }}
+            >
+              <NavIcon name="football" size={20} color="#fff" />
+            </div>
+            <div>
+              <div className="font-heading font-extrabold text-[19px] tracking-[0.04em] leading-none">ITTWA</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5 tracking-[0.14em] uppercase font-bold">S13 · 2026</div>
+            </div>
           </Link>
 
+          {/* Divider */}
+          <div className="hidden lg:block w-px self-stretch bg-border mx-1" />
+
           {/* Desktop nav */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div ref={desktopNavRef} className="hidden lg:flex items-center gap-0.5 flex-1">
             {NAV_STRUCTURE.map((group) => {
               if (group.type === "dropdown") {
-                return <DesktopDropdownItem key={group.label} group={group} pathname={pathname} />;
-              }
-              if (group.teamsDropdown) {
-                return <DesktopTeamsItem key={group.href} pathname={pathname} />;
+                return (
+                  <DesktopDropdownItem
+                    key={group.label}
+                    group={group}
+                    pathname={pathname}
+                    isOpen={openPanel === group.label}
+                    onToggle={() => setOpenPanel(openPanel === group.label ? null : group.label)}
+                    onNavigate={() => setOpenPanel(null)}
+                  />
+                );
               }
               return (
                 <Link
                   key={group.href}
                   href={group.href}
                   className={cn(
-                    "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                    "px-3.5 py-2 rounded-[10px] text-sm font-semibold transition-colors border",
                     pathname === group.href
-                      ? "bg-ittwa/10 text-ittwa"
-                      : group.muted
-                        ? "text-muted-foreground hover:text-foreground hover:bg-accent"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      ? "bg-ittwa/[0.08] border-ittwa/[0.28] text-ittwa"
+                      : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
                   )}
                 >
                   {group.label}
@@ -293,7 +342,7 @@ export function Nav() {
           </div>
 
           {/* Right side: theme toggle + mobile hamburger */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2.5 shrink-0">
             <ThemeToggle />
             <button
               className="lg:hidden p-2 text-muted-foreground hover:text-foreground"
@@ -350,7 +399,7 @@ export function Nav() {
                               border: `1px solid ${active ? "rgba(253,74,72,0.4)" : "var(--border)"}`,
                             }}
                           >
-                            <MobileNavIcon name={item.icon} size={18} color={active ? "#FD4A48" : "#a0a0a0"} />
+                            <NavIcon name={item.icon} size={18} color={active ? "#FD4A48" : "#a0a0a0"} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className={cn("text-[15px]", active ? "font-semibold text-ittwa" : "font-medium text-foreground")}>
@@ -363,7 +412,7 @@ export function Nav() {
                               {item.desc}
                             </div>
                           </div>
-                          <MobileNavIcon name="chevron" size={14} color={active ? "#FD4A48" : "#444"} />
+                          <NavIcon name="chevron" size={14} color={active ? "#FD4A48" : "#444"} />
                         </Link>
                       );
                     })}
