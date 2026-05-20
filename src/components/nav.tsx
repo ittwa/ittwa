@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "./theme-provider";
+import { ALL_OWNERS } from "@/lib/config";
 
 type NavLink = { href: string; label: string; icon?: string; desc?: string };
 type NavGroup =
@@ -140,6 +142,28 @@ function NavIcon({ name, size = 20, color = "currentColor" }: { name: string; si
   }
 }
 
+function TeamsSubmenu({ onNavigate }: { onNavigate: () => void }) {
+  return (
+    <div
+      className="absolute left-full top-0 z-50 ml-2 w-48 bg-popover border border-border rounded-xl overflow-hidden"
+      style={{ boxShadow: "0 12px 32px rgba(20,16,8,0.12), 0 2px 8px rgba(20,16,8,0.06)" }}
+    >
+      <div className="p-2 max-h-80 overflow-y-auto">
+        {[...ALL_OWNERS].sort((a, b) => a.localeCompare(b)).map((owner) => (
+          <Link
+            key={owner}
+            href={`/teams/${encodeURIComponent(owner)}`}
+            onClick={onNavigate}
+            className="block px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+          >
+            {owner}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DesktopNavPanel({
   panelLabel, panelCaption, items, pathname, onNavigate,
 }: {
@@ -149,6 +173,9 @@ function DesktopNavPanel({
   pathname: string;
   onNavigate: () => void;
 }) {
+  const [teamsHover, setTeamsHover] = useState(false);
+  const teamsTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
   return (
     <div
       className="absolute top-full left-0 z-50 w-[380px] bg-popover border border-border rounded-[14px] overflow-hidden"
@@ -169,49 +196,62 @@ function DesktopNavPanel({
         <div className="bg-popover border border-border rounded-xl overflow-hidden">
           {items.map((item, i) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            const isTeamsRow = item.href === "/teams" && item.label === "All Teams";
             return (
-              <Link
+              <div
                 key={item.href}
-                href={item.href}
-                onClick={onNavigate}
-                className="flex items-center gap-3.5 no-underline transition-colors hover:bg-accent/50"
-                style={{
-                  padding: "12px 13px",
-                  minHeight: 56,
-                  background: active ? "rgba(253,74,72,0.08)" : undefined,
-                  borderBottom: i < items.length - 1 ? "1px solid var(--border)" : "none",
-                }}
+                className="relative"
+                onMouseEnter={isTeamsRow ? () => {
+                  clearTimeout(teamsTimer.current);
+                  setTeamsHover(true);
+                } : undefined}
+                onMouseLeave={isTeamsRow ? () => {
+                  teamsTimer.current = setTimeout(() => setTeamsHover(false), 200);
+                } : undefined}
               >
-                {item.icon && (
-                  <div
-                    className="flex items-center justify-center shrink-0 rounded-[9px]"
-                    style={{
-                      width: 36, height: 36,
-                      background: active ? "rgba(253,74,72,0.10)" : "var(--secondary)",
-                      border: `1px solid ${active ? "rgba(253,74,72,0.28)" : "var(--border)"}`,
-                    }}
-                  >
-                    <NavIcon name={item.icon} size={17} color={active ? "#FD4A48" : "var(--muted-foreground)"} />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className={cn(
-                    "text-sm tracking-[-0.005em]",
-                    active ? "font-semibold text-ittwa" : "font-medium text-foreground"
-                  )}>
-                    {item.label}
-                  </div>
-                  {item.desc && (
+                <Link
+                  href={item.href}
+                  onClick={onNavigate}
+                  className="flex items-center gap-3.5 no-underline transition-colors hover:bg-accent/50"
+                  style={{
+                    padding: "12px 13px",
+                    minHeight: 56,
+                    background: active ? "rgba(253,74,72,0.08)" : undefined,
+                    borderBottom: i < items.length - 1 ? "1px solid var(--border)" : "none",
+                  }}
+                >
+                  {item.icon && (
                     <div
-                      className="text-xs mt-0.5 truncate"
-                      style={{ color: active ? "rgba(253,74,72,0.7)" : "var(--muted-foreground)" }}
+                      className="flex items-center justify-center shrink-0 rounded-[9px]"
+                      style={{
+                        width: 36, height: 36,
+                        background: active ? "rgba(253,74,72,0.10)" : "var(--secondary)",
+                        border: `1px solid ${active ? "rgba(253,74,72,0.28)" : "var(--border)"}`,
+                      }}
                     >
-                      {item.desc}
+                      <NavIcon name={item.icon} size={17} color={active ? "#FD4A48" : "var(--muted-foreground)"} />
                     </div>
                   )}
-                </div>
-                <NavIcon name="chevron" size={13} color={active ? "#FD4A48" : "var(--muted-foreground)"} />
-              </Link>
+                  <div className="flex-1 min-w-0">
+                    <div className={cn(
+                      "text-sm tracking-[-0.005em]",
+                      active ? "font-semibold text-ittwa" : "font-medium text-foreground"
+                    )}>
+                      {item.label}
+                    </div>
+                    {item.desc && (
+                      <div
+                        className="text-xs mt-0.5 truncate"
+                        style={{ color: active ? "rgba(253,74,72,0.7)" : "var(--muted-foreground)" }}
+                      >
+                        {item.desc}
+                      </div>
+                    )}
+                  </div>
+                  <NavIcon name="chevron" size={13} color={active ? "#FD4A48" : "var(--muted-foreground)"} />
+                </Link>
+                {isTeamsRow && teamsHover && <TeamsSubmenu onNavigate={onNavigate} />}
+              </div>
             );
           })}
         </div>
@@ -221,21 +261,21 @@ function DesktopNavPanel({
 }
 
 function DesktopDropdownItem({
-  group, pathname, isOpen, onToggle, onNavigate,
+  group, pathname, isOpen, onHoverOpen, onHoverClose, onNavigate,
 }: {
   group: Extract<NavGroup, { type: "dropdown" }>;
   pathname: string;
   isOpen: boolean;
-  onToggle: () => void;
+  onHoverOpen: () => void;
+  onHoverClose: () => void;
   onNavigate: () => void;
 }) {
   const isActive = group.items.some((item) =>
     item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
   );
   return (
-    <div className="relative">
+    <div className="relative" onMouseEnter={onHoverOpen} onMouseLeave={onHoverClose}>
       <button
-        onClick={onToggle}
         className={cn(
           "flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-sm font-semibold transition-all duration-150 cursor-pointer hover:scale-105",
           isActive
@@ -271,17 +311,16 @@ export function Nav() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openPanel, setOpenPanel] = useState<string | null>(null);
-  const desktopNavRef = useRef<HTMLDivElement>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (openPanel && desktopNavRef.current && !desktopNavRef.current.contains(e.target as Node)) {
-        setOpenPanel(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [openPanel]);
+  const handleHoverOpen = useCallback((label: string) => {
+    clearTimeout(hoverTimer.current);
+    setOpenPanel(label);
+  }, []);
+
+  const handleHoverClose = useCallback(() => {
+    hoverTimer.current = setTimeout(() => setOpenPanel(null), 250);
+  }, []);
 
   useEffect(() => {
     setOpenPanel(null);
@@ -291,15 +330,17 @@ export function Nav() {
   return (
     <nav className="sticky top-0 z-50 mb-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto max-w-7xl px-4">
-        <div className="flex h-[72px] items-center justify-between gap-7">
+        <div className="flex h-[72px] items-center gap-7">
           {/* Logo lockup */}
           <Link href="/" className="flex items-center gap-3 shrink-0">
-            <div
-              className="flex items-center justify-center rounded-[10px] bg-ittwa"
-              style={{ width: 36, height: 36, boxShadow: "0 6px 16px rgba(253,74,72,0.28)" }}
-            >
-              <NavIcon name="football" size={20} color="#fff" />
-            </div>
+            <Image
+              src="/logo.png"
+              alt="ITTWA"
+              width={36}
+              height={36}
+              className="rounded-[10px]"
+              unoptimized
+            />
             <div>
               <div className="font-heading font-extrabold text-[19px] tracking-[0.04em] leading-none">ITTWA</div>
               <div className="text-[10px] text-muted-foreground mt-0.5 tracking-[0.14em] uppercase font-bold">S13 · 2026</div>
@@ -307,10 +348,10 @@ export function Nav() {
           </Link>
 
           {/* Divider */}
-          <div className="hidden lg:block w-px self-stretch bg-border mx-1" />
+          <div className="hidden lg:block w-px self-stretch bg-border" />
 
           {/* Desktop nav */}
-          <div ref={desktopNavRef} className="hidden lg:flex items-center gap-2 flex-1">
+          <div className="hidden lg:flex items-center justify-evenly flex-1">
             {NAV_STRUCTURE.map((group) => {
               if (group.type === "dropdown") {
                 return (
@@ -319,7 +360,8 @@ export function Nav() {
                     group={group}
                     pathname={pathname}
                     isOpen={openPanel === group.label}
-                    onToggle={() => setOpenPanel(openPanel === group.label ? null : group.label)}
+                    onHoverOpen={() => handleHoverOpen(group.label)}
+                    onHoverClose={handleHoverClose}
                     onNavigate={() => setOpenPanel(null)}
                   />
                 );
@@ -340,6 +382,9 @@ export function Nav() {
               );
             })}
           </div>
+
+          {/* Divider */}
+          <div className="hidden lg:block w-px self-stretch bg-border" />
 
           {/* Right side: theme toggle + mobile hamburger */}
           <div className="flex items-center gap-2.5 shrink-0">
