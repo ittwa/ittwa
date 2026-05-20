@@ -341,7 +341,7 @@ export function Nav({ ownerAvatars = {} }: { ownerAvatars?: Record<string, strin
   return (
     <nav className="sticky top-0 z-50 mb-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto max-w-7xl px-4">
-        <div className="flex h-[72px] items-center gap-7">
+        <div className="flex h-[72px] items-center justify-between gap-7">
           {/* Logo lockup */}
           <Link href="/" className="flex items-center gap-3 shrink-0">
             <Image
