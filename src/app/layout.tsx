@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Nav } from "@/components/nav";
+import { NavServer } from "@/components/nav-server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,7 +32,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         <ThemeProvider>
-          <Nav />
+          <NavServer />
           <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
           <footer className="border-t border-border mt-12">
             <div className="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-muted-foreground">

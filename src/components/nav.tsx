@@ -7,6 +7,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "./theme-provider";
 import { ALL_OWNERS } from "@/lib/config";
+import { SleeperAvatarImage } from "./owner-avatar";
 
 type NavLink = { href: string; label: string; icon?: string; desc?: string };
 type NavGroup =
@@ -142,10 +143,10 @@ function NavIcon({ name, size = 20, color = "currentColor" }: { name: string; si
   }
 }
 
-function TeamsSubmenu({ onNavigate }: { onNavigate: () => void }) {
+function TeamsSubmenu({ onNavigate, ownerAvatars }: { onNavigate: () => void; ownerAvatars: Record<string, string> }) {
   return (
     <div
-      className="absolute left-full top-0 z-50 ml-2 w-48 bg-popover border border-border rounded-xl overflow-hidden"
+      className="absolute left-full top-0 z-50 ml-2 w-52 bg-popover border border-border rounded-xl overflow-hidden"
       style={{ boxShadow: "0 12px 32px rgba(20,16,8,0.12), 0 2px 8px rgba(20,16,8,0.06)" }}
     >
       <div className="p-2 max-h-80 overflow-y-auto">
@@ -154,8 +155,15 @@ function TeamsSubmenu({ onNavigate }: { onNavigate: () => void }) {
             key={owner}
             href={`/teams/${encodeURIComponent(owner)}`}
             onClick={onNavigate}
-            className="block px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+            className="flex items-center gap-2.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
           >
+            <div className="w-6 h-6 rounded-full overflow-hidden bg-secondary shrink-0 flex items-center justify-center text-[10px] font-bold">
+              <SleeperAvatarImage
+                avatarId={ownerAvatars[owner]}
+                name={owner}
+                fallback={<span>{owner.charAt(0)}</span>}
+              />
+            </div>
             {owner}
           </Link>
         ))}
@@ -165,13 +173,14 @@ function TeamsSubmenu({ onNavigate }: { onNavigate: () => void }) {
 }
 
 function DesktopNavPanel({
-  panelLabel, panelCaption, items, pathname, onNavigate,
+  panelLabel, panelCaption, items, pathname, onNavigate, ownerAvatars,
 }: {
   panelLabel: string;
   panelCaption?: string;
   items: NavLink[];
   pathname: string;
   onNavigate: () => void;
+  ownerAvatars: Record<string, string>;
 }) {
   const [teamsHover, setTeamsHover] = useState(false);
   const teamsTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -250,7 +259,7 @@ function DesktopNavPanel({
                   </div>
                   <NavIcon name="chevron" size={13} color={active ? "#FD4A48" : "var(--muted-foreground)"} />
                 </Link>
-                {isTeamsRow && teamsHover && <TeamsSubmenu onNavigate={onNavigate} />}
+                {isTeamsRow && teamsHover && <TeamsSubmenu onNavigate={onNavigate} ownerAvatars={ownerAvatars} />}
               </div>
             );
           })}
@@ -261,7 +270,7 @@ function DesktopNavPanel({
 }
 
 function DesktopDropdownItem({
-  group, pathname, isOpen, onHoverOpen, onHoverClose, onNavigate,
+  group, pathname, isOpen, onHoverOpen, onHoverClose, onNavigate, ownerAvatars,
 }: {
   group: Extract<NavGroup, { type: "dropdown" }>;
   pathname: string;
@@ -269,6 +278,7 @@ function DesktopDropdownItem({
   onHoverOpen: () => void;
   onHoverClose: () => void;
   onNavigate: () => void;
+  ownerAvatars: Record<string, string>;
 }) {
   const isActive = group.items.some((item) =>
     item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
@@ -301,13 +311,14 @@ function DesktopDropdownItem({
           items={group.items}
           pathname={pathname}
           onNavigate={onNavigate}
+          ownerAvatars={ownerAvatars}
         />
       )}
     </div>
   );
 }
 
-export function Nav() {
+export function Nav({ ownerAvatars = {} }: { ownerAvatars?: Record<string, string> } = {}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openPanel, setOpenPanel] = useState<string | null>(null);
@@ -363,6 +374,7 @@ export function Nav() {
                     onHoverOpen={() => handleHoverOpen(group.label)}
                     onHoverClose={handleHoverClose}
                     onNavigate={() => setOpenPanel(null)}
+                    ownerAvatars={ownerAvatars}
                   />
                 );
               }
