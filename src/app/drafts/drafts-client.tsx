@@ -717,13 +717,9 @@ export function DraftsClient({ drafts, ownerAvatars, futurePicksBySeason, future
   // Traded picks count
   const tradedPicks = useMemo(() => {
     if (!draft) return [];
-    const numTeams = draft.numTeams || 12;
-    const isSnake = draft.type === "snake";
 
     return draft.picks.filter((p) => {
-      const pickInRound = ((p.pickNo - 1) % numTeams) + 1;
-      const slot = isSnake && p.round % 2 === 0 ? (numTeams - pickInRound + 1) : pickInRound;
-      const originalOwner = draft.slotToOwner[slot];
+      const originalOwner = draft.slotToOwner[p.draftSlot];
       return originalOwner && originalOwner !== p.ownerName;
     });
   }, [draft]);
