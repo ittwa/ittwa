@@ -801,7 +801,7 @@ export function DraftsClient({ drafts, ownerAvatars, futurePicksBySeason, future
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5">
         {/* Draft Grid */}
         <div className="bg-card border border-border rounded-[10px] overflow-hidden">
-          <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 220px)" }}>
+          <div className="overflow-x-auto">
             <div style={{ minWidth: `${200 + 160 * draft.rounds}px` }}>
               {/* Grid header row */}
               <div
