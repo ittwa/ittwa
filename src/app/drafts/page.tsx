@@ -96,34 +96,13 @@ export default async function DraftsPage() {
   const currentLeagueId = SEASON_LEAGUE_IDS[String(currentSeason)] || Object.values(SEASON_LEAGUE_IDS)[0];
   const futureSeasons = [currentSeason + 1, currentSeason + 2].map(String);
 
-  // Fetch traded picks from the current league AND previous leagues so we
-  // capture trades made in earlier seasons that apply to future drafts.
-  const prevLeagueIds = [String(currentSeason - 1), String(currentSeason - 2)]
-    .map((s) => SEASON_LEAGUE_IDS[s])
-    .filter(Boolean);
-
-  const [currentTradedPicks, futureRosterOwnerMap, currentDrafts, ...prevTradedPickArrays] =
-    await Promise.all([
-      getTradedPicks(currentLeagueId),
-      buildRosterOwnerMap(currentLeagueId),
-      getDrafts(currentLeagueId),
-      ...prevLeagueIds.map((id) => getTradedPicks(id).catch(() => [])),
-    ]);
-
-  // Merge: previous league entries first, then current league overrides
-  const tradedPicksMap = new Map<string, { roster_id: number; owner_id: number; season: string; round: number }>();
-  for (const arr of [...prevTradedPickArrays].reverse()) {
-    for (const tp of arr) {
-      tradedPicksMap.set(`${tp.season}-${tp.round}-${tp.owner_id}`, tp);
-    }
-  }
-  for (const tp of currentTradedPicks) {
-    tradedPicksMap.set(`${tp.season}-${tp.round}-${tp.owner_id}`, tp);
-  }
-  const tradedPicks = Array.from(tradedPicksMap.values());
+  const [tradedPicks, futureRosterOwnerMap] = await Promise.all([
+    getTradedPicks(currentLeagueId),
+    buildRosterOwnerMap(currentLeagueId),
+  ]);
 
   const numTeams = Object.keys(futureRosterOwnerMap).length || 12;
-  const numRounds = currentDrafts[0]?.settings?.rounds || 3;
+  const NUM_FUTURE_ROUNDS = 3;
 
   const futurePicksBySeason: Record<string, {
     season: string;
@@ -145,7 +124,7 @@ export default async function DraftsPage() {
   for (const season of futureSeasons) {
     const picks: typeof futurePicksBySeason[string]["picks"] = [];
 
-    for (let round = 1; round <= numRounds; round++) {
+    for (let round = 1; round <= NUM_FUTURE_ROUNDS; round++) {
       for (const [rosterIdStr, originalOwner] of Object.entries(futureRosterOwnerMap)) {
         const rosterId = Number(rosterIdStr);
 
