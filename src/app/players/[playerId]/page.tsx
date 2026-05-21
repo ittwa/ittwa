@@ -1,0 +1,989 @@
+export const dynamic = "force-dynamic";
+
+import { notFound } from "next/navigation";
+import {
+  getTeamsData,
+  getContracts,
+  getAllTransactions,
+  getLeagueUsers,
+  getNFLPlayers,
+  buildRosterOwnerMap,
+  getLatestActiveContracts,
+} from "@/lib/data";
+import { getDisplayName, getPlayerName } from "@/lib/sleeper";
+import { resolveOwnerName } from "@/lib/contracts";
+import { OWNER_DIVISION, SEASON_LEAGUE_IDS } from "@/lib/config";
+import { getPositionColors, getPositionVariant } from "@/lib/ui-utils";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { PlayerAvatar } from "@/components/player-avatar";
+import { OwnerLink } from "@/components/owner-link";
+import type { SleeperTransaction, SleeperPlayersMap } from "@/types/sleeper";
+import type { ContractRow } from "@/types/contracts";
+
+export const revalidate = 300;
+
+const NFL_TEAMS: Record<string, string> = {
+  ARI: "Arizona Cardinals",
+  ATL: "Atlanta Falcons",
+  BAL: "Baltimore Ravens",
+  BUF: "Buffalo Bills",
+  CAR: "Carolina Panthers",
+  CHI: "Chicago Bears",
+  CIN: "Cincinnati Bengals",
+  CLE: "Cleveland Browns",
+  DAL: "Dallas Cowboys",
+  DEN: "Denver Broncos",
+  DET: "Detroit Lions",
+  GB: "Green Bay Packers",
+  HOU: "Houston Texans",
+  IND: "Indianapolis Colts",
+  JAX: "Jacksonville Jaguars",
+  KC: "Kansas City Chiefs",
+  LAC: "Los Angeles Chargers",
+  LAR: "Los Angeles Rams",
+  LV: "Las Vegas Raiders",
+  MIA: "Miami Dolphins",
+  MIN: "Minnesota Vikings",
+  NE: "New England Patriots",
+  NO: "New Orleans Saints",
+  NYG: "New York Giants",
+  NYJ: "New York Jets",
+  PHI: "Philadelphia Eagles",
+  PIT: "Pittsburgh Steelers",
+  SEA: "Seattle Seahawks",
+  SF: "San Francisco 49ers",
+  TB: "Tampa Bay Buccaneers",
+  TEN: "Tennessee Titans",
+  WAS: "Washington Commanders",
+};
+
+function SectionTick({ label, sub }: { label: string; sub?: string }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="w-1 h-5 rounded-sm shrink-0 bg-gold" />
+      <span className="font-heading text-xl font-extrabold uppercase tracking-widest">
+        {label}
+      </span>
+      {sub && (
+        <span className="text-[11px] text-muted-foreground font-mono">{sub}</span>
+      )}
+    </div>
+  );
+}
+
+function fmtDollar(n: number): string {
+  return n % 1 === 0 ? `$${n}` : `$${n.toFixed(1)}`;
+}
+
+interface WeekScore {
+  week: number;
+  points: number;
+  started: boolean;
+}
+
+function ScoringChart({
+  weeks,
+  posColor,
+  season,
+}: {
+  weeks: WeekScore[];
+  posColor: string;
+  season: string;
+}) {
+  const scored = weeks.filter((w) => w.points > 0);
+  if (scored.length === 0) return null;
+
+  const max = Math.max(...weeks.map((w) => w.points), 10);
+  const avg =
+    scored.reduce((s, w) => s + w.points, 0) / scored.length;
+
+  const W = Math.max(weeks.length * 52, 400);
+  const H = 180;
+  const padL = 36;
+  const padR = 12;
+  const padT = 16;
+  const padB = 32;
+  const colW = (W - padL - padR) / weeks.length;
+  const chartH = H - padT - padB;
+
+  const gridLines = [0, 10, 20, 30, 40].filter((v) => v <= max * 1.15);
+
+  return (
+    <Card>
+      <div className="px-5 pt-4 pb-1">
+        <SectionTick
+          label={`${season} Scoring`}
+          sub={`Wks 1–${weeks.length} · Half-PPR`}
+        />
+        <div className="flex items-center gap-4 mt-2">
+          <span className="flex items-center gap-1.5">
+            <span
+              className="w-2.5 h-2.5 rounded-sm"
+              style={{ background: posColor }}
+            />
+            <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+              Started
+            </span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span
+              className="w-2.5 h-2.5 rounded-sm opacity-40"
+              style={{ background: posColor }}
+            />
+            <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+              Bench
+            </span>
+          </span>
+          <span className="text-[11px] text-muted-foreground font-mono ml-auto">
+            AVG{" "}
+            <span className="text-gold font-bold">{avg.toFixed(1)}</span>
+          </span>
+        </div>
+      </div>
+      <div className="px-5 pb-4 overflow-x-auto">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" height={H}>
+          {gridLines.map((v) => {
+            const y = padT + chartH * (1 - v / (max * 1.15));
+            return (
+              <g key={v}>
+                <line
+                  x1={padL}
+                  x2={W - padR}
+                  y1={y}
+                  y2={y}
+                  stroke="var(--border)"
+                  strokeWidth="1"
+                  strokeDasharray="2,4"
+                />
+                <text
+                  x={padL - 6}
+                  y={y + 3}
+                  fill="var(--muted-foreground)"
+                  fontSize="9"
+                  textAnchor="end"
+                  fontFamily="var(--font-mono)"
+                >
+                  {v}
+                </text>
+              </g>
+            );
+          })}
+
+          {weeks.map((w, i) => {
+            const cx = padL + colW * i + colW / 2;
+            const barW = Math.min(colW - 8, 24);
+            const barH = (w.points / (max * 1.15)) * chartH;
+            const baseY = padT + chartH;
+
+            return (
+              <g key={w.week}>
+                {w.points > 0 && (
+                  <>
+                    <rect
+                      x={cx - barW / 2}
+                      y={baseY - barH}
+                      width={barW}
+                      height={barH}
+                      fill={posColor}
+                      opacity={w.started ? 0.85 : 0.35}
+                      rx={3}
+                    />
+                    <text
+                      x={cx}
+                      y={baseY - barH - 4}
+                      fontSize="9"
+                      fill={posColor}
+                      textAnchor="middle"
+                      fontFamily="var(--font-mono)"
+                      fontWeight="700"
+                    >
+                      {w.points.toFixed(1)}
+                    </text>
+                  </>
+                )}
+                <text
+                  x={cx}
+                  y={H - 12}
+                  fontSize="9"
+                  fill="var(--muted-foreground)"
+                  textAnchor="middle"
+                  fontFamily="var(--font-mono)"
+                >
+                  {w.week}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Average line */}
+          {(() => {
+            const y = padT + chartH * (1 - avg / (max * 1.15));
+            return (
+              <g>
+                <line
+                  x1={padL}
+                  x2={W - padR}
+                  y1={y}
+                  y2={y}
+                  stroke="var(--color-gold)"
+                  strokeWidth="1"
+                  strokeDasharray="4,3"
+                  opacity="0.6"
+                />
+                <text
+                  x={W - padR}
+                  y={y - 4}
+                  fill="var(--color-gold)"
+                  fontSize="9"
+                  textAnchor="end"
+                  fontFamily="var(--font-mono)"
+                  fontWeight="700"
+                >
+                  avg {avg.toFixed(1)}
+                </text>
+              </g>
+            );
+          })()}
+        </svg>
+      </div>
+    </Card>
+  );
+}
+
+interface PlayerTransaction {
+  type: "trade" | "added" | "dropped";
+  timestamp: number;
+  date: string;
+  season: string;
+  week: number;
+  headline: string;
+  details: { side: "in" | "out"; label: string }[];
+}
+
+function enrichPlayerTransactions(
+  txns: SleeperTransaction[],
+  playerId: string,
+  rosterOwnerMap: Record<number, string>,
+  nflPlayers: SleeperPlayersMap,
+  season: string,
+): PlayerTransaction[] {
+  const result: PlayerTransaction[] = [];
+
+  for (const t of txns) {
+    const inAdds = t.adds && playerId in t.adds;
+    const inDrops = t.drops && playerId in t.drops;
+    if (!inAdds && !inDrops) continue;
+
+    const date = new Date(t.created).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    if (t.type === "trade") {
+      const addedTo = inAdds ? rosterOwnerMap[t.adds![playerId]] : null;
+      const droppedFrom = inDrops ? rosterOwnerMap[t.drops![playerId]] : null;
+
+      const headline =
+        addedTo && droppedFrom
+          ? `to ${addedTo} from ${droppedFrom}`
+          : addedTo
+            ? `Acquired by ${addedTo}`
+            : `Traded away by ${droppedFrom}`;
+
+      const details: PlayerTransaction["details"] = [];
+      if (t.adds) {
+        for (const [pid, rid] of Object.entries(t.adds)) {
+          if (pid === playerId) continue;
+          const owner = rosterOwnerMap[Number(rid)];
+          if (owner === addedTo) {
+            const name = getPlayerName(pid, nflPlayers);
+            details.push({ side: "in", label: name });
+          }
+        }
+      }
+      if (t.draft_picks) {
+        for (const pick of t.draft_picks) {
+          const pickOwner = rosterOwnerMap[pick.owner_id];
+          if (pickOwner === addedTo) {
+            const origOwner = rosterOwnerMap[pick.previous_owner_id] || `Team ${pick.previous_owner_id}`;
+            details.push({
+              side: "in",
+              label: `${pick.season} Rd ${pick.round} (via ${origOwner})`,
+            });
+          }
+        }
+      }
+      if (t.drops) {
+        for (const [pid, rid] of Object.entries(t.drops)) {
+          if (pid === playerId) continue;
+          const owner = rosterOwnerMap[Number(rid)];
+          if (owner === addedTo) {
+            const name = getPlayerName(pid, nflPlayers);
+            details.push({ side: "out", label: name });
+          }
+        }
+      }
+
+      result.push({
+        type: "trade",
+        timestamp: t.created,
+        date,
+        season,
+        week: t.week,
+        headline,
+        details,
+      });
+    } else {
+      const addedBy = inAdds ? rosterOwnerMap[t.adds![playerId]] : null;
+      const droppedBy = inDrops ? rosterOwnerMap[t.drops![playerId]] : null;
+
+      if (inAdds && addedBy) {
+        const txType = t.type === "commissioner" ? "Commissioner" : "Free Agency";
+        result.push({
+          type: "added",
+          timestamp: t.created,
+          date,
+          season,
+          week: t.week,
+          headline: `Added by ${addedBy}`,
+          details: [{ side: "in", label: txType }],
+        });
+      }
+
+      if (inDrops && droppedBy) {
+        result.push({
+          type: "dropped",
+          timestamp: t.created,
+          date,
+          season,
+          week: t.week,
+          headline: `Dropped by ${droppedBy}`,
+          details: [{ side: "out", label: "Released" }],
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
+function TxIcon({ type }: { type: string }) {
+  const map: Record<string, { ch: string; color: string }> = {
+    trade: { ch: "↔", color: "var(--color-gold)" },
+    added: { ch: "+", color: "#4ade80" },
+    dropped: { ch: "−", color: "var(--color-ittwa)" },
+  };
+  const s = map[type] || map.added;
+  return (
+    <span
+      className="w-7 h-7 rounded-md flex items-center justify-center font-heading text-base font-extrabold shrink-0"
+      style={{
+        background: `color-mix(in srgb, ${s.color} 12%, transparent)`,
+        border: `1px solid color-mix(in srgb, ${s.color} 25%, transparent)`,
+        color: s.color,
+      }}
+    >
+      {s.ch}
+    </span>
+  );
+}
+
+export default async function PlayerProfilePage({
+  params,
+}: {
+  params: Promise<{ playerId: string }>;
+}) {
+  const { playerId } = await params;
+
+  const [teamsData, contracts, nflPlayers, users] = await Promise.all([
+    getTeamsData(),
+    getContracts(),
+    getNFLPlayers(),
+    getLeagueUsers(),
+  ]);
+
+  const player = nflPlayers[playerId];
+  if (!player) return notFound();
+
+  const { teams, season, currentWeek, allMatchups } = teamsData;
+  const posColors = getPositionColors(player.position);
+  const playerName =
+    player.full_name || `${player.first_name} ${player.last_name}`;
+  const teamName = player.team ? (NFL_TEAMS[player.team] || player.team) : "Free Agent";
+
+  // Build roster owner map from teams data
+  const rosterOwnerMap: Record<number, string> = {};
+  for (const team of teams) {
+    rosterOwnerMap[team.rosterId] = team.displayName;
+  }
+
+  // Find which team currently rostered this player
+  const ownerTeam = teams.find((t) => t.players.includes(playerId));
+  const ownerName = ownerTeam?.displayName ?? null;
+  const ownerDivision = ownerName ? (OWNER_DIVISION[ownerName] || "") : "";
+
+  // Current contract from sheets
+  const activeContracts = getLatestActiveContracts(contracts);
+  const currentContract = activeContracts.find((c) => c.playerId === playerId);
+
+  // Contract history across seasons
+  const contractHistory = contracts
+    .filter(
+      (c) =>
+        c.playerId === playerId &&
+        c.contractStatus.toLowerCase() === "active" &&
+        c.position.toLowerCase() !== "draft pick",
+    )
+    .sort((a, b) => a.season.localeCompare(b.season));
+
+  // Owner avatars
+  const ownerAvatars: Record<string, string> = {};
+  for (const user of users) {
+    if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
+  }
+
+  // Weekly scoring from matchup data
+  const weeklyScoring: WeekScore[] = [];
+  for (let w = 1; w <= Math.min(currentWeek, 18); w++) {
+    const weekMatchups = allMatchups.get(w);
+    if (!weekMatchups) continue;
+
+    const matchup = weekMatchups.find(
+      (m) =>
+        m.players?.includes(playerId) ||
+        (m.players_points && playerId in m.players_points),
+    );
+
+    if (matchup) {
+      weeklyScoring.push({
+        week: w,
+        points: matchup.players_points?.[playerId] ?? 0,
+        started: matchup.starters?.includes(playerId) ?? false,
+      });
+    }
+  }
+
+  // Transaction history — fetch from recent seasons
+  const allSeasons = Object.keys(SEASON_LEAGUE_IDS).sort().reverse();
+  const recentSeasons = allSeasons.slice(0, 4);
+  const txnsBySeasonResults = await Promise.all(
+    recentSeasons.map(async (s) => {
+      const leagueId = SEASON_LEAGUE_IDS[s];
+      const [txns, rom] = await Promise.all([
+        getAllTransactions(leagueId).catch(() => [] as SleeperTransaction[]),
+        buildRosterOwnerMap(leagueId),
+      ]);
+      return { season: s, txns, rosterOwnerMap: rom };
+    }),
+  );
+
+  const allPlayerTxns: PlayerTransaction[] = [];
+  for (const { season: s, txns, rosterOwnerMap: rom } of txnsBySeasonResults) {
+    const merged: Record<number, string> = { ...rom };
+    const enriched = enrichPlayerTransactions(txns, playerId, merged, nflPlayers, s);
+    allPlayerTxns.push(...enriched);
+  }
+  allPlayerTxns.sort((a, b) => b.timestamp - a.timestamp);
+
+  // Stat cards data
+  const salary = currentContract?.salary ?? null;
+  const yearsLeft = currentContract?.years ?? null;
+  const contractValue = currentContract?.contractValue ?? null;
+
+  return (
+    <div className="space-y-6">
+      {/* Breadcrumb */}
+      <div className="text-[11px] text-muted-foreground font-mono tracking-wider">
+        {ownerName ? (
+          <>
+            <OwnerLink name={ownerName} className="text-muted-foreground hover:text-foreground transition-colors">
+              {ownerName}
+            </OwnerLink>
+            <span className="mx-1.5">/</span>
+          </>
+        ) : (
+          <>
+            <span>Free Agent</span>
+            <span className="mx-1.5">/</span>
+          </>
+        )}
+        <span className="text-foreground">{playerName}</span>
+      </div>
+
+      {/* Hero */}
+      <div className="relative overflow-hidden border-b border-border -mt-2">
+        {/* Position-color top stripe */}
+        <div
+          className="h-1"
+          style={{
+            background: `linear-gradient(90deg, ${posColors.text} 0%, transparent 60%)`,
+          }}
+        />
+
+        {/* Ghost jersey number watermark */}
+        {player.number != null && (
+          <div
+            className="absolute -right-[50px] -top-[60px] select-none pointer-events-none leading-none font-heading font-black"
+            style={{
+              fontSize: "380px",
+              color: posColors.text,
+              opacity: 0.04,
+              letterSpacing: "-0.04em",
+            }}
+          >
+            {String(player.number).padStart(2, "0")}
+          </div>
+        )}
+
+        <div className="py-8 relative">
+          <div className="flex gap-7 items-start">
+            {/* Player headshot */}
+            <div className="shrink-0">
+              <PlayerAvatar
+                playerId={playerId}
+                playerName={playerName}
+                position={player.position}
+                size={170}
+              />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              {/* Meta row */}
+              <div className="flex items-center gap-2.5 mb-2 flex-wrap">
+                <Badge variant={getPositionVariant(player.position)}>
+                  {player.position}
+                </Badge>
+                <span
+                  className="text-[11px] font-bold tracking-widest px-2 py-0.5 rounded border border-border bg-secondary font-mono"
+                >
+                  {player.team || "FA"}
+                  {player.number != null && ` · #${player.number}`}
+                </span>
+                <span className="text-[11px] text-muted-foreground font-mono">
+                  {teamName}
+                </span>
+                {player.status && (
+                  <span className="ml-auto flex items-center gap-1.5">
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{
+                        background:
+                          player.injury_status
+                            ? "var(--color-ittwa)"
+                            : "#4ade80",
+                        boxShadow: `0 0 8px ${player.injury_status ? "var(--color-ittwa)" : "#4ade80"}`,
+                      }}
+                    />
+                    <span
+                      className="text-[11px] font-semibold tracking-wider uppercase"
+                      style={{
+                        color: player.injury_status
+                          ? "var(--color-ittwa)"
+                          : "#4ade80",
+                      }}
+                    >
+                      {player.injury_status || "Active"}
+                    </span>
+                  </span>
+                )}
+              </div>
+
+              {/* Name */}
+              <h1
+                className="font-heading font-black uppercase leading-[0.95] text-5xl sm:text-[72px]"
+                style={{
+                  textShadow: `0 0 60px ${posColors.bg}`,
+                }}
+              >
+                {player.first_name}
+                <br />
+                <span style={{ color: posColors.text }}>
+                  {player.last_name}
+                </span>
+              </h1>
+
+              {/* Bio stats */}
+              <div className="flex gap-6 mt-4 flex-wrap">
+                {(
+                  [
+                    player.age != null ? ["Age", String(player.age)] : null,
+                    player.years_exp != null ? ["Exp", `${player.years_exp} yrs`] : null,
+                    player.depth_chart_position ? ["Depth", player.depth_chart_position] : null,
+                  ].filter((item): item is [string, string] => item !== null)
+                ).map(([k, v]) => (
+                  <div key={k}>
+                    <div className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">
+                      {k}
+                    </div>
+                    <div className="text-sm font-semibold mt-0.5">{v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Stat cards */}
+          {(salary != null || ownerName) && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-6">
+              {salary != null && (
+                <div className="px-3.5 py-3 bg-secondary border border-border rounded-lg">
+                  <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
+                    Salary
+                  </div>
+                  <div
+                    className="font-heading text-[30px] font-extrabold leading-tight mt-0.5"
+                    style={{ color: "var(--color-ittwa)" }}
+                  >
+                    {fmtDollar(salary)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground font-mono mt-1">
+                    cap hit &apos;{season.slice(-2)}
+                  </div>
+                </div>
+              )}
+              {yearsLeft != null && (
+                <div className="px-3.5 py-3 bg-secondary border border-border rounded-lg">
+                  <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
+                    Years Left
+                  </div>
+                  <div
+                    className="font-heading text-[30px] font-extrabold leading-tight mt-0.5"
+                    style={{ color: "var(--color-gold)" }}
+                  >
+                    {yearsLeft}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground font-mono mt-1">
+                    {yearsLeft === 0
+                      ? "mid-season pickup"
+                      : `thru ${Number(season) + yearsLeft - 1}`}
+                  </div>
+                </div>
+              )}
+              {contractValue != null && contractValue > 0 && (
+                <div className="px-3.5 py-3 bg-secondary border border-border rounded-lg">
+                  <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
+                    Contract Value
+                  </div>
+                  <div className="font-heading text-[30px] font-extrabold leading-tight mt-0.5 text-foreground">
+                    {contractValue.toFixed(1)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground font-mono mt-1">
+                    value units
+                  </div>
+                </div>
+              )}
+              {ownerName && (
+                <div className="px-3.5 py-3 bg-secondary border border-border rounded-lg">
+                  <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
+                    Owner
+                  </div>
+                  <div className="font-heading text-[30px] font-extrabold leading-tight mt-0.5 text-foreground">
+                    <OwnerLink
+                      name={ownerName}
+                      className="hover:opacity-80 transition-opacity"
+                    >
+                      {ownerName}
+                    </OwnerLink>
+                  </div>
+                  <div
+                    className="text-[10px] font-mono mt-1 font-semibold tracking-wider uppercase"
+                    style={{
+                      color: ownerDivision
+                        ? `var(--color-${ownerDivision.toLowerCase().replace(/ /g, "-").replace("rises", "")})`
+                        : undefined,
+                    }}
+                  >
+                    {ownerDivision || "—"}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
+        {/* Main column */}
+        <div className="flex flex-col gap-6 min-w-0">
+          {/* Scoring Chart */}
+          <ScoringChart
+            weeks={weeklyScoring}
+            posColor={posColors.text}
+            season={season}
+          />
+
+          {/* Transaction History */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <SectionTick
+                  label="Transaction History"
+                  sub="ITTWA · recent seasons"
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {allPlayerTxns.length === 0 ? (
+                <div className="px-5 pb-5 text-sm text-muted-foreground italic">
+                  No recorded transactions for this player.
+                </div>
+              ) : (
+                <div>
+                  {allPlayerTxns.map((tx, i) => (
+                    <div
+                      key={`${tx.timestamp}-${i}`}
+                      className="grid gap-3 px-5 py-3.5 items-start"
+                      style={{
+                        gridTemplateColumns: "36px 100px 1fr 120px",
+                        borderBottom:
+                          i < allPlayerTxns.length - 1
+                            ? "1px solid var(--border)"
+                            : "none",
+                        borderTop: i === 0 ? "1px solid var(--border)" : "none",
+                      }}
+                    >
+                      <TxIcon type={tx.type} />
+                      <div className="pt-0.5">
+                        <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
+                          {tx.type}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5 font-mono">
+                          {tx.week > 0 ? `Week ${tx.week}` : "Off-Season"}
+                        </div>
+                      </div>
+                      <div className="pt-0.5">
+                        <div className="text-[13px] font-semibold mb-1.5">
+                          {tx.headline}
+                        </div>
+                        {tx.details.length > 0 && (
+                          <div className="flex gap-1.5 flex-wrap">
+                            {tx.details.map((d, j) => (
+                              <span
+                                key={j}
+                                className="text-[11px] px-2 py-0.5 rounded"
+                                style={{
+                                  background:
+                                    d.side === "in"
+                                      ? "rgba(74,222,128,0.08)"
+                                      : "rgba(253,74,72,0.08)",
+                                  color:
+                                    d.side === "in" ? "#4ade80" : "var(--color-ittwa)",
+                                  border: `1px solid ${d.side === "in" ? "rgba(74,222,128,0.2)" : "rgba(253,74,72,0.2)"}`,
+                                }}
+                              >
+                                <span className="mr-1 opacity-60">
+                                  {d.side === "in" ? "+" : "−"}
+                                </span>
+                                {d.label}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right pt-0.5">
+                        <div className="text-xs font-mono">{tx.date}</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          {tx.season} Season
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar */}
+        <div className="flex flex-col gap-6">
+          {/* Ownership Card */}
+          {ownerName && currentContract && (
+            <Card>
+              <CardHeader className="pb-3">
+                <SectionTick label="Ownership" />
+              </CardHeader>
+              <CardContent>
+                {/* Owner identity */}
+                <OwnerLink
+                  name={ownerName}
+                  className="flex items-center gap-3 p-3 bg-secondary rounded-lg border border-border hover:border-muted-foreground/30 transition-colors"
+                >
+                  <div
+                    className="w-[42px] h-[42px] rounded-md flex items-center justify-center font-heading font-black text-base text-white shrink-0"
+                    style={{
+                      background: `linear-gradient(135deg, ${OWNER_DIVISION[ownerName] ? `var(--color-${OWNER_DIVISION[ownerName].toLowerCase().replace(/ /g, "-").replace("rises", "")})` : "#60a5fa"}, transparent)`,
+                    }}
+                  >
+                    {ownerName.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold">
+                      {ownerName}
+                    </div>
+                    {ownerDivision && (
+                      <div className="text-[11px] mt-0.5 tracking-wider uppercase font-semibold text-muted-foreground">
+                        {ownerDivision}
+                      </div>
+                    )}
+                  </div>
+                </OwnerLink>
+
+                {/* Salary & Years */}
+                <div className="grid grid-cols-2 gap-2 mt-3.5">
+                  <div className="p-2.5 bg-secondary rounded-md border border-border">
+                    <div className="text-[10px] text-muted-foreground tracking-widest uppercase font-bold">
+                      Salary
+                    </div>
+                    <div
+                      className="font-heading text-2xl font-extrabold mt-0.5 leading-none"
+                      style={{ color: "var(--color-ittwa)" }}
+                    >
+                      {fmtDollar(currentContract.salary)}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      cap hit &apos;{season.slice(-2)}
+                    </div>
+                  </div>
+                  <div className="p-2.5 bg-secondary rounded-md border border-border">
+                    <div className="text-[10px] text-muted-foreground tracking-widest uppercase font-bold">
+                      Yrs Left
+                    </div>
+                    <div
+                      className="font-heading text-2xl font-extrabold mt-0.5 leading-none"
+                      style={{ color: "var(--color-gold)" }}
+                    >
+                      {currentContract.years}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      {currentContract.years === 0
+                        ? "mid-season"
+                        : `thru ${Number(season) + currentContract.years - 1}`}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tags */}
+                {(currentContract.franchiseTag || currentContract.fifthYearTag || currentContract.isMidSeasonPickup) && (
+                  <div className="flex gap-1.5 mt-3 flex-wrap">
+                    {currentContract.franchiseTag && (
+                      <Badge variant="outline" className="text-gold border-gold/30 bg-gold/5">
+                        Franchise Tag
+                      </Badge>
+                    )}
+                    {currentContract.fifthYearTag && (
+                      <Badge variant="outline" className="text-gold border-gold/30 bg-gold/5">
+                        5th Year Tag
+                      </Badge>
+                    )}
+                    {currentContract.isMidSeasonPickup && (
+                      <Badge variant="outline">Mid-Season Pickup</Badge>
+                    )}
+                  </div>
+                )}
+
+                {/* Acquired info */}
+                {currentContract.dpOriginalOwner && (
+                  <div className="mt-3.5 p-2.5 bg-[var(--background)] rounded-md border-l-2 border-l-gold">
+                    <div className="text-[10px] text-muted-foreground tracking-widest uppercase font-bold">
+                      Original Drafter
+                    </div>
+                    <div className="text-xs font-mono mt-1">
+                      {currentContract.dpOriginalOwner}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Not rostered card */}
+          {!ownerName && (
+            <Card>
+              <CardHeader className="pb-3">
+                <SectionTick label="Ownership" />
+              </CardHeader>
+              <CardContent>
+                <div className="p-3 bg-secondary rounded-lg border border-border text-center">
+                  <div className="text-sm text-muted-foreground">
+                    Not currently rostered
+                  </div>
+                  <div className="text-[11px] text-muted-foreground/60 mt-1">
+                    Free Agent
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Contract History */}
+          {contractHistory.length > 1 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <SectionTick label="Contract History" />
+              </CardHeader>
+              <CardContent className="p-0">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-muted-foreground">
+                      <th className="px-4 py-2 text-left font-medium">
+                        Season
+                      </th>
+                      <th className="px-4 py-2 text-left font-medium">
+                        Owner
+                      </th>
+                      <th className="px-4 py-2 text-right font-medium">
+                        Salary
+                      </th>
+                      <th className="px-4 py-2 text-center font-medium">
+                        Yrs
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...contractHistory].reverse().map((c, i) => (
+                      <tr
+                        key={`${c.season}-${i}`}
+                        className="border-b border-border/50 hover:bg-accent/50 transition-colors"
+                      >
+                        <td className="px-4 py-2 font-mono tabular-nums">
+                          {c.season}
+                        </td>
+                        <td className="px-4 py-2">
+                          <OwnerLink
+                            name={resolveOwnerName(c.owner)}
+                            className="hover:underline underline-offset-2"
+                          >
+                            {resolveOwnerName(c.owner)}
+                          </OwnerLink>
+                        </td>
+                        <td className="px-4 py-2 text-right tabular-nums">
+                          {c.salary > 0 ? (
+                            <span className="text-gold">
+                              {fmtDollar(c.salary)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-center tabular-nums">
+                          {c.years > 0 ? (
+                            c.years
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
