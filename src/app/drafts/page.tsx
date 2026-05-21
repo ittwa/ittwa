@@ -1,8 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { getDrafts, buildRosterOwnerMap, getLeagueUsers } from "@/lib/data";
-import { getDraftPicks, getDisplayName, getNFLState } from "@/lib/sleeper";
-import { getContracts } from "@/lib/sheets";
+import { getDraftPicks, getTradedPicks, getDisplayName, getNFLState } from "@/lib/sleeper";
 import { DraftsClient } from "./drafts-client";
 import { SEASON_LEAGUE_IDS, OWNER_DIVISION, ROOKIE_PICK_CONTRACTS } from "@/lib/config";
 
@@ -91,17 +90,20 @@ export default async function DraftsPage() {
     .filter((d) => d.picks.length > 0)
     .sort((a, b) => b.season.localeCompare(a.season));
 
-  // --- Future picks data from Contracts sheet ---
-  const [nflState, allContracts] = await Promise.all([
-    getNFLState(),
-    getContracts(),
-  ]);
+  // --- Future picks data from Sleeper API ---
+  const nflState = await getNFLState();
   const currentSeason = Number(nflState.season);
-  const futureSeasons = [currentSeason + 1, currentSeason + 2].map(String);
+  const currentLeagueId = SEASON_LEAGUE_IDS[String(currentSeason)] || Object.values(SEASON_LEAGUE_IDS)[0];
+  const futureSeasons = [currentSeason + 1, currentSeason + 2, currentSeason + 3].map(String);
 
-  const draftPickContracts = allContracts.filter(
-    (c) => c.position === "Draft Pick" && c.contractStatus === "Active" && futureSeasons.includes(c.season)
-  );
+  const [tradedPicks, futureRosterOwnerMap, currentDrafts] = await Promise.all([
+    getTradedPicks(currentLeagueId),
+    buildRosterOwnerMap(currentLeagueId),
+    getDrafts(currentLeagueId),
+  ]);
+
+  const numTeams = Object.keys(futureRosterOwnerMap).length || 12;
+  const numRounds = currentDrafts[0]?.settings?.rounds || 3;
 
   const futurePicksBySeason: Record<string, {
     season: string;
@@ -121,26 +123,38 @@ export default async function DraftsPage() {
   }> = {};
 
   for (const season of futureSeasons) {
-    const seasonPicks = draftPickContracts.filter((c) => c.season === season);
-    const picks = seasonPicks.map((c, i) => {
-      const roundMatch = c.player.match(/(\d+)(?:st|nd|rd|th)/);
-      const round = roundMatch ? Number(roundMatch[1]) : 1;
-      const originalOwner = c.dpOriginalOwner || c.owner;
-      const currentOwner = c.owner;
-      return {
-        round,
-        slot: i + 1,
-        pickLabel: `${round}.${String(i + 1).padStart(2, "0")}`,
-        originalOwner,
-        originalOwnerDivision: OWNER_DIVISION[originalOwner] || "",
-        originalRosterId: i + 1,
-        currentOwner,
-        currentOwnerDivision: OWNER_DIVISION[currentOwner] || "",
-        traded: currentOwner !== originalOwner,
-        salary: c.salary,
-        years: c.years,
-      };
-    });
+    const picks: typeof futurePicksBySeason[string]["picks"] = [];
+
+    for (let round = 1; round <= numRounds; round++) {
+      for (const [rosterIdStr, originalOwner] of Object.entries(futureRosterOwnerMap)) {
+        const rosterId = Number(rosterIdStr);
+
+        const trade = tradedPicks.find(
+          (tp) => tp.season === season && tp.round === round && tp.owner_id === rosterId
+        );
+
+        const currentOwner = trade
+          ? (futureRosterOwnerMap[trade.roster_id] || `Team ${trade.roster_id}`)
+          : originalOwner;
+        const traded = currentOwner !== originalOwner;
+        const pickLabel = `${round}.${String(rosterId).padStart(2, "0")}`;
+        const contractInfo = ROOKIE_PICK_CONTRACTS[pickLabel];
+
+        picks.push({
+          round,
+          slot: rosterId,
+          pickLabel,
+          originalOwner,
+          originalOwnerDivision: OWNER_DIVISION[originalOwner] || "",
+          originalRosterId: rosterId,
+          currentOwner,
+          currentOwnerDivision: OWNER_DIVISION[currentOwner] || "",
+          traded,
+          salary: contractInfo?.salary || 0,
+          years: contractInfo?.years || 0,
+        });
+      }
+    }
 
     futurePicksBySeason[season] = { season, picks };
   }
