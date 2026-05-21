@@ -17,7 +17,9 @@ import { getPositionColors, getPositionVariant } from "@/lib/ui-utils";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PlayerAvatar } from "@/components/player-avatar";
+import { SleeperAvatarImage } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
+import { PlayerLink } from "@/components/player-link";
 import type { SleeperTransaction, SleeperPlayersMap } from "@/types/sleeper";
 import type { ContractRow } from "@/types/contracts";
 
@@ -74,6 +76,14 @@ function SectionTick({ label, sub }: { label: string; sub?: string }) {
 
 function fmtDollar(n: number): string {
   return n % 1 === 0 ? `$${n}` : `$${n.toFixed(1)}`;
+}
+
+function formatHeight(h: string): string {
+  const inches = parseInt(h, 10);
+  if (!isNaN(inches) && inches > 50 && inches < 100) {
+    return `${Math.floor(inches / 12)}'${inches % 12}"`;
+  }
+  return h;
 }
 
 interface WeekScore {
@@ -251,13 +261,15 @@ function ScoringChart({
   );
 }
 
+type HeadlinePart = { type: "text"; text: string } | { type: "owner"; name: string };
+
 interface PlayerTransaction {
   type: "trade" | "added" | "dropped";
   timestamp: number;
   date: string;
   season: string;
   week: number;
-  headline: string;
+  headlineParts: HeadlinePart[];
   details: { side: "in" | "out"; label: string }[];
 }
 
@@ -285,12 +297,12 @@ function enrichPlayerTransactions(
       const addedTo = inAdds ? rosterOwnerMap[t.adds![playerId]] : null;
       const droppedFrom = inDrops ? rosterOwnerMap[t.drops![playerId]] : null;
 
-      const headline =
+      const headlineParts: HeadlinePart[] =
         addedTo && droppedFrom
-          ? `to ${addedTo} from ${droppedFrom}`
+          ? [{ type: "text", text: "Traded to " }, { type: "owner", name: addedTo }, { type: "text", text: " from " }, { type: "owner", name: droppedFrom }]
           : addedTo
-            ? `Acquired by ${addedTo}`
-            : `Traded away by ${droppedFrom}`;
+            ? [{ type: "text", text: "Acquired by " }, { type: "owner", name: addedTo }]
+            : [{ type: "text", text: "Traded away by " }, { type: "owner", name: droppedFrom! }];
 
       const details: PlayerTransaction["details"] = [];
       if (t.adds) {
@@ -332,7 +344,7 @@ function enrichPlayerTransactions(
         date,
         season,
         week: t.week,
-        headline,
+        headlineParts,
         details,
       });
     } else {
@@ -347,7 +359,7 @@ function enrichPlayerTransactions(
           date,
           season,
           week: t.week,
-          headline: `Added by ${addedBy}`,
+          headlineParts: [{ type: "text", text: "Added by " }, { type: "owner", name: addedBy }],
           details: [{ side: "in", label: txType }],
         });
       }
@@ -359,7 +371,7 @@ function enrichPlayerTransactions(
           date,
           season,
           week: t.week,
-          headline: `Dropped by ${droppedBy}`,
+          headlineParts: [{ type: "text", text: "Dropped by " }, { type: "owner", name: droppedBy }],
           details: [{ side: "out", label: "Released" }],
         });
       }
@@ -442,6 +454,25 @@ export default async function PlayerProfilePage({
   const ownerAvatars: Record<string, string> = {};
   for (const user of users) {
     if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
+  }
+
+  // Depth chart data
+  const depthChartPlayers: { playerId: string; name: string; role: string; isCurrent: boolean; owner: string | null }[] = [];
+  if (player.team && player.depth_chart_position) {
+    const teammates = Object.values(nflPlayers)
+      .filter((p) => p.team === player.team && p.depth_chart_position === player.depth_chart_position)
+      .sort((a, b) => (a.depth_chart_order ?? 99) - (b.depth_chart_order ?? 99));
+
+    for (const mate of teammates) {
+      const mateOwnerTeam = teams.find((t) => t.players.includes(mate.player_id));
+      depthChartPlayers.push({
+        playerId: mate.player_id,
+        name: mate.full_name || `${mate.first_name} ${mate.last_name}`,
+        role: `${player.depth_chart_position}${mate.depth_chart_order ?? "?"}`,
+        isCurrent: mate.player_id === playerId,
+        owner: mateOwnerTeam?.displayName ?? null,
+      });
+    }
   }
 
   // Weekly scoring from matchup data
@@ -609,7 +640,10 @@ export default async function PlayerProfilePage({
                 {(
                   [
                     player.age != null ? ["Age", String(player.age)] : null,
+                    player.height ? ["Height", formatHeight(player.height)] : null,
+                    player.weight ? ["Weight", `${player.weight} lbs`] : null,
                     player.years_exp != null ? ["Exp", `${player.years_exp} yrs`] : null,
+                    player.college ? ["College", player.college] : null,
                     player.depth_chart_position ? ["Depth", player.depth_chart_position] : null,
                   ].filter((item): item is [string, string] => item !== null)
                 ).map(([k, v]) => (
@@ -755,8 +789,30 @@ export default async function PlayerProfilePage({
                         </div>
                       </div>
                       <div className="pt-0.5">
-                        <div className="text-[13px] font-semibold mb-1.5">
-                          {tx.headline}
+                        <div className="text-[13px] font-semibold mb-1.5 flex items-center gap-1 flex-wrap">
+                          {tx.headlineParts.map((part, j) =>
+                            part.type === "owner" ? (
+                              <OwnerLink
+                                key={j}
+                                name={part.name}
+                                className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                              >
+                                <span
+                                  className="w-4 h-4 rounded-sm overflow-hidden inline-flex items-center justify-center shrink-0"
+                                  style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+                                >
+                                  <SleeperAvatarImage
+                                    avatarId={ownerAvatars[part.name]}
+                                    name={part.name}
+                                    fallback={<span className="font-heading text-[7px] font-bold text-[#60a5fa]">{part.name.slice(0, 2).toUpperCase()}</span>}
+                                  />
+                                </span>
+                                <span className="underline underline-offset-2">{part.name}</span>
+                              </OwnerLink>
+                            ) : (
+                              <span key={j}>{part.text}</span>
+                            ),
+                          )}
                         </div>
                         {tx.details.length > 0 && (
                           <div className="flex gap-1.5 flex-wrap">
@@ -812,12 +868,16 @@ export default async function PlayerProfilePage({
                   className="flex items-center gap-3 p-3 bg-secondary rounded-lg border border-border hover:border-muted-foreground/30 transition-colors"
                 >
                   <div
-                    className="w-[42px] h-[42px] rounded-md flex items-center justify-center font-heading font-black text-base text-white shrink-0"
+                    className="w-[42px] h-[42px] rounded-md flex items-center justify-center font-heading font-black text-base text-white shrink-0 overflow-hidden"
                     style={{
                       background: `linear-gradient(135deg, ${OWNER_DIVISION[ownerName] ? `var(--color-${OWNER_DIVISION[ownerName].toLowerCase().replace(/ /g, "-").replace("rises", "")})` : "#60a5fa"}, transparent)`,
                     }}
                   >
-                    {ownerName.slice(0, 2).toUpperCase()}
+                    <SleeperAvatarImage
+                      avatarId={ownerAvatars[ownerName]}
+                      name={ownerName}
+                      fallback={<span>{ownerName.slice(0, 2).toUpperCase()}</span>}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[13px] font-semibold">
@@ -918,6 +978,70 @@ export default async function PlayerProfilePage({
             </Card>
           )}
 
+          {/* NFL Depth Chart */}
+          {depthChartPlayers.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <SectionTick
+                  label="NFL Depth Chart"
+                  sub={`${player.team} · ${player.depth_chart_position}`}
+                />
+              </CardHeader>
+              <CardContent className="space-y-1.5">
+                {depthChartPlayers.map((dc) => (
+                  <div
+                    key={dc.playerId}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
+                    style={{
+                      background: dc.isCurrent ? posColors.bg : "var(--secondary)",
+                      border: `1px solid ${dc.isCurrent ? posColors.border : "var(--border)"}`,
+                    }}
+                  >
+                    <span
+                      className="inline-flex items-center justify-center font-heading font-extrabold text-[11px] tracking-wide rounded px-2 py-0.5"
+                      style={{
+                        background: dc.isCurrent ? posColors.text : "var(--secondary)",
+                        color: dc.isCurrent ? "#fff" : "var(--muted-foreground)",
+                        border: dc.isCurrent ? "none" : "1px solid var(--border)",
+                      }}
+                    >
+                      {dc.role}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="text-[13px] font-semibold"
+                        style={{ color: dc.isCurrent ? "var(--foreground)" : "#bbb" }}
+                      >
+                        {dc.isCurrent ? (
+                          dc.name
+                        ) : (
+                          <PlayerLink playerId={dc.playerId} className="hover:underline underline-offset-2">
+                            {dc.name}
+                          </PlayerLink>
+                        )}
+                      </div>
+                      <div
+                        className="text-[10px] mt-0.5 tracking-wider uppercase font-semibold"
+                        style={{ color: dc.isCurrent ? posColors.text : "var(--muted-foreground)" }}
+                      >
+                        {dc.owner ? (
+                          <>
+                            Owned
+                            <span className="ml-1.5 text-muted-foreground font-mono normal-case">
+                              · {dc.owner}
+                            </span>
+                          </>
+                        ) : (
+                          "Free Agent"
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Contract History */}
           {contractHistory.length > 1 && (
             <Card>
@@ -954,8 +1078,18 @@ export default async function PlayerProfilePage({
                         <td className="px-4 py-2">
                           <OwnerLink
                             name={resolveOwnerName(c.owner)}
-                            className="hover:underline underline-offset-2"
+                            className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
                           >
+                            <div
+                              className="w-5 h-5 rounded-sm flex-shrink-0 flex items-center justify-center overflow-hidden"
+                              style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+                            >
+                              <SleeperAvatarImage
+                                avatarId={ownerAvatars[resolveOwnerName(c.owner)]}
+                                name={resolveOwnerName(c.owner)}
+                                fallback={<span className="font-heading text-[8px] font-bold text-[#60a5fa]">{resolveOwnerName(c.owner).slice(0, 2).toUpperCase()}</span>}
+                              />
+                            </div>
                             {resolveOwnerName(c.owner)}
                           </OwnerLink>
                         </td>
