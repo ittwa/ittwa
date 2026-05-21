@@ -63,7 +63,7 @@ export async function getScores(): Promise<ScoreRow[]> {
 
 function parseNum(val: string | undefined, fallback: number = 0): number {
   if (!val) return fallback;
-  const cleaned = val.replace("$", "").trim();
+  const cleaned = val.replace("$", "").replace(/,/g, "").trim();
   if (cleaned === "" || cleaned === "#N/A" || cleaned === "N/A" || cleaned === "#REF!" || cleaned === "#VALUE!") {
     return fallback;
   }
