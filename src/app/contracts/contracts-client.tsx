@@ -5,6 +5,7 @@ import { ContractWithValue } from "@/types/contracts";
 import { getPositionColors } from "@/lib/ui-utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
+import { PlayerLink } from "@/components/player-link";
 
 export interface ContractEntry extends ContractWithValue {
   rosterSeason: string;
@@ -470,7 +471,7 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
                     <td className="px-3 py-2 pl-4">
                       <div className="flex items-center gap-2.5">
                         <PlayerAvatar playerId={c.playerId} name={c.player} pos={c.position} />
-                        <span className="text-[13px] font-medium whitespace-nowrap">{c.player}</span>
+                        <PlayerLink playerId={c.playerId} className="text-[13px] font-medium whitespace-nowrap hover:underline underline-offset-2">{c.player}</PlayerLink>
                       </div>
                     </td>
                     <td className="px-3 py-2">

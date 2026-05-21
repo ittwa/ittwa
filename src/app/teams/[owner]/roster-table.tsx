@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { PlayerAvatar } from "@/components/player-avatar";
+import { PlayerLink } from "@/components/player-link";
 import { getPositionVariant, getSalaryBarColor } from "@/lib/ui-utils";
 
 export interface RosterPlayer {
@@ -125,7 +126,7 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
                   <td className="px-4 py-2.5 font-medium">
                     <div className="flex items-center gap-2">
                       <PlayerAvatar playerId={p.playerId} playerName={p.name} position={p.position} />
-                      {p.name}
+                      <PlayerLink playerId={p.playerId}>{p.name}</PlayerLink>
                     </div>
                   </td>
                   <td className="px-4 py-2.5">

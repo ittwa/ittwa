@@ -18,6 +18,7 @@ import {
 import { getDisplayName } from "@/lib/sleeper";
 import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
 import { SleeperAvatarImage } from "@/components/owner-avatar";
+import { PlayerLink } from "@/components/player-link";
 import { OwnerLink } from "@/components/owner-link";
 import { SleeperTransaction, SleeperPlayersMap, MatchupPair } from "@/types/sleeper";
 import { StandingsEntry } from "@/lib/standings";
@@ -419,7 +420,11 @@ function TransactionsSection({
                         />
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-medium truncate">{playerName}</span>
+                        {singlePlayerId ? (
+                          <PlayerLink playerId={singlePlayerId} className="text-sm font-medium truncate hover:underline underline-offset-2">{playerName}</PlayerLink>
+                        ) : (
+                          <span className="text-sm font-medium truncate">{playerName}</span>
+                        )}
                         <div className="flex items-center gap-1 min-w-0">
                           <DashboardAvatar name={ownerName} avatarId={ownerAvatars[ownerName]} size={14} />
                           <span className="text-xs text-muted-foreground truncate">{ownerName}</span>

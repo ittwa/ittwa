@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { PlayerLink } from "@/components/player-link";
 import type { FreeAgentRow } from "./page";
 
 // ── Design tokens from prototype ─────────────────────────────────────────────
@@ -310,7 +311,7 @@ export function FreeAgentsClient({ players, season, ownerAvatars, owners }: Prop
                         <div className="flex items-center gap-2.5">
                           <PlayerAvatar playerId={p.playerId} name={p.player} pos={p.pos} />
                           <div className="flex flex-col gap-0.5">
-                            <span className="text-[13px] font-medium whitespace-nowrap">{p.player}</span>
+                            <PlayerLink playerId={p.playerId} className="text-[13px] font-medium whitespace-nowrap hover:underline underline-offset-2">{p.player}</PlayerLink>
                             <span className="text-[10px] text-muted-foreground font-mono tracking-[0.04em]">
                               {p.lastTeam} · AGE {p.age}{p.exp > 0 ? ` · ${p.exp}Y` : " · RK"}
                             </span>

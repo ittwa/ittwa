@@ -3,6 +3,7 @@
 import { useState, useMemo, Fragment } from "react";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
+import { PlayerLink } from "@/components/player-link";
 import type { CapHitClientRow } from "./page";
 
 const DIV_COLORS: Record<string, { color: string; bg: string; border: string }> = {
@@ -822,7 +823,7 @@ function BreakdownRow({ h, i, total, season, maxCellValue, showOwner, ownerDivis
       <td className="px-3 py-1.5 pl-4">
         <div className="flex items-center gap-2.5">
           <PlayerAvatar playerId={h.playerId} name={h.player} pos={h.pos} size={26} />
-          <span className="text-xs font-medium whitespace-nowrap">{h.player}</span>
+          <PlayerLink playerId={h.playerId} className="text-xs font-medium whitespace-nowrap hover:underline underline-offset-2">{h.player}</PlayerLink>
         </div>
       </td>
       <td className="px-3 py-1.5">
