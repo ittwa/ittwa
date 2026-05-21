@@ -111,7 +111,7 @@ function FilterSelect({ value, onChange, placeholder, options }: {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-secondary border border-border rounded-lg py-[6px] pl-3 pr-8 text-[13px] cursor-pointer"
+        className="appearance-none bg-secondary border border-border rounded-lg py-[6px] pl-3 pr-8 text-[13px] cursor-pointer"
         style={{
           background: active ? "rgba(232,184,75,0.08)" : undefined,
           borderColor: active ? "rgba(232,184,75,0.35)" : undefined,
