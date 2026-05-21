@@ -129,11 +129,11 @@ export default async function DraftsPage() {
         const rosterId = Number(rosterIdStr);
 
         const trade = tradedPicks.find(
-          (tp) => tp.season === season && tp.round === round && tp.owner_id === rosterId
+          (tp) => tp.season === season && tp.round === round && tp.roster_id === rosterId
         );
 
         const currentOwner = trade
-          ? (futureRosterOwnerMap[trade.roster_id] || `Team ${trade.roster_id}`)
+          ? (futureRosterOwnerMap[trade.owner_id] || `Team ${trade.owner_id}`)
           : originalOwner;
         const traded = currentOwner !== originalOwner;
         const pickLabel = `${round}.${String(rosterId).padStart(2, "0")}`;
