@@ -94,13 +94,33 @@ export default async function DraftsPage() {
   const nflState = await getNFLState();
   const currentSeason = Number(nflState.season);
   const currentLeagueId = SEASON_LEAGUE_IDS[String(currentSeason)] || Object.values(SEASON_LEAGUE_IDS)[0];
-  const futureSeasons = [currentSeason + 1, currentSeason + 2, currentSeason + 3].map(String);
+  const futureSeasons = [currentSeason + 1, currentSeason + 2].map(String);
 
-  const [tradedPicks, futureRosterOwnerMap, currentDrafts] = await Promise.all([
-    getTradedPicks(currentLeagueId),
-    buildRosterOwnerMap(currentLeagueId),
-    getDrafts(currentLeagueId),
-  ]);
+  // Fetch traded picks from the current league AND previous leagues so we
+  // capture trades made in earlier seasons that apply to future drafts.
+  const prevLeagueIds = [String(currentSeason - 1), String(currentSeason - 2)]
+    .map((s) => SEASON_LEAGUE_IDS[s])
+    .filter(Boolean);
+
+  const [currentTradedPicks, futureRosterOwnerMap, currentDrafts, ...prevTradedPickArrays] =
+    await Promise.all([
+      getTradedPicks(currentLeagueId),
+      buildRosterOwnerMap(currentLeagueId),
+      getDrafts(currentLeagueId),
+      ...prevLeagueIds.map((id) => getTradedPicks(id).catch(() => [])),
+    ]);
+
+  // Merge: previous league entries first, then current league overrides
+  const tradedPicksMap = new Map<string, { roster_id: number; owner_id: number; season: string; round: number }>();
+  for (const arr of [...prevTradedPickArrays].reverse()) {
+    for (const tp of arr) {
+      tradedPicksMap.set(`${tp.season}-${tp.round}-${tp.owner_id}`, tp);
+    }
+  }
+  for (const tp of currentTradedPicks) {
+    tradedPicksMap.set(`${tp.season}-${tp.round}-${tp.owner_id}`, tp);
+  }
+  const tradedPicks = Array.from(tradedPicksMap.values());
 
   const numTeams = Object.keys(futureRosterOwnerMap).length || 12;
   const numRounds = currentDrafts[0]?.settings?.rounds || 3;
