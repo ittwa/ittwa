@@ -144,9 +144,25 @@ function NavIcon({ name, size = 20, color = "currentColor" }: { name: string; si
 }
 
 function TeamsSubmenu({ onNavigate, ownerAvatars }: { onNavigate: () => void; ownerAvatars: Record<string, string> }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [flipLeft, setFlipLeft] = useState(false);
+
+  useEffect(() => {
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      if (rect.right > window.innerWidth) {
+        setFlipLeft(true);
+      }
+    }
+  }, []);
+
   return (
     <div
-      className="absolute left-full top-0 z-50 ml-2 w-52 bg-popover border border-border rounded-xl overflow-hidden"
+      ref={ref}
+      className={cn(
+        "absolute top-0 z-50 w-52 bg-popover border border-border rounded-xl overflow-hidden",
+        flipLeft ? "right-full mr-2" : "left-full ml-2"
+      )}
       style={{ boxShadow: "0 12px 32px rgba(20,16,8,0.12), 0 2px 8px rgba(20,16,8,0.06)" }}
     >
       <div className="p-2 max-h-80 overflow-y-auto">
