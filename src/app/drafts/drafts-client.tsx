@@ -6,6 +6,7 @@ import { OWNER_DIVISION } from "@/lib/config";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 import { PlayerAvatar as PlayerHeadshot } from "@/components/player-avatar";
+import { PlayerLink } from "@/components/player-link";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -888,9 +889,9 @@ export function DraftsClient({ drafts, ownerAvatars, futurePicksBySeason, future
                                     {r}.{String(pickNum).padStart(2, "0")}
                                   </span>
                                 </div>
-                                <span className="text-[11px] font-semibold text-foreground leading-[1.3] line-clamp-2">
+                                <PlayerLink playerId={pick.playerId} className="text-[11px] font-semibold text-foreground leading-[1.3] line-clamp-2 hover:underline underline-offset-2">
                                   {pick.playerName}
-                                </span>
+                                </PlayerLink>
                                 <span className="text-[10px] text-muted-foreground">{pick.team}</span>
                                 {traded && (
                                   <OwnerLink name={pick.ownerName} className="inline-flex items-center gap-1 mt-0.5 hover:opacity-80 transition-opacity">

@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { PlayerAvatar } from "@/components/player-avatar";
+import { PlayerLink } from "@/components/player-link";
 import { getPositionVariant } from "@/lib/ui-utils";
 
 export interface CapHitEntry {
@@ -104,7 +105,7 @@ export function CapHitsTable({ entries, displaySeason }: CapHitsTableProps) {
               <td className="px-4 py-2 font-medium">
                 <div className="flex items-center gap-2">
                   <PlayerAvatar playerId={ch.playerId} playerName={ch.player} position={ch.position} />
-                  {ch.player}
+                  <PlayerLink playerId={ch.playerId}>{ch.player}</PlayerLink>
                 </div>
               </td>
               <td className="px-4 py-2">

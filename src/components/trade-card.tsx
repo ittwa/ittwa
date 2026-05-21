@@ -4,6 +4,7 @@ import { useState, Fragment } from "react";
 import { getPositionColors } from "@/lib/ui-utils";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
+import { PlayerLink } from "@/components/player-link";
 
 export interface TradePlayerItem {
   type: "player";
@@ -117,7 +118,7 @@ function PlayerCard({ item }: { item: TradeItem }) {
           <PosBadge pos={item.pos} />
           <span className="text-[10px] text-muted-foreground font-mono">{item.nflTeam}</span>
         </div>
-        <div className="text-[13px] font-semibold text-foreground leading-tight truncate">{item.name}</div>
+        <PlayerLink playerId={item.sleeperId} className="text-[13px] font-semibold text-foreground leading-tight truncate hover:underline underline-offset-2">{item.name}</PlayerLink>
       </div>
       {item.salary > 0 && (
         <div className="text-right flex-shrink-0">
