@@ -526,10 +526,20 @@ export default async function PlayerProfilePage({
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <div className="text-[11px] text-muted-foreground font-mono tracking-wider">
+      <div className="text-[11px] text-muted-foreground font-mono tracking-wider flex items-center">
         {ownerName ? (
           <>
-            <OwnerLink name={ownerName} className="text-muted-foreground hover:text-foreground transition-colors">
+            <OwnerLink name={ownerName} className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
+              <span
+                className="w-4 h-4 rounded-sm overflow-hidden inline-flex items-center justify-center shrink-0"
+                style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+              >
+                <SleeperAvatarImage
+                  avatarId={ownerAvatars[ownerName]}
+                  name={ownerName}
+                  fallback={<span className="font-heading text-[7px] font-bold text-[#60a5fa]">{ownerName.slice(0, 2).toUpperCase()}</span>}
+                />
+              </span>
               {ownerName}
             </OwnerLink>
             <span className="mx-1.5">/</span>
@@ -713,24 +723,38 @@ export default async function PlayerProfilePage({
                   <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
                     Owner
                   </div>
-                  <div className="font-heading text-[30px] font-extrabold leading-tight mt-0.5 text-foreground">
-                    <OwnerLink
-                      name={ownerName}
-                      className="hover:opacity-80 transition-opacity"
-                    >
-                      {ownerName}
-                    </OwnerLink>
-                  </div>
-                  <div
-                    className="text-[10px] font-mono mt-1 font-semibold tracking-wider uppercase"
-                    style={{
-                      color: ownerDivision
-                        ? `var(--color-${ownerDivision.toLowerCase().replace(/ /g, "-").replace("rises", "")})`
-                        : undefined,
-                    }}
+                  <OwnerLink
+                    name={ownerName}
+                    className="flex items-center gap-2.5 mt-1 hover:opacity-80 transition-opacity"
                   >
-                    {ownerDivision || "—"}
-                  </div>
+                    <div
+                      className="w-9 h-9 rounded-md flex items-center justify-center font-heading font-black text-sm text-white shrink-0 overflow-hidden"
+                      style={{
+                        background: `linear-gradient(135deg, ${OWNER_DIVISION[ownerName] ? `var(--color-${OWNER_DIVISION[ownerName].toLowerCase().replace(/ /g, "-").replace("rises", "")})` : "#60a5fa"}, transparent)`,
+                      }}
+                    >
+                      <SleeperAvatarImage
+                        avatarId={ownerAvatars[ownerName]}
+                        name={ownerName}
+                        fallback={<span>{ownerName.slice(0, 2).toUpperCase()}</span>}
+                      />
+                    </div>
+                    <div>
+                      <div className="font-heading text-lg font-extrabold leading-tight text-foreground">
+                        {ownerName}
+                      </div>
+                      <div
+                        className="text-[10px] font-mono font-semibold tracking-wider uppercase"
+                        style={{
+                          color: ownerDivision
+                            ? `var(--color-${ownerDivision.toLowerCase().replace(/ /g, "-").replace("rises", "")})`
+                            : undefined,
+                        }}
+                      >
+                        {ownerDivision || "—"}
+                      </div>
+                    </div>
+                  </OwnerLink>
                 </div>
               )}
             </div>
@@ -856,116 +880,110 @@ export default async function PlayerProfilePage({
         {/* Sidebar */}
         <div className="flex flex-col gap-6">
           {/* Ownership Card */}
-          {ownerName && currentContract && (
-            <Card>
-              <CardHeader className="pb-3">
-                <SectionTick label="Ownership" />
-              </CardHeader>
-              <CardContent>
-                {/* Owner identity */}
-                <OwnerLink
-                  name={ownerName}
-                  className="flex items-center gap-3 p-3 bg-secondary rounded-lg border border-border hover:border-muted-foreground/30 transition-colors"
-                >
-                  <div
-                    className="w-[42px] h-[42px] rounded-md flex items-center justify-center font-heading font-black text-base text-white shrink-0 overflow-hidden"
-                    style={{
-                      background: `linear-gradient(135deg, ${OWNER_DIVISION[ownerName] ? `var(--color-${OWNER_DIVISION[ownerName].toLowerCase().replace(/ /g, "-").replace("rises", "")})` : "#60a5fa"}, transparent)`,
-                    }}
+          <Card>
+            <CardHeader className="pb-3">
+              <SectionTick label="Ownership" />
+            </CardHeader>
+            <CardContent>
+              {ownerName ? (
+                <>
+                  {/* Owner identity */}
+                  <OwnerLink
+                    name={ownerName}
+                    className="flex items-center gap-3 p-3 bg-secondary rounded-lg border border-border hover:border-muted-foreground/30 transition-colors"
                   >
-                    <SleeperAvatarImage
-                      avatarId={ownerAvatars[ownerName]}
-                      name={ownerName}
-                      fallback={<span>{ownerName.slice(0, 2).toUpperCase()}</span>}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold">
-                      {ownerName}
+                    <div
+                      className="w-[42px] h-[42px] rounded-md flex items-center justify-center font-heading font-black text-base text-white shrink-0 overflow-hidden"
+                      style={{
+                        background: `linear-gradient(135deg, ${OWNER_DIVISION[ownerName] ? `var(--color-${OWNER_DIVISION[ownerName].toLowerCase().replace(/ /g, "-").replace("rises", "")})` : "#60a5fa"}, transparent)`,
+                      }}
+                    >
+                      <SleeperAvatarImage
+                        avatarId={ownerAvatars[ownerName]}
+                        name={ownerName}
+                        fallback={<span>{ownerName.slice(0, 2).toUpperCase()}</span>}
+                      />
                     </div>
-                    {ownerDivision && (
-                      <div className="text-[11px] mt-0.5 tracking-wider uppercase font-semibold text-muted-foreground">
-                        {ownerDivision}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-semibold">
+                        {ownerName}
                       </div>
-                    )}
-                  </div>
-                </OwnerLink>
+                      {ownerDivision && (
+                        <div className="text-[11px] mt-0.5 tracking-wider uppercase font-semibold text-muted-foreground">
+                          {ownerDivision}
+                        </div>
+                      )}
+                    </div>
+                  </OwnerLink>
 
-                {/* Salary & Years */}
-                <div className="grid grid-cols-2 gap-2 mt-3.5">
-                  <div className="p-2.5 bg-secondary rounded-md border border-border">
-                    <div className="text-[10px] text-muted-foreground tracking-widest uppercase font-bold">
-                      Salary
+                  {/* Salary & Years */}
+                  {currentContract && (
+                    <div className="grid grid-cols-2 gap-2 mt-3.5">
+                      <div className="p-2.5 bg-secondary rounded-md border border-border">
+                        <div className="text-[10px] text-muted-foreground tracking-widest uppercase font-bold">
+                          Salary
+                        </div>
+                        <div
+                          className="font-heading text-2xl font-extrabold mt-0.5 leading-none"
+                          style={{ color: "var(--color-ittwa)" }}
+                        >
+                          {fmtDollar(currentContract.salary)}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-1">
+                          cap hit &apos;{season.slice(-2)}
+                        </div>
+                      </div>
+                      <div className="p-2.5 bg-secondary rounded-md border border-border">
+                        <div className="text-[10px] text-muted-foreground tracking-widest uppercase font-bold">
+                          Yrs Left
+                        </div>
+                        <div
+                          className="font-heading text-2xl font-extrabold mt-0.5 leading-none"
+                          style={{ color: "var(--color-gold)" }}
+                        >
+                          {currentContract.years}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-1">
+                          {currentContract.years === 0
+                            ? "mid-season"
+                            : `thru ${Number(season) + currentContract.years - 1}`}
+                        </div>
+                      </div>
                     </div>
-                    <div
-                      className="font-heading text-2xl font-extrabold mt-0.5 leading-none"
-                      style={{ color: "var(--color-ittwa)" }}
-                    >
-                      {fmtDollar(currentContract.salary)}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground mt-1">
-                      cap hit &apos;{season.slice(-2)}
-                    </div>
-                  </div>
-                  <div className="p-2.5 bg-secondary rounded-md border border-border">
-                    <div className="text-[10px] text-muted-foreground tracking-widest uppercase font-bold">
-                      Yrs Left
-                    </div>
-                    <div
-                      className="font-heading text-2xl font-extrabold mt-0.5 leading-none"
-                      style={{ color: "var(--color-gold)" }}
-                    >
-                      {currentContract.years}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground mt-1">
-                      {currentContract.years === 0
-                        ? "mid-season"
-                        : `thru ${Number(season) + currentContract.years - 1}`}
-                    </div>
-                  </div>
-                </div>
+                  )}
 
-                {/* Tags */}
-                {(currentContract.franchiseTag || currentContract.fifthYearTag || currentContract.isMidSeasonPickup) && (
-                  <div className="flex gap-1.5 mt-3 flex-wrap">
-                    {currentContract.franchiseTag && (
-                      <Badge variant="outline" className="text-gold border-gold/30 bg-gold/5">
-                        Franchise Tag
-                      </Badge>
-                    )}
-                    {currentContract.fifthYearTag && (
-                      <Badge variant="outline" className="text-gold border-gold/30 bg-gold/5">
-                        5th Year Tag
-                      </Badge>
-                    )}
-                    {currentContract.isMidSeasonPickup && (
-                      <Badge variant="outline">Mid-Season Pickup</Badge>
-                    )}
-                  </div>
-                )}
-
-                {/* Acquired info */}
-                {currentContract.dpOriginalOwner && (
-                  <div className="mt-3.5 p-2.5 bg-[var(--background)] rounded-md border-l-2 border-l-gold">
-                    <div className="text-[10px] text-muted-foreground tracking-widest uppercase font-bold">
-                      Original Drafter
+                  {/* Tags */}
+                  {currentContract && (currentContract.franchiseTag || currentContract.fifthYearTag || currentContract.isMidSeasonPickup) && (
+                    <div className="flex gap-1.5 mt-3 flex-wrap">
+                      {currentContract.franchiseTag && (
+                        <Badge variant="outline" className="text-gold border-gold/30 bg-gold/5">
+                          Franchise Tag
+                        </Badge>
+                      )}
+                      {currentContract.fifthYearTag && (
+                        <Badge variant="outline" className="text-gold border-gold/30 bg-gold/5">
+                          5th Year Tag
+                        </Badge>
+                      )}
+                      {currentContract.isMidSeasonPickup && (
+                        <Badge variant="outline">Mid-Season Pickup</Badge>
+                      )}
                     </div>
-                    <div className="text-xs font-mono mt-1">
-                      {currentContract.dpOriginalOwner}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                  )}
 
-          {/* Not rostered card */}
-          {!ownerName && (
-            <Card>
-              <CardHeader className="pb-3">
-                <SectionTick label="Ownership" />
-              </CardHeader>
-              <CardContent>
+                  {/* Acquired info */}
+                  {currentContract?.dpOriginalOwner && (
+                    <div className="mt-3.5 p-2.5 bg-[var(--background)] rounded-md border-l-2 border-l-gold">
+                      <div className="text-[10px] text-muted-foreground tracking-widest uppercase font-bold">
+                        Original Drafter
+                      </div>
+                      <div className="text-xs font-mono mt-1">
+                        {currentContract.dpOriginalOwner}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
                 <div className="p-3 bg-secondary rounded-lg border border-border text-center">
                   <div className="text-sm text-muted-foreground">
                     Not currently rostered
@@ -974,9 +992,9 @@ export default async function PlayerProfilePage({
                     Free Agent
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
 
           {/* NFL Depth Chart */}
           {depthChartPlayers.length > 0 && (
@@ -1007,6 +1025,12 @@ export default async function PlayerProfilePage({
                     >
                       {dc.role}
                     </span>
+                    <PlayerAvatar
+                      playerId={dc.playerId}
+                      playerName={dc.name}
+                      position={player.position}
+                      size={30}
+                    />
                     <div className="flex-1 min-w-0">
                       <div
                         className="text-[13px] font-semibold"
@@ -1021,14 +1045,25 @@ export default async function PlayerProfilePage({
                         )}
                       </div>
                       <div
-                        className="text-[10px] mt-0.5 tracking-wider uppercase font-semibold"
+                        className="text-[10px] mt-0.5 tracking-wider uppercase font-semibold flex items-center gap-1"
                         style={{ color: dc.isCurrent ? posColors.text : "var(--muted-foreground)" }}
                       >
                         {dc.owner ? (
                           <>
-                            Owned
-                            <span className="ml-1.5 text-muted-foreground font-mono normal-case">
-                              · {dc.owner}
+                            <span>Owned</span>
+                            <span className="text-muted-foreground font-mono normal-case flex items-center gap-1">
+                              ·
+                              <span
+                                className="w-3.5 h-3.5 rounded-sm overflow-hidden inline-flex items-center justify-center shrink-0"
+                                style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+                              >
+                                <SleeperAvatarImage
+                                  avatarId={ownerAvatars[dc.owner]}
+                                  name={dc.owner}
+                                  fallback={<span className="font-heading text-[6px] font-bold text-[#60a5fa]">{dc.owner.slice(0, 2).toUpperCase()}</span>}
+                                />
+                              </span>
+                              {dc.owner}
                             </span>
                           </>
                         ) : (
@@ -1043,7 +1078,7 @@ export default async function PlayerProfilePage({
           )}
 
           {/* Contract History */}
-          {contractHistory.length > 1 && (
+          {contractHistory.length >= 1 && (
             <Card>
               <CardHeader className="pb-3">
                 <SectionTick label="Contract History" />
