@@ -19,16 +19,7 @@ function posColor(pos: string) {
   return POS_COLORS[pos] || DEFAULT_POS;
 }
 
-const STATUS_COLORS: Record<string, { label: string; text: string; bg: string; border: string }> = {
-  UFA:    { label: "UFA",    text: "#E8B84B", bg: "rgba(232,184,75,0.1)",  border: "rgba(232,184,75,0.3)" },
-  RFA:    { label: "RFA",    text: "#60a5fa", bg: "rgba(96,165,250,0.1)",  border: "rgba(96,165,250,0.3)" },
-  ROOKIE: { label: "ROOKIE", text: "#4ade80", bg: "rgba(74,222,128,0.1)",  border: "rgba(74,222,128,0.3)" },
-  CUT:    { label: "CUT",    text: "#FD4A48", bg: "rgba(253,74,72,0.1)",   border: "rgba(253,74,72,0.3)" },
-  IR:     { label: "IR",     text: "#a78bfa", bg: "rgba(167,139,250,0.1)", border: "rgba(167,139,250,0.3)" },
-};
-
 const ALL_POS = ["QB", "RB", "WR", "TE"] as const;
-const ALL_STATUS = ["UFA", "RFA", "ROOKIE", "CUT", "IR"] as const;
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
@@ -94,19 +85,6 @@ function OwnerAvatar({ name, size = 20 }: { name: string; size?: number }) {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const sc = STATUS_COLORS[status];
-  if (!sc) return <span className="text-muted-foreground text-[11px]">—</span>;
-  return (
-    <span
-      className="text-[10px] font-bold tracking-[0.06em] whitespace-nowrap"
-      style={{ padding: "2px 7px", borderRadius: 4, background: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }}
-    >
-      {sc.label}
-    </span>
-  );
-}
-
 function SortTh({ label, field, sortKey: sk, sortDir: sd, onSort, align = "left", className: extra }: {
   label: string; field: SortKey; sortKey: SortKey; sortDir: "asc" | "desc";
   onSort: (k: SortKey) => void; align?: string; className?: string;
@@ -153,7 +131,7 @@ function FilterSelect({ value, onChange, placeholder, options }: {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type SortKey = "player" | "pos" | "status" | "owner" | "points" | "salary" | "contract";
+type SortKey = "player" | "pos" | "owner" | "points" | "salary" | "contract";
 
 interface Props {
   players: FreeAgentRow[];
@@ -167,7 +145,6 @@ interface Props {
 export function FreeAgentsClient({ players, season, ownerAvatars, owners }: Props) {
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [maxAge, setMaxAge] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("");
   const [minSalary, setMinSalary] = useState("");
@@ -176,30 +153,16 @@ export function FreeAgentsClient({ players, season, ownerAvatars, owners }: Prop
 
   function onSort(field: SortKey) {
     if (sortKey === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(field); setSortDir(field === "player" || field === "pos" || field === "status" || field === "owner" ? "asc" : "desc"); }
-  }
-
-  function toggleStatus(s: string) {
-    setStatusFilter((prev) =>
-      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
-    );
+    else { setSortKey(field); setSortDir(field === "player" || field === "pos" || field === "owner" ? "asc" : "desc"); }
   }
 
   function clearAll() {
     setSearch("");
     setPosFilter("");
-    setStatusFilter([]);
     setMaxAge("");
     setOwnerFilter("");
     setMinSalary("");
   }
-
-  const statusCounts = useMemo(() => {
-    const m: Record<string, number> = {};
-    for (const s of ALL_STATUS) m[s] = 0;
-    for (const p of players) m[p.status] = (m[p.status] || 0) + 1;
-    return m;
-  }, [players]);
 
   const posCounts = useMemo(() => {
     const m: Record<string, number> = {};
@@ -214,7 +177,6 @@ export function FreeAgentsClient({ players, season, ownerAvatars, owners }: Prop
     let r = [...players];
     if (search) r = r.filter((p) => p.player.toLowerCase().includes(search.toLowerCase()));
     if (posFilter) r = r.filter((p) => p.pos === posFilter);
-    if (statusFilter.length > 0) r = r.filter((p) => statusFilter.includes(p.status));
     if (maxAge) r = r.filter((p) => p.age <= Number(maxAge));
     if (ownerFilter) r = r.filter((p) => p.lastOwner === ownerFilter);
     if (minSalary) r = r.filter((p) => p.lastSalary >= Number(minSalary));
@@ -222,7 +184,6 @@ export function FreeAgentsClient({ players, season, ownerAvatars, owners }: Prop
       let cmp = 0;
       if (sortKey === "player") cmp = a.player.localeCompare(b.player);
       else if (sortKey === "pos") cmp = a.pos.localeCompare(b.pos) || (a.posRank ?? 9999) - (b.posRank ?? 9999);
-      else if (sortKey === "status") cmp = a.status.localeCompare(b.status);
       else if (sortKey === "owner") cmp = (a.lastOwner || "zz").localeCompare(b.lastOwner || "zz");
       else if (sortKey === "points") cmp = a.lastPoints - b.lastPoints;
       else if (sortKey === "salary") cmp = a.lastSalary - b.lastSalary;
@@ -230,9 +191,9 @@ export function FreeAgentsClient({ players, season, ownerAvatars, owners }: Prop
       return sortDir === "asc" ? cmp : -cmp;
     });
     return r;
-  }, [players, search, posFilter, statusFilter, maxAge, ownerFilter, minSalary, sortKey, sortDir]);
+  }, [players, search, posFilter, maxAge, ownerFilter, minSalary, sortKey, sortDir]);
 
-  const activeFilters = [posFilter, statusFilter.length > 0, maxAge, ownerFilter, minSalary].filter(Boolean).length;
+  const activeFilters = [posFilter, maxAge, ownerFilter, minSalary].filter(Boolean).length;
 
   return (
     <div>
@@ -280,37 +241,8 @@ export function FreeAgentsClient({ players, season, ownerAvatars, owners }: Prop
         })}
       </div>
 
-      {/* Status pills + Filters — single row */}
+      {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-5 items-center">
-        {ALL_STATUS.map((s) => {
-          const sc = STATUS_COLORS[s];
-          const active = statusFilter.includes(s);
-          return (
-            <button
-              key={s}
-              onClick={() => toggleStatus(s)}
-              className="inline-flex items-center gap-1.5 cursor-pointer transition-all duration-150"
-              style={{
-                background: active ? sc.bg : "var(--secondary)",
-                border: `1px solid ${active ? sc.border : "var(--border)"}`,
-                borderRadius: 8, padding: "6px 10px",
-                fontSize: 11, fontWeight: active ? 700 : 500,
-                color: active ? sc.text : "var(--muted-foreground)",
-                letterSpacing: "0.04em",
-              }}
-            >
-              <span
-                className="rounded-full"
-                style={{ width: 5, height: 5, background: sc.text, opacity: active ? 1 : 0.5 }}
-              />
-              {sc.label}
-              <span className="font-mono font-semibold" style={{ color: active ? sc.text : "var(--muted-foreground)", opacity: 0.7 }}>
-                {statusCounts[s] || 0}
-              </span>
-            </button>
-          );
-        })}
-        <div className="w-px h-5 bg-border mx-1" />
         <div className="relative">
           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-[13px]">⌕</span>
           <input
@@ -352,7 +284,6 @@ export function FreeAgentsClient({ players, season, ownerAvatars, owners }: Prop
               <tr>
                 <SortTh label="Player" field="player" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="pl-4" />
                 <SortTh label="Pos" field="pos" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-                <SortTh label="Status" field="status" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <SortTh label="Last Owner" field="owner" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <SortTh label="Last Pts" field="points" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
                 <SortTh label="Last Salary" field="salary" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
@@ -362,7 +293,7 @@ export function FreeAgentsClient({ players, season, ownerAvatars, owners }: Prop
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground text-sm italic">
+                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm italic">
                     No free agents match your filters.
                   </td>
                 </tr>
@@ -388,9 +319,6 @@ export function FreeAgentsClient({ players, season, ownerAvatars, owners }: Prop
                       </td>
                       <td className="px-3 py-2">
                         <PosBadge pos={p.pos} rank={p.posRank} />
-                      </td>
-                      <td className="px-3 py-2">
-                        <StatusBadge status={p.status} />
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap">
                         {p.lastOwner ? (
