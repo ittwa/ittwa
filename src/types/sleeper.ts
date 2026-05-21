@@ -145,6 +145,10 @@ export interface SleeperPlayer {
   injury_status?: string;
   number?: number;
   depth_chart_position?: string;
+  depth_chart_order?: number;
+  height?: string;
+  weight?: string;
+  college?: string;
   sport?: string;
   search_full_name?: string;
 }
