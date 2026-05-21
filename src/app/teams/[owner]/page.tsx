@@ -218,12 +218,27 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
           style={{ background: `linear-gradient(90deg, ${divisionColor} 0%, transparent 60%)` }}
         />
 
-        {/* Ghost initials watermark — division-colored */}
+        {/* Ghost avatar watermark — division-colored */}
         <div
-          className="absolute right-2 top-0 select-none pointer-events-none leading-none font-heading font-black"
-          style={{ fontSize: "200px", color: getDivisionColorAlpha(team.division, 0.04) }}
+          className="absolute right-2 top-0 select-none pointer-events-none leading-none"
+          style={{ width: "220px", height: "220px", opacity: 0.06 }}
         >
-          {ghostInitials}
+          {ownerAvatars[team.displayName] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`https://sleepercdn.com/avatars/${ownerAvatars[team.displayName]}`}
+              alt=""
+              className="w-full h-full object-cover rounded-full"
+              style={{ filter: `drop-shadow(0 0 40px ${divisionColor})` }}
+            />
+          ) : (
+            <span
+              className="font-heading font-black block"
+              style={{ fontSize: "200px", color: getDivisionColorAlpha(team.division, 0.04), opacity: 1 }}
+            >
+              {ghostInitials}
+            </span>
+          )}
         </div>
 
         <div className="p-6 sm:p-8 flex items-start justify-between gap-6">
