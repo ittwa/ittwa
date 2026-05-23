@@ -578,16 +578,16 @@ export default async function PlayerProfilePage({
           </div>
         )}
 
-        <div className="py-6 sm:py-8 relative">
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-7 items-center sm:items-start">
-            {/* Player headshot */}
-            <div className="shrink-0">
+        <div className="py-5 sm:py-8 relative">
+          <div className="flex gap-4 sm:gap-7 items-start">
+            {/* Player headshot + mobile position/team below */}
+            <div className="shrink-0 flex flex-col items-center gap-2">
               <div className="sm:hidden">
                 <PlayerAvatar
                   playerId={playerId}
                   playerName={playerName}
                   position={player.position}
-                  size={120}
+                  size={100}
                 />
               </div>
               <div className="hidden sm:block">
@@ -598,11 +598,22 @@ export default async function PlayerProfilePage({
                   size={170}
                 />
               </div>
+              {/* Mobile: position/team/number under photo */}
+              <div className="sm:hidden text-center">
+                <div className="font-heading font-extrabold text-sm uppercase tracking-wide">
+                  {player.team ? (NFL_TEAMS[player.team]?.split(" ").pop() || player.team) : "Free Agent"}
+                </div>
+                <div className="text-[11px] font-mono mt-0.5" style={{ color: posColors.text }}>
+                  {player.position}
+                  <span className="text-muted-foreground"> · {player.team || "FA"}</span>
+                  {player.number != null && <span className="text-muted-foreground"> · #{player.number}</span>}
+                </div>
+              </div>
             </div>
 
-            <div className="flex-1 min-w-0 w-full">
-              {/* Meta row */}
-              <div className="flex items-center gap-2 sm:gap-2.5 mb-2 flex-wrap">
+            <div className="flex-1 min-w-0">
+              {/* Desktop: Meta row */}
+              <div className="hidden sm:flex items-center gap-2.5 mb-2 flex-wrap">
                 <Badge variant={getPositionVariant(player.position)}>
                   {player.position}
                 </Badge>
@@ -612,7 +623,7 @@ export default async function PlayerProfilePage({
                   {player.team || "FA"}
                   {player.number != null && ` · #${player.number}`}
                 </span>
-                <span className="text-[11px] text-muted-foreground font-mono hidden sm:inline">
+                <span className="text-[11px] text-muted-foreground font-mono">
                   {teamName}
                 </span>
                 {player.status && (
@@ -641,9 +652,28 @@ export default async function PlayerProfilePage({
                 )}
               </div>
 
+              {/* Mobile: status indicator */}
+              {player.status && (
+                <div className="sm:hidden flex items-center gap-1.5 mb-1.5">
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{
+                      background: player.injury_status ? "var(--color-ittwa)" : "#4ade80",
+                      boxShadow: `0 0 8px ${player.injury_status ? "var(--color-ittwa)" : "#4ade80"}`,
+                    }}
+                  />
+                  <span
+                    className="text-[11px] font-semibold tracking-wider uppercase"
+                    style={{ color: player.injury_status ? "var(--color-ittwa)" : "#4ade80" }}
+                  >
+                    {player.injury_status || "Active"}
+                  </span>
+                </div>
+              )}
+
               {/* Name */}
               <h1
-                className="font-heading font-black uppercase leading-[0.95] text-[40px] sm:text-[72px] break-all"
+                className="font-heading font-black uppercase leading-[0.95] text-[36px] sm:text-[72px]"
                 style={{
                   textShadow: `0 0 60px ${posColors.bg}`,
                 }}
@@ -656,7 +686,7 @@ export default async function PlayerProfilePage({
               </h1>
 
               {/* Bio stats */}
-              <div className="flex gap-4 sm:gap-6 mt-4 flex-wrap">
+              <div className="flex gap-4 sm:gap-6 mt-3 sm:mt-4 flex-wrap">
                 {(
                   [
                     player.age != null ? ["Age", String(player.age)] : null,
