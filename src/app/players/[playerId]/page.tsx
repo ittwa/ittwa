@@ -566,7 +566,7 @@ export default async function PlayerProfilePage({
         {/* Ghost jersey number watermark */}
         {player.number != null && (
           <div
-            className="absolute -right-[50px] -top-[60px] select-none pointer-events-none leading-none font-heading font-black"
+            className="absolute -right-[50px] -top-[60px] select-none pointer-events-none leading-none font-heading font-black hidden sm:block"
             style={{
               fontSize: "380px",
               color: posColors.text,
@@ -578,21 +578,31 @@ export default async function PlayerProfilePage({
           </div>
         )}
 
-        <div className="py-8 relative">
-          <div className="flex gap-7 items-start">
+        <div className="py-6 sm:py-8 relative">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-7 items-center sm:items-start">
             {/* Player headshot */}
             <div className="shrink-0">
-              <PlayerAvatar
-                playerId={playerId}
-                playerName={playerName}
-                position={player.position}
-                size={170}
-              />
+              <div className="sm:hidden">
+                <PlayerAvatar
+                  playerId={playerId}
+                  playerName={playerName}
+                  position={player.position}
+                  size={120}
+                />
+              </div>
+              <div className="hidden sm:block">
+                <PlayerAvatar
+                  playerId={playerId}
+                  playerName={playerName}
+                  position={player.position}
+                  size={170}
+                />
+              </div>
             </div>
 
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 w-full">
               {/* Meta row */}
-              <div className="flex items-center gap-2.5 mb-2 flex-wrap">
+              <div className="flex items-center gap-2 sm:gap-2.5 mb-2 flex-wrap">
                 <Badge variant={getPositionVariant(player.position)}>
                   {player.position}
                 </Badge>
@@ -602,7 +612,7 @@ export default async function PlayerProfilePage({
                   {player.team || "FA"}
                   {player.number != null && ` · #${player.number}`}
                 </span>
-                <span className="text-[11px] text-muted-foreground font-mono">
+                <span className="text-[11px] text-muted-foreground font-mono hidden sm:inline">
                   {teamName}
                 </span>
                 {player.status && (
@@ -633,7 +643,7 @@ export default async function PlayerProfilePage({
 
               {/* Name */}
               <h1
-                className="font-heading font-black uppercase leading-[0.95] text-5xl sm:text-[72px]"
+                className="font-heading font-black uppercase leading-[0.95] text-[40px] sm:text-[72px] break-all"
                 style={{
                   textShadow: `0 0 60px ${posColors.bg}`,
                 }}
@@ -646,7 +656,7 @@ export default async function PlayerProfilePage({
               </h1>
 
               {/* Bio stats */}
-              <div className="flex gap-6 mt-4 flex-wrap">
+              <div className="flex gap-4 sm:gap-6 mt-4 flex-wrap">
                 {(
                   [
                     player.age != null ? ["Age", String(player.age)] : null,
@@ -793,7 +803,7 @@ export default async function PlayerProfilePage({
                   {allPlayerTxns.map((tx, i) => (
                     <div
                       key={`${tx.timestamp}-${i}`}
-                      className="grid gap-3 px-5 py-3.5 items-start"
+                      className="flex flex-col sm:grid gap-2 sm:gap-3 px-4 sm:px-5 py-3.5 items-start"
                       style={{
                         gridTemplateColumns: "36px 100px 1fr 120px",
                         borderBottom:
@@ -803,13 +813,21 @@ export default async function PlayerProfilePage({
                         borderTop: i === 0 ? "1px solid var(--border)" : "none",
                       }}
                     >
-                      <TxIcon type={tx.type} />
-                      <div className="pt-0.5">
-                        <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
-                          {tx.type}
+                      <div className="flex items-center gap-2.5 sm:contents">
+                        <TxIcon type={tx.type} />
+                        <div className="pt-0.5">
+                          <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
+                            {tx.type}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5 font-mono">
+                            {tx.week > 0 ? `Week ${tx.week}` : "Off-Season"}
+                          </div>
                         </div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5 font-mono">
-                          {tx.week > 0 ? `Week ${tx.week}` : "Off-Season"}
+                        <div className="text-right pt-0.5 ml-auto sm:hidden">
+                          <div className="text-xs font-mono">{tx.date}</div>
+                          <div className="text-[10px] text-muted-foreground mt-0.5">
+                            {tx.season} Season
+                          </div>
                         </div>
                       </div>
                       <div className="pt-0.5">
@@ -863,7 +881,7 @@ export default async function PlayerProfilePage({
                           </div>
                         )}
                       </div>
-                      <div className="text-right pt-0.5">
+                      <div className="text-right pt-0.5 hidden sm:block">
                         <div className="text-xs font-mono">{tx.date}</div>
                         <div className="text-[10px] text-muted-foreground mt-0.5">
                           {tx.season} Season
