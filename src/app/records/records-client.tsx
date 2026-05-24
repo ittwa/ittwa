@@ -380,48 +380,52 @@ export function RecordsClient({
                 ))}
               </div>
 
-              <RCard>
-                <div
-                  className="grid gap-0 px-4 py-2 border-b border-border bg-secondary"
-                  style={{ gridTemplateColumns: "56px 1fr 1fr 1fr" }}
-                >
-                  {["Year", "Champion", "Runner-Up", "3rd Place"].map((h, i) => (
-                    <span
-                      key={h}
-                      className={cn(
-                        "text-[10px] font-bold tracking-widest uppercase text-muted-foreground",
-                        i === 0 ? "text-center" : "text-left"
-                      )}
+              <RCard className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <div style={{ minWidth: 520 }}>
+                    <div
+                      className="grid gap-0 px-4 py-2 border-b border-border bg-secondary"
+                      style={{ gridTemplateColumns: "56px 1fr 1fr 1fr" }}
                     >
-                      {h}
-                    </span>
-                  ))}
-                </div>
-                {champions.map((row, i) => (
-                  <div
-                    key={row.year}
-                    className="grid items-center gap-0 px-4 py-2.5 border-b border-border/50 last:border-0"
-                    style={{
-                      gridTemplateColumns: "56px 1fr 1fr 1fr",
-                      background: i % 2 === 1 ? "var(--secondary)" : undefined,
-                    }}
-                  >
-                    <span className="font-mono text-[13px] font-bold text-gold text-center">{row.year}</span>
-                    <OwnerLink name={row.champion} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                      <span className="text-sm">🏆</span>
-                      <OwnerAvatar name={row.champion} size={20} />
-                      <span className="text-[13px] font-semibold">{row.champion}</span>
-                    </OwnerLink>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs">🥈</span>
-                      {row.runnerUp && row.runnerUp !== "—" ? <OwnerLink name={row.runnerUp} className="text-[13px] text-[#aaa] hover:underline underline-offset-2">{row.runnerUp}</OwnerLink> : <span className="text-[13px] text-[#aaa]">—</span>}
+                      {["Year", "Champion", "Runner-Up", "3rd Place"].map((h, i) => (
+                        <span
+                          key={h}
+                          className={cn(
+                            "text-[10px] font-bold tracking-widest uppercase text-muted-foreground",
+                            i === 0 ? "text-center" : "text-left"
+                          )}
+                        >
+                          {h}
+                        </span>
+                      ))}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs">🥉</span>
-                      {row.third && row.third !== "—" ? <OwnerLink name={row.third} className="text-[13px] text-muted-foreground hover:underline underline-offset-2">{row.third}</OwnerLink> : <span className="text-[13px] text-muted-foreground">—</span>}
-                    </div>
+                    {champions.map((row, i) => (
+                      <div
+                        key={row.year}
+                        className="grid items-center gap-0 px-4 py-2.5 border-b border-border/50 last:border-0"
+                        style={{
+                          gridTemplateColumns: "56px 1fr 1fr 1fr",
+                          background: i % 2 === 1 ? "var(--secondary)" : undefined,
+                        }}
+                      >
+                        <span className="font-mono text-[13px] font-bold text-gold text-center">{row.year}</span>
+                        <OwnerLink name={row.champion} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                          <span className="text-sm">🏆</span>
+                          <OwnerAvatar name={row.champion} size={20} />
+                          <span className="text-[13px] font-semibold">{row.champion}</span>
+                        </OwnerLink>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">🥈</span>
+                          {row.runnerUp && row.runnerUp !== "—" ? <OwnerLink name={row.runnerUp} className="text-[13px] text-[#aaa] hover:underline underline-offset-2">{row.runnerUp}</OwnerLink> : <span className="text-[13px] text-[#aaa]">—</span>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">🥉</span>
+                          {row.third && row.third !== "—" ? <OwnerLink name={row.third} className="text-[13px] text-muted-foreground hover:underline underline-offset-2">{row.third}</OwnerLink> : <span className="text-[13px] text-muted-foreground">—</span>}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </RCard>
             </div>
             {/* Game Records */}
@@ -833,29 +837,33 @@ export function RecordsClient({
             {selectedChamp && (
               <div>
                 <SectionLabel label="Trophy Room" />
-                <RCard>
-                  <div
-                    className="grid items-center gap-0 px-4 py-2 border-b border-border bg-secondary"
-                    style={{ gridTemplateColumns: "56px 1fr 1fr 1fr" }}
-                  >
-                    {["Year", "Champion", "Runner-Up", "3rd Place"].map((h, i) => (
-                      <span key={h} className={cn("text-[10px] font-bold tracking-widest uppercase text-muted-foreground", i === 0 ? "text-center" : "text-left")}>{h}</span>
-                    ))}
-                  </div>
-                  <div className="grid items-center gap-0 px-4 py-2.5" style={{ gridTemplateColumns: "56px 1fr 1fr 1fr" }}>
-                    <span className="font-mono text-[13px] font-bold text-gold text-center">{selectedChamp.year}</span>
-                    <OwnerLink name={selectedChamp.champion} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                      <span className="text-sm">🏆</span>
-                      <OwnerAvatar name={selectedChamp.champion} size={20} />
-                      <span className="text-[13px] font-semibold">{selectedChamp.champion}</span>
-                    </OwnerLink>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs">🥈</span>
-                      {selectedChamp.runnerUp && selectedChamp.runnerUp !== "—" ? <OwnerLink name={selectedChamp.runnerUp} className="text-[13px] text-[#aaa] hover:underline underline-offset-2">{selectedChamp.runnerUp}</OwnerLink> : <span className="text-[13px] text-[#aaa]">—</span>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs">🥉</span>
-                      {selectedChamp.third && selectedChamp.third !== "—" ? <OwnerLink name={selectedChamp.third} className="text-[13px] text-muted-foreground hover:underline underline-offset-2">{selectedChamp.third}</OwnerLink> : <span className="text-[13px] text-muted-foreground">—</span>}
+                <RCard className="overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <div style={{ minWidth: 520 }}>
+                      <div
+                        className="grid items-center gap-0 px-4 py-2 border-b border-border bg-secondary"
+                        style={{ gridTemplateColumns: "56px 1fr 1fr 1fr" }}
+                      >
+                        {["Year", "Champion", "Runner-Up", "3rd Place"].map((h, i) => (
+                          <span key={h} className={cn("text-[10px] font-bold tracking-widest uppercase text-muted-foreground", i === 0 ? "text-center" : "text-left")}>{h}</span>
+                        ))}
+                      </div>
+                      <div className="grid items-center gap-0 px-4 py-2.5" style={{ gridTemplateColumns: "56px 1fr 1fr 1fr" }}>
+                        <span className="font-mono text-[13px] font-bold text-gold text-center">{selectedChamp.year}</span>
+                        <OwnerLink name={selectedChamp.champion} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                          <span className="text-sm">🏆</span>
+                          <OwnerAvatar name={selectedChamp.champion} size={20} />
+                          <span className="text-[13px] font-semibold">{selectedChamp.champion}</span>
+                        </OwnerLink>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">🥈</span>
+                          {selectedChamp.runnerUp && selectedChamp.runnerUp !== "—" ? <OwnerLink name={selectedChamp.runnerUp} className="text-[13px] text-[#aaa] hover:underline underline-offset-2">{selectedChamp.runnerUp}</OwnerLink> : <span className="text-[13px] text-[#aaa]">—</span>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">🥉</span>
+                          {selectedChamp.third && selectedChamp.third !== "—" ? <OwnerLink name={selectedChamp.third} className="text-[13px] text-muted-foreground hover:underline underline-offset-2">{selectedChamp.third}</OwnerLink> : <span className="text-[13px] text-muted-foreground">—</span>}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </RCard>
