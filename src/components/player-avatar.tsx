@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import { getPositionColors } from "@/lib/ui-utils";
 
 interface PlayerAvatarProps {
@@ -47,8 +48,7 @@ export function PlayerAvatar({ playerId, playerName, position, size = 32 }: Play
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <Image
       src={getAvatarUrl(playerId)}
       alt={playerName}
       width={size}

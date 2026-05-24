@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap, getLatestActiveContracts, getLeagueUsers } from "@/lib/data";
@@ -223,11 +224,11 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
           style={{ width: "220px", height: "220px", opacity: 0.06 }}
         >
           {ownerAvatars[team.displayName] ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={`https://sleepercdn.com/avatars/${ownerAvatars[team.displayName]}`}
               alt=""
-              className="w-full h-full object-cover rounded-full"
+              fill
+              className="object-cover rounded-full"
               style={{ filter: `drop-shadow(0 0 40px ${divisionColor})` }}
             />
           ) : (

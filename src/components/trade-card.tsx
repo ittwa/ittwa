@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Fragment } from "react";
+import Image from "next/image";
 import { getPositionColors } from "@/lib/ui-utils";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
@@ -70,15 +71,15 @@ function PlayerHeadshot({ sleeperId, name, pos, size = 44 }: { sleeperId: string
 
   return (
     <div
-      className="rounded-lg flex-shrink-0 overflow-hidden bg-secondary border border-border"
+      className="rounded-lg flex-shrink-0 overflow-hidden bg-secondary border border-border relative"
       style={{ width: size, height: size }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={`https://sleepercdn.com/content/nfl/players/thumb/${sleeperId}.jpg`}
         alt={name}
+        fill
+        className="object-cover object-top"
         onError={() => setErr(true)}
-        className="w-full h-full object-cover object-top"
       />
     </div>
   );

@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { Fragment } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -411,12 +412,12 @@ function TransactionsSection({
                   </span>
                   {isSinglePlayer && singlePlayerId ? (
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full overflow-hidden bg-card border border-border shrink-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                      <div className="w-7 h-7 rounded-full overflow-hidden bg-card border border-border shrink-0 relative">
+                        <Image
                           src={`https://sleepercdn.com/content/nfl/players/thumb/${singlePlayerId}.jpg`}
                           alt={playerName || ""}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
                         />
                       </div>
                       <div className="flex flex-col min-w-0">

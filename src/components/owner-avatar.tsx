@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
+import Image from "next/image";
 
 const OwnerAvatarsContext = createContext<Record<string, string>>({});
 
@@ -30,12 +31,14 @@ export function SleeperAvatarImage({
   const [failed, setFailed] = useState(false);
   if (!avatarId || failed) return <>{fallback}</>;
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={`https://sleepercdn.com/avatars/${avatarId}`}
-      alt={name}
-      onError={() => setFailed(true)}
-      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-    />
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <Image
+        src={`https://sleepercdn.com/avatars/${avatarId}`}
+        alt={name}
+        fill
+        className="object-cover"
+        onError={() => setFailed(true)}
+      />
+    </div>
   );
 }

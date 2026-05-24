@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, Fragment } from "react";
+import Image from "next/image";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 import { PlayerLink } from "@/components/player-link";
@@ -117,16 +118,16 @@ function PlayerAvatar({ playerId, name, pos, size = 28 }: { playerId?: string; n
     <div
       className="flex-shrink-0 overflow-hidden"
       style={{
-        width: size, height: size, borderRadius: 6,
+        position: "relative", width: size, height: size, borderRadius: 6,
         background: pc.bg, border: `1px solid ${pc.border}`,
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={`https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`}
         alt={name}
+        fill
+        className="object-cover object-top"
         onError={() => setErr(true)}
-        className="w-full h-full object-cover object-top"
       />
     </div>
   );
