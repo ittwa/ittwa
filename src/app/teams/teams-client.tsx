@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { SALARY_CAP, YEARS_CAP } from "@/lib/config";
-import { getDivColors, ACCENT, ACCENT_DIM, GOLD, HEADER_FONT, MONO_FONT } from "@/lib/ui-utils";
+import { getDivColors, ACCENT, ACCENT_DIM, GOLD } from "@/lib/ui-utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 import { SectionLabel } from "@/components/section-label";
@@ -99,8 +99,9 @@ function StreakBadge({ streak }: { streak: string }) {
   const border = isWin ? "rgba(74,222,128,0.25)" : "rgba(248,113,113,0.25)";
   return (
     <span
+      className="font-code"
       style={{
-        fontFamily: MONO_FONT, fontSize: 10, fontWeight: 700,
+        fontSize: 10, fontWeight: 700,
         padding: "1px 6px", borderRadius: 4,
         background: bg, color, border: `1px solid ${border}`,
         lineHeight: 1.6,
@@ -114,8 +115,9 @@ function StreakBadge({ streak }: { streak: string }) {
 function SeedPill({ seed }: { seed: number }) {
   return (
     <span
+      className="font-heading"
       style={{
-        fontFamily: HEADER_FONT, fontSize: 10, fontWeight: 800, letterSpacing: "0.06em",
+        fontSize: 10, fontWeight: 800, letterSpacing: "0.06em",
         padding: "1px 7px", borderRadius: 4,
         background: ACCENT_DIM, color: ACCENT, border: "1px solid rgba(253,74,72,0.3)",
         lineHeight: 1.6, whiteSpace: "nowrap", textTransform: "uppercase",
@@ -141,7 +143,7 @@ function OwnerAvatar({ name, division, size = 40 }: { name: string; division: st
         avatarId={avatarId}
         name={name}
         fallback={
-          <span style={{ fontFamily: HEADER_FONT, fontWeight: 800, fontSize: size * 0.38, color: d.text, letterSpacing: "0.02em" }}>
+          <span className="font-heading" style={{ fontWeight: 800, fontSize: size * 0.38, color: d.text, letterSpacing: "0.02em" }}>
             {initials(name)}
           </span>
         }
@@ -157,7 +159,7 @@ function CapBarSmall({ used, cap, color, label }: { used: number; cap: number; c
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
         <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: MUTED, whiteSpace: "nowrap" }}>{label}</span>
-        <span style={{ fontFamily: MONO_FONT, fontSize: 10, color: TEXT_DIM, fontWeight: 600, whiteSpace: "nowrap" }}>
+        <span className="font-code" style={{ fontSize: 10, color: TEXT_DIM, fontWeight: 600, whiteSpace: "nowrap" }}>
           <span style={{ color }}>{display}</span><span style={{ color: MUTED }}> / {cap}</span>
         </span>
       </div>
@@ -173,7 +175,7 @@ function Stat({ label, value, sub, color }: { label: string; value: string; sub?
     <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
       <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: MUTED, whiteSpace: "nowrap" }}>{label}</span>
       <div style={{ display: "flex", alignItems: "baseline", gap: 6, whiteSpace: "nowrap" }}>
-        <span style={{ fontFamily: MONO_FONT, fontSize: 14, fontWeight: 600, color, whiteSpace: "nowrap" }}>{value}</span>
+        <span className="font-code" style={{ fontSize: 14, fontWeight: 600, color, whiteSpace: "nowrap" }}>{value}</span>
         {sub && <span style={{ fontSize: 10, color: MUTED, whiteSpace: "nowrap" }}>{sub}</span>}
       </div>
     </div>
@@ -213,8 +215,9 @@ function TeamCard({ team }: { team: TeamDirectoryEntry }) {
             {team.seed && <SeedPill seed={team.seed} />}
           </div>
           <h3
+            className="font-heading"
             style={{
-              fontFamily: HEADER_FONT, fontSize: 22, fontWeight: 800, letterSpacing: "0.01em",
+              fontSize: 22, fontWeight: 800, letterSpacing: "0.01em",
               textTransform: "uppercase", color: TEXT, lineHeight: 1.05,
               whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
             }}
@@ -235,10 +238,10 @@ function TeamCard({ team }: { team: TeamDirectoryEntry }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-          <span style={{ fontFamily: HEADER_FONT, fontSize: 26, fontWeight: 800, color: EMERALD, lineHeight: 1 }}>{team.wins}</span>
-          <span style={{ fontFamily: HEADER_FONT, fontSize: 18, fontWeight: 600, color: MUTED, lineHeight: 1 }}>–</span>
-          <span style={{ fontFamily: HEADER_FONT, fontSize: 26, fontWeight: 800, color: ROSE, lineHeight: 1 }}>{team.losses}</span>
-          <span style={{ fontFamily: MONO_FONT, fontSize: 10, color: MUTED, marginLeft: 6 }}>
+          <span className="font-heading" style={{ fontSize: 26, fontWeight: 800, color: EMERALD, lineHeight: 1 }}>{team.wins}</span>
+          <span className="font-heading" style={{ fontSize: 18, fontWeight: 600, color: MUTED, lineHeight: 1 }}>–</span>
+          <span className="font-heading" style={{ fontSize: 26, fontWeight: 800, color: ROSE, lineHeight: 1 }}>{team.losses}</span>
+          <span className="font-code" style={{ fontSize: 10, color: MUTED, marginLeft: 6 }}>
             {(pct * 100).toFixed(0)}%
           </span>
         </div>
@@ -268,8 +271,9 @@ function TeamCard({ team }: { team: TeamDirectoryEntry }) {
         }}
       >
         <span
+          className="font-heading"
           style={{
-            fontFamily: HEADER_FONT, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em",
+            fontSize: 11, fontWeight: 700, letterSpacing: "0.08em",
             color: hover ? ACCENT : MUTED, textTransform: "uppercase",
             transition: "color 0.15s",
           }}
@@ -302,25 +306,26 @@ function TeamRow({ team, rank }: { team: TeamDirectoryEntry; rank: number }) {
         transition: "background 0.15s",
       }}
     >
-      <span style={{ fontFamily: MONO_FONT, fontSize: 12, color: MUTED, textAlign: "center" }}>{rank}</span>
+      <span className="font-code" style={{ fontSize: 12, color: MUTED, textAlign: "center" }}>{rank}</span>
       <OwnerAvatar name={team.owner} division={team.division} size={32} />
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontFamily: HEADER_FONT, fontSize: 16, fontWeight: 700, color: TEXT, letterSpacing: "0.02em", textTransform: "uppercase", lineHeight: 1.1 }}>{team.owner}</div>
+        <div className="font-heading" style={{ fontSize: 16, fontWeight: 700, color: TEXT, letterSpacing: "0.02em", textTransform: "uppercase", lineHeight: 1.1 }}>{team.owner}</div>
         {team.team && <div style={{ fontSize: 10, color: MUTED_TEXT, fontStyle: "italic", marginTop: 1 }}>{team.team}</div>}
       </div>
       <DivBadge division={team.division} size="sm" />
-      <span style={{ fontFamily: MONO_FONT, fontSize: 13, fontWeight: 700, color: TEXT }}>
+      <span className="font-code" style={{ fontSize: 13, fontWeight: 700, color: TEXT }}>
         <span style={{ color: EMERALD }}>{team.wins}</span>
         <span style={{ color: MUTED }}>–</span>
         <span style={{ color: ROSE }}>{team.losses}</span>
       </span>
-      <span style={{ fontFamily: MONO_FONT, fontSize: 11, color: TEXT_DIM, textAlign: "right" }}>{(pct * 100).toFixed(1)}%</span>
-      <span style={{ fontFamily: MONO_FONT, fontSize: 12, color: GOLD, textAlign: "right" }}>{team.pf.toFixed(1)}</span>
-      <span style={{ fontFamily: MONO_FONT, fontSize: 12, color: MUTED_TEXT, textAlign: "right" }}>{team.pa.toFixed(1)}</span>
+      <span className="font-code" style={{ fontSize: 11, color: TEXT_DIM, textAlign: "right" }}>{(pct * 100).toFixed(1)}%</span>
+      <span className="font-code" style={{ fontSize: 12, color: GOLD, textAlign: "right" }}>{team.pf.toFixed(1)}</span>
+      <span className="font-code" style={{ fontSize: 12, color: MUTED_TEXT, textAlign: "right" }}>{team.pa.toFixed(1)}</span>
       <span style={{ textAlign: "center" }}><StreakBadge streak={team.streak} /></span>
       <span
+        className="font-heading"
         style={{
-          fontFamily: HEADER_FONT, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em",
+          fontSize: 10, fontWeight: 700, letterSpacing: "0.08em",
           color: hover ? ACCENT : MUTED, textTransform: "uppercase", textAlign: "right",
         }}
       >
@@ -382,7 +387,7 @@ function InsightLegend({ items, right }: { items: { label: string; color: string
           </div>
         ))}
       </div>
-      {right && <span style={{ fontSize: 10, color: MUTED, fontFamily: MONO_FONT }}>{right}</span>}
+      {right && <span className="font-code" style={{ fontSize: 10, color: MUTED }}>{right}</span>}
     </div>
   );
 }
@@ -397,7 +402,7 @@ function ChartFrame({
       <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${CARD_BORDER}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ width: 3, height: 14, background: color, borderRadius: 2 }} />
-          <span style={{ fontFamily: HEADER_FONT, fontSize: 14, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT }}>{title}</span>
+          <span className="font-heading" style={{ fontSize: 14, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT }}>{title}</span>
         </div>
         {subtitle && <div style={{ fontSize: 10, color: MUTED, marginTop: 4, marginLeft: 13 }}>{subtitle}</div>}
       </div>
@@ -433,7 +438,7 @@ function CapBarRow({ team, max, isHover, onHover }: {
         <div style={{ position: "absolute", left: `${pctRem * 100}%`, top: 0, bottom: 0, width: `${pctCommit * 100}%`, background: GOLD, opacity: 0.85 }} />
         <div style={{ position: "absolute", left: `${(pctRem + pctCommit) * 100}%`, top: 0, bottom: 0, width: `${pctDead * 100}%`, background: ROSE }} />
         <div style={{ position: "absolute", left: `${(SALARY_CAP / max) * 100}%`, top: -2, bottom: -2, width: 1, background: "rgba(255,255,255,0.45)" }} />
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 6, fontFamily: MONO_FONT, fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.55)", pointerEvents: "none" }}>
+        <div className="font-code" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 6, fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.55)", pointerEvents: "none" }}>
           {pctRem > 0.10 && (
             <span style={{ position: "absolute", left: `${pctRem * 50}%`, transform: "translateX(-50%)", color: "#0a1f0e" }}>${team.capRem.toFixed(0)}</span>
           )}
@@ -501,12 +506,13 @@ function RosterRow({ team, maxRoster, isHover, onHover }: {
           const pctW = (n / maxRoster) * 100;
           return (
             <div
+              className="font-code"
               key={pos}
               style={{
                 width: `${pctW}%`, background: POS_COLORS[pos],
                 display: "flex", alignItems: "center", justifyContent: "center",
                 borderRight: "1px solid rgba(0,0,0,0.25)",
-                fontFamily: MONO_FONT, fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.65)",
+                fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.65)",
               }}
             >
               {pctW > 5 && n}
@@ -514,7 +520,7 @@ function RosterRow({ team, maxRoster, isHover, onHover }: {
           );
         })}
       </div>
-      <span style={{ fontFamily: MONO_FONT, fontSize: 10, color: isHover ? TEXT : MUTED, textAlign: "right", fontWeight: 700 }}>{team.roster}</span>
+      <span className="font-code" style={{ fontSize: 10, color: isHover ? TEXT : MUTED, textAlign: "right", fontWeight: 700 }}>{team.roster}</span>
     </div>
   );
 }
@@ -568,15 +574,15 @@ function YearsRow({ team, max, isHover, onHover }: {
       <OwnerLink name={team.owner} className="" style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</OwnerLink>
       <div style={{ position: "relative", height: 16, background: "var(--secondary)", borderRadius: 3, overflow: "hidden", border: `1px solid ${CARD_BORDER}`, display: "flex" }}>
         {isOver && (
-          <div style={{ width: `${pctOver * 100}%`, background: ROSE, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO_FONT, fontSize: 9, fontWeight: 700, color: "#3b0d0f" }}>
+          <div className="font-code" style={{ width: `${pctOver * 100}%`, background: ROSE, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#3b0d0f" }}>
             {rem}
           </div>
         )}
-        <div style={{ width: `${pctUsed * 100}%`, background: "#f9a8d4", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO_FONT, fontSize: 9, fontWeight: 700, color: "#3b0d2a" }}>
+        <div className="font-code" style={{ width: `${pctUsed * 100}%`, background: "#f9a8d4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#3b0d2a" }}>
           {pctUsed > 0.06 && used}
         </div>
         {!isOver && (
-          <div style={{ width: `${pctRem * 100}%`, background: "#a78bfa", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO_FONT, fontSize: 9, fontWeight: 700, color: "#1e1633" }}>
+          <div className="font-code" style={{ width: `${pctRem * 100}%`, background: "#a78bfa", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#1e1633" }}>
             {pctRem > 0.06 && rem}
           </div>
         )}
@@ -636,7 +642,7 @@ function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
         count="Cap · Roster · Years"
         color={GOLD}
         right={
-          <span className="hidden md:inline" style={{ fontSize: 10, color: MUTED, fontFamily: MONO_FONT, letterSpacing: "0.04em" }}>
+          <span className="hidden md:inline font-code" style={{ fontSize: 10, color: MUTED, letterSpacing: "0.04em" }}>
             Hover any row to highlight across charts
           </span>
         }
@@ -656,11 +662,12 @@ function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
             }}
           >
             <div
+              className="font-heading"
               style={{
                 minWidth: 36, height: 36, borderRadius: 8,
                 background: `${s.color}1a`, border: `1px solid ${s.color}55`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: HEADER_FONT, fontSize: 18, fontWeight: 900, color: s.color,
+                fontSize: 18, fontWeight: 900, color: s.color,
               }}
             >
               {s.owners.length}
@@ -709,10 +716,10 @@ function LeagueRibbon({ teams }: { teams: TeamDirectoryEntry[] }) {
       {items.map((s) => (
         <div key={s.label} style={{ background: CARD, border: `1px solid ${CARD_BORDER}`, borderRadius: 10, padding: "12px 14px" }}>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: MUTED, marginBottom: 4 }}>{s.label}</div>
-          <div style={{ fontFamily: HEADER_FONT, fontSize: 20, fontWeight: 800, color: s.color, lineHeight: 1, letterSpacing: "0.02em", textTransform: "uppercase" }}>
+          <div className="font-heading" style={{ fontSize: 20, fontWeight: 800, color: s.color, lineHeight: 1, letterSpacing: "0.02em", textTransform: "uppercase" }}>
             {s.value === "—" ? s.value : <OwnerLink name={s.value} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{s.value}</OwnerLink>}
           </div>
-          <div style={{ fontFamily: MONO_FONT, fontSize: 10, color: MUTED_TEXT, marginTop: 4 }}>{s.sub}</div>
+          <div className="font-code" style={{ fontSize: 10, color: MUTED_TEXT, marginTop: 4 }}>{s.sub}</div>
         </div>
       ))}
     </div>
@@ -734,6 +741,7 @@ function Segmented<T extends string>({
         const active = value === o.value;
         return (
           <button
+            className="font-heading"
             key={o.value}
             onClick={() => onChange(o.value)}
             style={{
@@ -741,7 +749,7 @@ function Segmented<T extends string>({
               background: active ? ACCENT_DIM : "transparent",
               color: active ? ACCENT : MUTED,
               fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase",
-              fontFamily: HEADER_FONT, transition: "all 0.15s",
+              transition: "all 0.15s",
             }}
           >
             {o.label}
@@ -839,6 +847,7 @@ export function TeamsClient({ teams, season, ownerAvatars }: { teams: TeamDirect
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: MUTED }}>Sort</span>
           <select
+            className="font-heading"
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
             style={{
@@ -846,7 +855,7 @@ export function TeamsClient({ teams, season, ownerAvatars }: { teams: TeamDirect
               border: `1px solid ${CARD_BORDER}`, borderRadius: 6,
               padding: "5px 28px 5px 10px", fontSize: 11, fontWeight: 600,
               letterSpacing: "0.04em", textTransform: "uppercase",
-              fontFamily: HEADER_FONT, cursor: "pointer",
+              cursor: "pointer",
               appearance: "none",
               backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23777' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")`,
               backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center",
@@ -871,7 +880,7 @@ export function TeamsClient({ teams, season, ownerAvatars }: { teams: TeamDirect
                   count={`${divTeams.length} teams`}
                   color={d.text}
                   right={
-                    <span style={{ fontFamily: MONO_FONT, fontSize: 11, color: MUTED_TEXT }}>
+                    <span className="font-code" style={{ fontSize: 11, color: MUTED_TEXT }}>
                       Combined:{" "}
                       <span style={{ color: TEXT, fontWeight: 700 }}>
                         {divTeams.reduce((s, t) => s + t.wins, 0)}–{divTeams.reduce((s, t) => s + t.losses, 0)}
@@ -896,10 +905,10 @@ export function TeamsClient({ teams, season, ownerAvatars }: { teams: TeamDirect
       )}
 
       <div className="mt-10 pt-5 border-t border-border flex items-center justify-between gap-3 flex-wrap">
-        <span style={{ fontSize: 11, color: MUTED, fontFamily: MONO_FONT }}>
+        <span className="font-code" style={{ fontSize: 11, color: MUTED }}>
           {season} season
         </span>
-        <span style={{ fontSize: 10, color: MUTED, fontFamily: HEADER_FONT, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+        <span className="font-heading" style={{ fontSize: 10, color: MUTED, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>
           ITTWA · Est. 2014
         </span>
       </div>

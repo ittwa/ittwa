@@ -2,7 +2,7 @@
 
 import { useState, useRef, useMemo, useCallback } from "react";
 import { OWNER_DIVISION, ALL_OWNERS } from "@/lib/config";
-import { getDivColorsByOwner, ACCENT, ACCENT_DIM, GOLD, WIN_COLOR, LOSS_COLOR, HEADER_FONT, MONO_FONT } from "@/lib/ui-utils";
+import { getDivColorsByOwner, ACCENT, ACCENT_DIM, GOLD, WIN_COLOR, LOSS_COLOR } from "@/lib/ui-utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 
@@ -95,9 +95,9 @@ function OwnerAvatar({ owner, size = 28 }: { owner: string; size?: number }) {
         avatarId={avatarId}
         name={owner}
         fallback={
-          <span style={{
+          <span className="font-heading" style={{
             fontSize: size * 0.36, fontWeight: 800, color: dc.text,
-            fontFamily: HEADER_FONT, letterSpacing: "-0.01em",
+            letterSpacing: "-0.01em",
           }}>
             {initials(owner)}
           </span>
@@ -112,10 +112,9 @@ function OwnerAvatar({ owner, size = 28 }: { owner: string; size?: number }) {
 function ChartLabel({ label, subtitle }: { label: string; subtitle?: string }) {
   return (
     <div style={{ marginBottom: 10, display: "flex", alignItems: "baseline", gap: 8 }}>
-      <span style={{
+      <span className="font-heading" style={{
         fontSize: 11, fontWeight: 700, letterSpacing: "0.07em",
         textTransform: "uppercase" as const, color: "var(--muted-foreground)",
-        fontFamily: HEADER_FONT,
       }}>{label}</span>
       {subtitle && (
         <span style={{ fontSize: 10, color: "var(--muted-foreground)", fontStyle: "italic" }}>{subtitle}</span>
@@ -133,8 +132,8 @@ function Stat({ label, value, accent }: { label: string; value: string | number;
         fontSize: 9, fontWeight: 700, letterSpacing: "0.08em",
         textTransform: "uppercase" as const, color: "var(--muted-foreground)", marginBottom: 3,
       }}>{label}</div>
-      <div style={{
-        fontFamily: HEADER_FONT, fontSize: 16, fontWeight: 800,
+      <div className="font-heading" style={{
+        fontSize: 16, fontWeight: 800,
         color: accent || "var(--foreground)", letterSpacing: "0.02em",
       }}>{value}</div>
     </div>
@@ -167,10 +166,10 @@ function HighlightCard({ kind, match, ownerA, ownerB }: {
           {kind === "closest" ? "Closest Game" : "Biggest Blowout"}
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
-          <span style={{ fontFamily: HEADER_FONT, fontSize: 22, fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+          <span className="font-heading" style={{ fontSize: 22, fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.02em" }}>
             {match.scoreA.toFixed(1)} – {match.scoreB.toFixed(1)}
           </span>
-          <span style={{ fontSize: 11, color: "var(--muted-foreground)", fontFamily: MONO_FONT, fontWeight: 600 }}>
+          <span className="font-code" style={{ fontSize: 11, color: "var(--muted-foreground)", fontWeight: 600 }}>
             ±{margin.toFixed(1)}
           </span>
         </div>
@@ -314,8 +313,8 @@ function H2HMatrix({ owners, activeSeasons, allMatchups, mode, showDivColors, on
                     onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = cellBg; }}
                   >
                     {mode === "record" && (
-                      <span style={{
-                        fontFamily: MONO_FONT, fontSize: 12, fontWeight: 600,
+                      <span className="font-code" style={{
+                        fontSize: 12, fontWeight: 600,
                         color: diff > 0 ? WIN_COLOR : diff < 0 ? LOSS_COLOR : "var(--muted-foreground)",
                         letterSpacing: "-0.02em",
                       }}>
@@ -323,16 +322,16 @@ function H2HMatrix({ owners, activeSeasons, allMatchups, mode, showDivColors, on
                       </span>
                     )}
                     {mode === "heat" && (
-                      <span style={{
-                        fontFamily: MONO_FONT, fontSize: 12, fontWeight: 700,
+                      <span className="font-code" style={{
+                        fontSize: 12, fontWeight: 700,
                         color: diff > 0 ? WIN_COLOR : diff < 0 ? LOSS_COLOR : "var(--muted-foreground)",
                       }}>
                         {diff > 0 ? `+${diff}` : diff < 0 ? String(diff) : "—"}
                       </span>
                     )}
                     {mode === "points" && (
-                      <span style={{
-                        fontFamily: MONO_FONT, fontSize: 11, fontWeight: 600,
+                      <span className="font-code" style={{
+                        fontSize: 11, fontWeight: 600,
                         color: rec.aPts > rec.bPts ? WIN_COLOR : rec.bPts > rec.aPts ? LOSS_COLOR : "var(--muted-foreground)",
                       }}>
                         {(rec.aPts - rec.bPts >= 0 ? "+" : "") + (rec.aPts - rec.bPts).toFixed(0)}
@@ -382,7 +381,7 @@ function ScoreTimeline({ ownerA, ownerB, matches }: {
           return (
             <g key={idx}>
               <line x1={x} y1={8} x2={x} y2={H - 18} style={{ stroke: "var(--border)" }} strokeDasharray="2,3" strokeWidth={1} />
-              <text x={x + 4} y={16} style={{ fill: "var(--muted-foreground)" }} fontSize={9} fontFamily={MONO_FONT} fontWeight={600}>{sm.season}</text>
+              <text x={x + 4} y={16} className="font-code" style={{ fill: "var(--muted-foreground)" }} fontSize={9} fontWeight={600}>{sm.season}</text>
             </g>
           );
         })}
@@ -402,10 +401,10 @@ function ScoreTimeline({ ownerA, ownerB, matches }: {
             </g>
           );
         })}
-        <text x={4} y={H / 2 - usableH} style={{ fill: dcA.text }} fontSize={10} fontWeight={700} fontFamily={HEADER_FONT} letterSpacing="0.05em">
+        <text x={4} y={H / 2 - usableH} className="font-heading" style={{ fill: dcA.text }} fontSize={10} fontWeight={700} letterSpacing="0.05em">
           {ownerA.toUpperCase()} ↑
         </text>
-        <text x={4} y={H / 2 + usableH + 10} style={{ fill: dcB.text }} fontSize={10} fontWeight={700} fontFamily={HEADER_FONT} letterSpacing="0.05em">
+        <text x={4} y={H / 2 + usableH + 10} className="font-heading" style={{ fill: dcB.text }} fontSize={10} fontWeight={700} letterSpacing="0.05em">
           {ownerB.toUpperCase()} ↓
         </text>
       </svg>
@@ -500,18 +499,18 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: dcA.text, marginBottom: 2 }}>
                 {OWNER_DIVISION[ownerA] || ""}
               </div>
-              <div style={{ fontFamily: HEADER_FONT, fontSize: 28, fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.01em", lineHeight: 1 }}>
+              <div className="font-heading" style={{ fontSize: 28, fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.01em", lineHeight: 1 }}>
                 <OwnerLink name={ownerA} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{ownerA}</OwnerLink>
               </div>
             </div>
           </div>
 
           <div style={{ textAlign: "center", display: "flex", alignItems: "baseline", justifyContent: "center", gap: 14 }}>
-            <span style={{ fontFamily: HEADER_FONT, fontSize: 64, fontWeight: 900, color: winner === "A" ? WIN_COLOR : "var(--foreground)", lineHeight: 1, letterSpacing: "-0.04em" }}>
+            <span className="font-heading" style={{ fontSize: 64, fontWeight: 900, color: winner === "A" ? WIN_COLOR : "var(--foreground)", lineHeight: 1, letterSpacing: "-0.04em" }}>
               {rec.aw}
             </span>
-            <span style={{ fontFamily: HEADER_FONT, fontSize: 22, fontWeight: 700, color: "var(--muted-foreground)", letterSpacing: "0.08em" }}>—</span>
-            <span style={{ fontFamily: HEADER_FONT, fontSize: 64, fontWeight: 900, color: winner === "B" ? WIN_COLOR : "var(--foreground)", lineHeight: 1, letterSpacing: "-0.04em" }}>
+            <span className="font-heading" style={{ fontSize: 22, fontWeight: 700, color: "var(--muted-foreground)", letterSpacing: "0.08em" }}>—</span>
+            <span className="font-heading" style={{ fontSize: 64, fontWeight: 900, color: winner === "B" ? WIN_COLOR : "var(--foreground)", lineHeight: 1, letterSpacing: "-0.04em" }}>
               {rec.bw}
             </span>
           </div>
@@ -522,7 +521,7 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: dcB.text, marginBottom: 2 }}>
                 {OWNER_DIVISION[ownerB] || ""}
               </div>
-              <div style={{ fontFamily: HEADER_FONT, fontSize: 28, fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.01em", lineHeight: 1 }}>
+              <div className="font-heading" style={{ fontSize: 28, fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.01em", lineHeight: 1 }}>
                 <OwnerLink name={ownerB} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{ownerB}</OwnerLink>
               </div>
             </div>
@@ -560,17 +559,17 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
                     border: i === 0 ? "1px solid var(--border)" : "1px solid transparent",
                     fontSize: 12,
                   }}>
-                    <span style={{ fontFamily: MONO_FONT, fontSize: 10, color: "var(--muted-foreground)", fontWeight: 600 }}>{m.season}</span>
+                    <span className="font-code" style={{ fontSize: 10, color: "var(--muted-foreground)", fontWeight: 600 }}>{m.season}</span>
                     <span style={{ fontSize: 10, color: "var(--muted-foreground)", fontWeight: 600, letterSpacing: "0.04em" }}>
                       {m.playoff ? <span style={{ color: GOLD, fontWeight: 700 }}>PLAYOFF</span> : `WK ${m.week}`}
                     </span>
                     <span style={{ textAlign: "right", fontWeight: aWin ? 700 : 500, color: aWin ? WIN_COLOR : "var(--muted-foreground)" }}>
                       <OwnerLink name={ownerA} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{ownerA}</OwnerLink>{" "}
-                      <span style={{ fontFamily: MONO_FONT, marginLeft: 6 }}>{m.scoreA.toFixed(1)}</span>
+                      <span className="font-code" style={{ marginLeft: 6 }}>{m.scoreA.toFixed(1)}</span>
                     </span>
                     <span style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600 }}>vs</span>
                     <span style={{ fontWeight: m.scoreB > m.scoreA ? 700 : 500, color: m.scoreB > m.scoreA ? WIN_COLOR : "var(--muted-foreground)" }}>
-                      <span style={{ fontFamily: MONO_FONT, marginRight: 6 }}>{m.scoreB.toFixed(1)}</span>
+                      <span className="font-code" style={{ marginRight: 6 }}>{m.scoreB.toFixed(1)}</span>
                       <OwnerLink name={ownerB} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{ownerB}</OwnerLink>
                     </span>
                   </div>
@@ -589,7 +588,7 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
                 const total = s.aw + s.bw;
                 if (total === 0) return (
                   <div key={yr} style={{ display: "grid", gridTemplateColumns: "44px 1fr 60px", gap: 8, alignItems: "center", padding: "6px 0" }}>
-                    <span style={{ fontFamily: HEADER_FONT, fontSize: 13, fontWeight: 700, color: "var(--muted-foreground)" }}>{yr}</span>
+                    <span className="font-heading" style={{ fontSize: 13, fontWeight: 700, color: "var(--muted-foreground)" }}>{yr}</span>
                     <span style={{ fontSize: 10, color: "var(--muted-foreground)", fontStyle: "italic" }}>no matchups</span>
                     <span />
                   </div>
@@ -597,12 +596,12 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
                 const aPct = (s.aw / total) * 100;
                 return (
                   <div key={yr} style={{ display: "grid", gridTemplateColumns: "44px 1fr 70px", gap: 10, alignItems: "center" }}>
-                    <span style={{ fontFamily: HEADER_FONT, fontSize: 14, fontWeight: 800, color: "var(--foreground)" }}>{yr}</span>
+                    <span className="font-heading" style={{ fontSize: 14, fontWeight: 800, color: "var(--foreground)" }}>{yr}</span>
                     <div style={{ height: 10, borderRadius: 2, overflow: "hidden", display: "flex", background: "var(--border)" }}>
                       <div style={{ width: `${aPct}%`, background: dcA.text, opacity: 0.85 }} />
                       <div style={{ width: `${100 - aPct}%`, background: dcB.text, opacity: 0.85 }} />
                     </div>
-                    <span style={{ fontFamily: MONO_FONT, fontSize: 11, fontWeight: 600, color: "var(--foreground)", textAlign: "right" }}>
+                    <span className="font-code" style={{ fontSize: 11, fontWeight: 600, color: "var(--foreground)", textAlign: "right" }}>
                       {s.aw}–{s.bw}
                     </span>
                   </div>
@@ -619,11 +618,11 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <div>
                 <div style={{ fontSize: 9, color: dcA.text, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 4 }}>{ownerA}</div>
-                <div style={{ fontFamily: HEADER_FONT, fontSize: 22, fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.02em" }}>{rec.aPts.toFixed(1)}</div>
+                <div className="font-heading" style={{ fontSize: 22, fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.02em" }}>{rec.aPts.toFixed(1)}</div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: 9, color: dcB.text, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 4 }}>{ownerB}</div>
-                <div style={{ fontFamily: HEADER_FONT, fontSize: 22, fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.02em" }}>{rec.bPts.toFixed(1)}</div>
+                <div className="font-heading" style={{ fontSize: 22, fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.02em" }}>{rec.bPts.toFixed(1)}</div>
               </div>
             </div>
           </div>
@@ -667,7 +666,7 @@ function DominanceBoard({ owners, activeSeasons, allMatchups, showDivColors }: {
               <div style={{ height: 5, borderRadius: 3, background: "var(--border)", overflow: "hidden" }}>
                 <div style={{ width: `${pct * 100}%`, height: "100%", background: dc ? dc.text : ACCENT, opacity: 0.85, transition: "width 0.5s ease" }} />
               </div>
-              <span style={{ fontSize: 10, fontWeight: 700, fontFamily: MONO_FONT, color: "var(--foreground)", textAlign: "right" }}>
+              <span className="font-code" style={{ fontSize: 10, fontWeight: 700, color: "var(--foreground)", textAlign: "right" }}>
                 {(pct * 100).toFixed(0)}%{" "}
                 <span style={{ color: "var(--muted-foreground)", fontWeight: 500 }}>{w}-{l}</span>
               </span>
@@ -720,7 +719,7 @@ function BiggestRivalries({ owners, activeSeasons, allMatchups, onSelect }: {
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = ACCENT; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
             >
-              <span style={{ fontFamily: HEADER_FONT, fontSize: 13, fontWeight: 800, color: "var(--muted-foreground)" }}>
+              <span className="font-heading" style={{ fontSize: 13, fontWeight: 800, color: "var(--muted-foreground)" }}>
                 {String(idx + 1).padStart(2, "0")}
               </span>
               <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
@@ -730,7 +729,7 @@ function BiggestRivalries({ owners, activeSeasons, allMatchups, onSelect }: {
                 <span style={{ fontSize: 11, fontWeight: 600, color: dcB.text }}>{ownerB}</span>
                 <OwnerAvatar owner={ownerB} size={18} />
               </div>
-              <span style={{ fontFamily: MONO_FONT, fontSize: 11, fontWeight: 700, color: "var(--foreground)" }}>
+              <span className="font-code" style={{ fontSize: 11, fontWeight: 700, color: "var(--foreground)" }}>
                 {p.r.aw}-{p.r.bw}
               </span>
             </div>
@@ -786,9 +785,9 @@ function MostLopsided({ owners, activeSeasons, allMatchups, onSelect }: {
               <OwnerAvatar owner={dom} size={22} />
               <div style={{ minWidth: 0, lineHeight: 1.2 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: domDc.text }}>{dom} owns {sub}</div>
-                <div style={{ fontSize: 9, color: "var(--muted-foreground)", fontFamily: MONO_FONT, marginTop: 2 }}>+{p.diff} margin</div>
+                <div className="font-code" style={{ fontSize: 9, color: "var(--muted-foreground)", marginTop: 2 }}>+{p.diff} margin</div>
               </div>
-              <span style={{ fontFamily: MONO_FONT, fontSize: 12, fontWeight: 700, color: WIN_COLOR }}>
+              <span className="font-code" style={{ fontSize: 12, fontWeight: 700, color: WIN_COLOR }}>
                 {Math.max(p.r.aw, p.r.bw)}-{Math.min(p.r.aw, p.r.bw)}
               </span>
             </div>
@@ -865,13 +864,13 @@ export function RivalryClient({ allMatchups, availableSeasons, ownerAvatars }: R
               {seasons.map(yr => {
                 const on = activeSeasonsList.includes(yr);
                 return (
-                  <button key={yr} onClick={() => toggleSeason(yr)} style={{
+                  <button key={yr} onClick={() => toggleSeason(yr)} className="font-heading" style={{
                     padding: "6px 12px", borderRadius: 6, cursor: "pointer",
                     background: on ? ACCENT : "transparent",
                     border: on ? `1px solid ${ACCENT}` : "1px solid var(--border)",
                     color: on ? "#fff" : "var(--muted-foreground)",
                     fontSize: 13, fontWeight: on ? 700 : 500,
-                    fontFamily: HEADER_FONT, letterSpacing: "0.04em",
+                    letterSpacing: "0.04em",
                     transition: "all 0.15s",
                   }}>{yr}</button>
                 );
@@ -896,7 +895,7 @@ export function RivalryClient({ allMatchups, availableSeasons, ownerAvatars }: R
               display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
             }}>
               <div>
-                <div style={{ fontFamily: HEADER_FONT, fontSize: 16, fontWeight: 800, color: "var(--foreground)", letterSpacing: "0.04em", textTransform: "uppercase" as const }}>
+                <div className="font-heading" style={{ fontSize: 16, fontWeight: 800, color: "var(--foreground)", letterSpacing: "0.04em", textTransform: "uppercase" as const }}>
                   Head-to-Head Matrix
                 </div>
                 <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>
