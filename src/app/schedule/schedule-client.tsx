@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { OwnerLink } from "@/components/owner-link";
 import { SleeperAvatarImage } from "@/components/owner-avatar";
 import { OWNER_DIVISION } from "@/lib/config";
+import { getDivColors } from "@/lib/ui-utils";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -41,20 +42,6 @@ interface ScheduleClientProps {
   ownerAvatars: Record<string, string>;
 }
 
-// ─── Division colors ────────────────────────────────────────────────────────
-
-const DIVISION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  "Concussion":        { bg: "rgba(59,130,246,0.15)", text: "#60a5fa", border: "rgba(59,130,246,0.3)" },
-  "Hey Arnold":        { bg: "rgba(168,85,247,0.15)", text: "#c084fc", border: "rgba(168,85,247,0.3)" },
-  "Replacements":      { bg: "rgba(34,197,94,0.15)",  text: "#4ade80", border: "rgba(34,197,94,0.3)"  },
-  "Dark Knight Rises": { bg: "rgba(249,115,22,0.15)", text: "#fb923c", border: "rgba(249,115,22,0.3)" },
-};
-const FALLBACK_DC = { bg: "rgba(100,100,100,0.15)", text: "#999999", border: "rgba(100,100,100,0.3)" };
-
-function getDivColor(division: string) {
-  return DIVISION_COLORS[division] || FALLBACK_DC;
-}
-
 // ─── Playoff week labels ────────────────────────────────────────────────────
 
 const PLAYOFF_LABELS: Record<number, { label: string; name: string }> = {
@@ -76,7 +63,7 @@ function OwnerAvatar({
   size?: number;
   division?: string;
 }) {
-  const dc = getDivColor(division || OWNER_DIVISION[name] || "");
+  const dc = getDivColors(division || OWNER_DIVISION[name] || "");
   const initials = name.slice(0, 2).toUpperCase();
   const radius = size > 40 ? 10 : size > 24 ? 8 : 6;
   return (
@@ -118,7 +105,7 @@ function OwnerAvatar({
 // ─── Helper: division dot ───────────────────────────────────────────────────
 
 function DivDot({ division, size = 6 }: { division: string; size?: number }) {
-  const dc = getDivColor(division);
+  const dc = getDivColors(division);
   return (
     <span
       style={{
@@ -377,7 +364,7 @@ function FilterBar({
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([name, t]) => {
               const on = name === team;
-              const dc = getDivColor(t.division);
+              const dc = getDivColors(t.division);
               return (
                 <button
                   key={name}
@@ -579,7 +566,7 @@ function MatrixView({
           </thead>
           <tbody>
             {sortedTeams.map(([name, info]) => {
-              const dc = getDivColor(info.division);
+              const dc = getDivColors(info.division);
               const dim = focusTeam !== null && focusTeam !== name;
               return (
                 <tr
@@ -917,7 +904,7 @@ function TeamSide({
   ownerAvatars: Record<string, string>;
 }) {
   const info = teams[name];
-  const dc = getDivColor(info?.division || "");
+  const dc = getDivColors(info?.division || "");
   const right = align === "right";
 
   return (
@@ -966,7 +953,7 @@ function TeamFocusPanel({
 }) {
   const info = data.teams[teamKey];
   if (!info) return null;
-  const dc = getDivColor(info.division);
+  const dc = getDivColors(info.division);
 
   const games = useMemo(() => {
     return data.matchups
@@ -1071,7 +1058,7 @@ function TeamFocusPanel({
           <div className="py-1.5">
             {remaining.slice(0, 5).map((g) => {
               const opInfo = data.teams[g.opp];
-              const opDc = getDivColor(opInfo?.division || "");
+              const opDc = getDivColors(opInfo?.division || "");
               return (
                 <div key={g.week} className="grid items-center gap-2.5 px-3.5 py-1.5" style={{ gridTemplateColumns: "36px 22px 1fr auto" }}>
                   <span className="font-mono text-[10px] text-muted-foreground font-bold tracking-[0.04em]">

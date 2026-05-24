@@ -2,6 +2,7 @@
 
 import { useState, useRef, useMemo, useCallback } from "react";
 import { OWNER_DIVISION, ALL_OWNERS } from "@/lib/config";
+import { getDivColorsByOwner, ACCENT, ACCENT_DIM, GOLD, WIN_COLOR, LOSS_COLOR, HEADER_FONT, MONO_FONT } from "@/lib/ui-utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 
@@ -43,30 +44,7 @@ export interface RivalryClientProps {
 
 type MatrixMode = "record" | "heat" | "points";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const DIV_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  "Concussion":        { bg: "rgba(59,130,246,0.15)", text: "#60a5fa", border: "rgba(59,130,246,0.3)" },
-  "Hey Arnold":        { bg: "rgba(168,85,247,0.15)", text: "#c084fc", border: "rgba(168,85,247,0.3)" },
-  "Replacements":      { bg: "rgba(34,197,94,0.15)",  text: "#4ade80", border: "rgba(34,197,94,0.3)"  },
-  "Dark Knight Rises": { bg: "rgba(249,115,22,0.15)", text: "#fb923c", border: "rgba(249,115,22,0.3)" },
-};
-
-const FALLBACK_DC = { bg: "rgba(100,100,100,0.15)", text: "#999999", border: "rgba(100,100,100,0.3)" };
-const ACCENT = "#FD4A48";
-const ACCENT_DIM = "rgba(253,74,72,0.1)";
-const GOLD = "#E8B84B";
-const WIN_COLOR = "#4ade80";
-const LOSS_COLOR = "#fd7b7a";
-const HEADER_FONT = "'Barlow Condensed', sans-serif";
-const MONO_FONT = "'JetBrains Mono', monospace";
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function getDivColor(owner: string) {
-  const div = OWNER_DIVISION[owner];
-  return (div && DIV_COLORS[div]) || FALLBACK_DC;
-}
 
 function initials(name: string): string {
   if (name === "HoganLamb") return "HL";
@@ -105,7 +83,7 @@ function pairRecord(
 // ── OwnerAvatar ───────────────────────────────────────────────────────────────
 
 function OwnerAvatar({ owner, size = 28 }: { owner: string; size?: number }) {
-  const dc = getDivColor(owner);
+  const dc = getDivColorsByOwner(owner);
   const avatarId = useOwnerAvatar(owner);
   return (
     <div style={{
@@ -173,7 +151,7 @@ function HighlightCard({ kind, match, ownerA, ownerB }: {
 }) {
   const margin = Math.abs(match.scoreA - match.scoreB);
   const winner = match.scoreA > match.scoreB ? ownerA : ownerB;
-  const winnerColor = getDivColor(winner).text;
+  const winnerColor = getDivColorsByOwner(winner).text;
   const color = kind === "closest" ? GOLD : ACCENT;
   return (
     <div style={{
@@ -253,7 +231,7 @@ function H2HMatrix({ owners, activeSeasons, allMatchups, mode, showDivColors, on
             color: "var(--muted-foreground)", borderRight: "1px solid var(--border)",
           }}>Team ↓ vs →</div>
           {owners.map((owner, i) => {
-            const dc = showDivColors ? getDivColor(owner) : null;
+            const dc = showDivColors ? getDivColorsByOwner(owner) : null;
             const isSel = selA === i || selB === i;
             return (
               <div key={i} style={{
@@ -276,7 +254,7 @@ function H2HMatrix({ owners, activeSeasons, allMatchups, mode, showDivColors, on
 
         {/* Rows */}
         {owners.map((rowOwner, i) => {
-          const dc = showDivColors ? getDivColor(rowOwner) : null;
+          const dc = showDivColors ? getDivColorsByOwner(rowOwner) : null;
           const rowSel = selA === i || selB === i;
           return (
             <div key={i} style={{
@@ -379,8 +357,8 @@ function ScoreTimeline({ ownerA, ownerB, matches }: {
   matches: NormalizedMatchup[];
 }) {
   if (matches.length === 0) return null;
-  const dcA = getDivColor(ownerA);
-  const dcB = getDivColor(ownerB);
+  const dcA = getDivColorsByOwner(ownerA);
+  const dcB = getDivColorsByOwner(ownerB);
   const H = 180;
   const usableH = H / 2 - 24;
   const maxAbs = Math.max(...matches.map(m => Math.abs(m.scoreA - m.scoreB)), 10);
@@ -445,8 +423,8 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
   allMatchups: HistoricalMatchup[];
   onClose: () => void;
 }) {
-  const dcA = getDivColor(ownerA);
-  const dcB = getDivColor(ownerB);
+  const dcA = getDivColorsByOwner(ownerA);
+  const dcB = getDivColorsByOwner(ownerB);
   const rec = useMemo(
     () => pairRecord(ownerA, ownerB, activeSeasons, allMatchups),
     [ownerA, ownerB, activeSeasons, allMatchups]
@@ -555,7 +533,7 @@ function PairDetail({ ownerA, ownerB, activeSeasons, availableSeasons, allMatchu
           <Stat label="All-time meetings" value={rec.count} />
           <Stat label="Avg score" value={`${avgA.toFixed(1)} – ${avgB.toFixed(1)}`} />
           {streak && (
-            <Stat label="Active streak" value={`${streak.owner} W${streak.len}`} accent={getDivColor(streak.owner).text} />
+            <Stat label="Active streak" value={`${streak.owner} W${streak.len}`} accent={getDivColorsByOwner(streak.owner).text} />
           )}
           {ms.some(m => m.playoff) && (
             <Stat label="Playoff games" value={ms.filter(m => m.playoff).length} accent={GOLD} />
@@ -681,7 +659,7 @@ function DominanceBoard({ owners, activeSeasons, allMatchups, showDivColors }: {
       <ChartLabel label="All-Time Win %" subtitle="across selected seasons" />
       <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
         {stats.map(({ owner, w, l, pct }) => {
-          const dc = showDivColors ? getDivColor(owner) : null;
+          const dc = showDivColors ? getDivColorsByOwner(owner) : null;
           return (
             <div key={owner} style={{ display: "grid", gridTemplateColumns: "22px 70px 1fr 50px", gap: 8, alignItems: "center" }}>
               <OwnerAvatar owner={owner} size={20} />
@@ -728,7 +706,7 @@ function BiggestRivalries({ owners, activeSeasons, allMatchups, onSelect }: {
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {top.map((p, idx) => {
           const ownerA = owners[p.i], ownerB = owners[p.j];
-          const dcA = getDivColor(ownerA), dcB = getDivColor(ownerB);
+          const dcA = getDivColorsByOwner(ownerA), dcB = getDivColorsByOwner(ownerB);
           return (
             <div
               key={idx}
@@ -791,7 +769,7 @@ function MostLopsided({ owners, activeSeasons, allMatchups, onSelect }: {
         {top.map((p, idx) => {
           const dom = p.r.aw > p.r.bw ? owners[p.i] : owners[p.j];
           const sub = p.r.aw > p.r.bw ? owners[p.j] : owners[p.i];
-          const domDc = getDivColor(dom);
+          const domDc = getDivColorsByOwner(dom);
           return (
             <div
               key={idx}

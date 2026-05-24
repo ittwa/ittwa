@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { SALARY_CAP, YEARS_CAP } from "@/lib/config";
+import { getDivColors, ACCENT, ACCENT_DIM, GOLD, HEADER_FONT, MONO_FONT } from "@/lib/ui-utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 
@@ -34,9 +35,6 @@ export interface TeamDirectoryEntry {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const ACCENT = "#FD4A48";
-const ACCENT_DIM = "rgba(253,74,72,0.12)";
-const GOLD = "#E8B84B";
 const EMERALD = "#4ade80";
 const ROSE = "#f87171";
 const CARD = "var(--card)";
@@ -46,17 +44,6 @@ const MUTED = "var(--muted-foreground)";
 const MUTED_TEXT = "var(--muted-foreground)";
 const TEXT = "var(--foreground)";
 const TEXT_DIM = "var(--muted-foreground)";
-const HEADER_FONT = "'Barlow Condensed', sans-serif";
-const MONO_FONT = "'JetBrains Mono', monospace";
-
-const DIV_COLORS: Record<string, { color: string; bg: string; border: string }> = {
-  Concussion:          { color: "#22d3ee", bg: "rgba(34,211,238,0.12)",  border: "rgba(34,211,238,0.30)" },
-  "Hey Arnold":        { color: "#fb923c", bg: "rgba(251,146,60,0.12)",  border: "rgba(251,146,60,0.30)" },
-  Replacements:        { color: "#4ade80", bg: "rgba(74,222,128,0.12)",  border: "rgba(74,222,128,0.30)" },
-  "Dark Knight Rises": { color: "#a78bfa", bg: "rgba(167,139,250,0.12)", border: "rgba(167,139,250,0.30)" },
-};
-
-const FALLBACK_DC = { color: "#94a3b8", bg: "rgba(148,163,184,0.1)", border: "rgba(148,163,184,0.2)" };
 
 const POS_ORDER = ["QB", "RB", "WR", "TE", "DEF"] as const;
 const POS_COLORS: Record<string, string> = {
@@ -69,10 +56,6 @@ const LIST_COLS = "32px 44px 1fr 130px 80px 60px 90px 90px 60px 90px";
 type ViewMode = "grid" | "list";
 type GroupBy = "division" | "none";
 type SortKey = "record" | "pf" | "cap" | "alpha";
-
-function getDivColor(division: string) {
-  return DIV_COLORS[division] || FALLBACK_DC;
-}
 
 function initials(name: string): string {
   if (name === "HoganLamb") return "HL";
@@ -113,7 +96,7 @@ function SectionLabel({
 }
 
 function DivBadge({ division, size = "md" }: { division: string; size?: "sm" | "md" }) {
-  const d = getDivColor(division);
+  const d = getDivColors(division);
   const fs = size === "sm" ? 9 : 10;
   const pad = size === "sm" ? "1px 6px" : "2px 8px";
   return (
@@ -121,7 +104,7 @@ function DivBadge({ division, size = "md" }: { division: string; size?: "sm" | "
       style={{
         fontSize: fs, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
         padding: pad, borderRadius: 4,
-        background: d.bg, color: d.color, border: `1px solid ${d.border}`,
+        background: d.bg, color: d.text, border: `1px solid ${d.border}`,
         lineHeight: 1.6, whiteSpace: "nowrap",
       }}
     >
@@ -168,7 +151,7 @@ function SeedPill({ seed }: { seed: number }) {
 }
 
 function OwnerAvatar({ name, division, size = 40 }: { name: string; division: string; size?: number }) {
-  const d = getDivColor(division);
+  const d = getDivColors(division);
   const avatarId = useOwnerAvatar(name);
   return (
     <div
@@ -182,7 +165,7 @@ function OwnerAvatar({ name, division, size = 40 }: { name: string; division: st
         avatarId={avatarId}
         name={name}
         fallback={
-          <span style={{ fontFamily: HEADER_FONT, fontWeight: 800, fontSize: size * 0.38, color: d.color, letterSpacing: "0.02em" }}>
+          <span style={{ fontFamily: HEADER_FONT, fontWeight: 800, fontSize: size * 0.38, color: d.text, letterSpacing: "0.02em" }}>
             {initials(name)}
           </span>
         }
@@ -225,7 +208,7 @@ function Stat({ label, value, sub, color }: { label: string; value: string; sub?
 
 function TeamCard({ team }: { team: TeamDirectoryEntry }) {
   const [hover, setHover] = useState(false);
-  const d = getDivColor(team.division);
+  const d = getDivColors(team.division);
   const pct = winPct(team);
   const capUsed = team.capCommit + team.capDead;
 
@@ -244,7 +227,7 @@ function TeamCard({ team }: { team: TeamDirectoryEntry }) {
         transform: hover ? "translateY(-2px)" : "translateY(0)",
       }}
     >
-      <div style={{ height: 3, background: `linear-gradient(90deg, ${d.color} 0%, ${d.color}55 60%, transparent 100%)` }} />
+      <div style={{ height: 3, background: `linear-gradient(90deg, ${d.text} 0%, ${d.text}55 60%, transparent 100%)` }} />
 
       <div style={{ padding: "16px 16px 14px", display: "flex", alignItems: "flex-start", gap: 12 }}>
         <OwnerAvatar name={team.owner} division={team.division} size={44} />
@@ -904,13 +887,13 @@ export function TeamsClient({ teams, season, ownerAvatars }: { teams: TeamDirect
       {groupBy === "division" && grouped ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
           {Object.entries(grouped).map(([divName, divTeams]) => {
-            const d = getDivColor(divName);
+            const d = getDivColors(divName);
             return (
               <section key={divName}>
                 <SectionLabel
                   label={divName}
                   count={`${divTeams.length} teams`}
-                  color={d.color}
+                  color={d.text}
                   right={
                     <span style={{ fontFamily: MONO_FONT, fontSize: 11, color: MUTED_TEXT }}>
                       Combined:{" "}

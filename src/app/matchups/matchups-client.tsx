@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MatchupPair } from "@/types/sleeper";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
+import { getDivColors } from "@/lib/ui-utils";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -64,14 +65,6 @@ const T = {
   bodyFont: "'Inter', sans-serif",
 };
 
-const DIV_COLORS: Record<string, { color: string; bg: string; border: string }> = {
-  Concussion:          { color: "#22d3ee", bg: "rgba(34,211,238,0.12)",  border: "rgba(34,211,238,0.3)" },
-  "Hey Arnold":        { color: "#fb923c", bg: "rgba(251,146,60,0.12)",  border: "rgba(251,146,60,0.3)" },
-  Replacements:        { color: "#4ade80", bg: "rgba(74,222,128,0.12)",  border: "rgba(74,222,128,0.3)" },
-  "Dark Knight Rises": { color: "#a78bfa", bg: "rgba(167,139,250,0.12)", border: "rgba(167,139,250,0.3)" },
-};
-
-const DEFAULT_DIV = { color: "#94a3b8", bg: "rgba(148,163,184,0.1)", border: "rgba(148,163,184,0.2)" };
 
 const SAME_DIV_ALT: Record<string, string> = {
   Concussion:          "#60a5fa",
@@ -81,21 +74,18 @@ const SAME_DIV_ALT: Record<string, string> = {
 };
 
 function barColors(aDivision: string, bDivision: string) {
-  const dcA = divColor(aDivision);
-  const dcB = divColor(bDivision);
+  const dcA = getDivColors(aDivision);
+  const dcB = getDivColors(bDivision);
   if (aDivision === bDivision && aDivision in SAME_DIV_ALT) {
-    return { aColor: dcA.color, bColor: SAME_DIV_ALT[aDivision] };
+    return { aColor: dcA.text, bColor: SAME_DIV_ALT[aDivision] };
   }
-  return { aColor: dcA.color, bColor: dcB.color };
+  return { aColor: dcA.text, bColor: dcB.text };
 }
 
 const WEEKS = Array.from({ length: 18 }, (_, i) => i + 1);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function divColor(division: string) {
-  return DIV_COLORS[division] || DEFAULT_DIV;
-}
 
 function avgPpg(meta: TeamMeta | null): number {
   if (!meta) return 100;
@@ -152,7 +142,7 @@ function weekLabel(w: number, playoffStart: number): string {
 // ── Small Components ─────────────────────────────────────────────────────────
 
 function OwnerAvatar({ name, division, size = 32 }: { name: string; division: string; size?: number }) {
-  const d = divColor(division);
+  const d = getDivColors(division);
   const avatarId = useOwnerAvatar(name);
   const initials = name.slice(0, 2).toUpperCase();
   return (
@@ -165,7 +155,7 @@ function OwnerAvatar({ name, division, size = 32 }: { name: string; division: st
         avatarId={avatarId}
         name={name}
         fallback={
-          <span style={{ fontFamily: T.headerFont, fontWeight: 800, fontSize: size * 0.36, color: d.color, letterSpacing: "-0.01em" }}>
+          <span style={{ fontFamily: T.headerFont, fontWeight: 800, fontSize: size * 0.36, color: d.text, letterSpacing: "-0.01em" }}>
             {initials}
           </span>
         }
@@ -398,8 +388,8 @@ function HeroStat({ label, value, small }: { label: string; value: string; small
 }
 
 function HeroMatchup({ m, week, season }: { m: EnrichedMatchup; week: number; season: string }) {
-  const dcA = divColor(m.aMeta?.division || "");
-  const dcB = divColor(m.bMeta?.division || "");
+  const dcA = getDivColors(m.aMeta?.division || "");
+  const dcB = getDivColors(m.bMeta?.division || "");
   const aWinning = m.pair.team1.points > m.pair.team2.points;
   const margin = Math.abs(m.pair.team1.points - m.pair.team2.points);
   const spreadOwner = m.spread >= 0 ? m.aName : m.bName;
@@ -439,7 +429,7 @@ function HeroMatchup({ m, week, season }: { m: EnrichedMatchup; week: number; se
             {m.status === "live" && (
               <span style={{
                 fontFamily: T.monoFont, fontSize: 11, fontWeight: 700,
-                color: aWinning ? dcA.color : dcB.color, padding: "2px 8px",
+                color: aWinning ? dcA.text : dcB.text, padding: "2px 8px",
                 background: T.surface, border: `1px solid ${T.cardBorder}`, borderRadius: 4,
               }}>&plusmn;{margin.toFixed(1)}</span>
             )}
@@ -483,7 +473,7 @@ function TeamRow({ name, meta, score, proj, status, winner }: {
   status: "live" | "final" | "upcoming";
   winner: boolean;
 }) {
-  const d = divColor(meta?.division || "");
+  const d = getDivColors(meta?.division || "");
   const showLive = status === "live" || status === "final";
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
@@ -495,8 +485,8 @@ function TeamRow({ name, meta, score, proj, status, winner }: {
             {meta?.seed && <span style={{ fontSize: 9, fontWeight: 700, color: T.gold, letterSpacing: "0.06em" }}>#{meta.seed}</span>}
           </div>
           <div style={{ fontSize: 10, color: T.muted, fontFamily: T.bodyFont, marginTop: 1, display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 4, height: 4, borderRadius: "50%", background: d.color }} />
-            <span style={{ color: d.color, fontWeight: 600 }}>{meta?.division || "—"}</span>
+            <span style={{ width: 4, height: 4, borderRadius: "50%", background: d.text }} />
+            <span style={{ color: d.text, fontWeight: 600 }}>{meta?.division || "—"}</span>
             <span style={{ color: T.muted }}>&middot;</span>
             <span style={{ fontFamily: T.monoFont, fontWeight: 600 }}>{record(meta)}</span>
           </div>
@@ -528,8 +518,8 @@ function DetailBlock({ label, children }: { label: string; children: React.React
 }
 
 function ExpandedDetails({ m }: { m: EnrichedMatchup }) {
-  const dcA = divColor(m.aMeta?.division || "");
-  const dcB = divColor(m.bMeta?.division || "");
+  const dcA = getDivColors(m.aMeta?.division || "");
+  const dcB = getDivColors(m.bMeta?.division || "");
   const { aColor: barA, bColor: barB } = barColors(m.aMeta?.division || "", m.bMeta?.division || "");
   const spreadOwner = m.spread >= 0 ? m.aName : m.bName;
 
@@ -564,13 +554,13 @@ function ExpandedDetails({ m }: { m: EnrichedMatchup }) {
         </DetailBlock>
         <DetailBlock label="Season stats">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <span style={{ fontSize: 11, color: dcA.color, fontWeight: 600 }}><OwnerLink name={m.aName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.aName}</OwnerLink></span>
+            <span style={{ fontSize: 11, color: dcA.text, fontWeight: 600 }}><OwnerLink name={m.aName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.aName}</OwnerLink></span>
             <span style={{ fontFamily: T.monoFont, fontSize: 12, fontWeight: 700, color: T.text }}>
               {record(m.aMeta)} &middot; PF {(m.aMeta?.pointsFor ?? 0).toFixed(0)}
             </span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 4 }}>
-            <span style={{ fontSize: 11, color: dcB.color, fontWeight: 600 }}><OwnerLink name={m.bName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.bName}</OwnerLink></span>
+            <span style={{ fontSize: 11, color: dcB.text, fontWeight: 600 }}><OwnerLink name={m.bName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.bName}</OwnerLink></span>
             <span style={{ fontFamily: T.monoFont, fontSize: 12, fontWeight: 700, color: T.text }}>
               {record(m.bMeta)} &middot; PF {(m.bMeta?.pointsFor ?? 0).toFixed(0)}
             </span>
@@ -579,13 +569,13 @@ function ExpandedDetails({ m }: { m: EnrichedMatchup }) {
         <DetailBlock label="Divisions">
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: dcA.color }} />
-              <span style={{ fontSize: 11, color: dcA.color, fontWeight: 600 }}>{m.aMeta?.division || "—"}</span>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: dcA.text }} />
+              <span style={{ fontSize: 11, color: dcA.text, fontWeight: 600 }}>{m.aMeta?.division || "—"}</span>
             </div>
             <span style={{ fontSize: 9, color: T.muted, letterSpacing: "0.1em", fontWeight: 700 }}>VS</span>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: dcB.color }} />
-              <span style={{ fontSize: 11, color: dcB.color, fontWeight: 600 }}>{m.bMeta?.division || "—"}</span>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: dcB.text }} />
+              <span style={{ fontSize: 11, color: dcB.text, fontWeight: 600 }}>{m.bMeta?.division || "—"}</span>
             </div>
           </div>
         </DetailBlock>
@@ -600,8 +590,8 @@ function MatchupCard({ m, idx, expanded, onToggle }: {
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const dcA = divColor(m.aMeta?.division || "");
-  const dcB = divColor(m.bMeta?.division || "");
+  const dcA = getDivColors(m.aMeta?.division || "");
+  const dcB = getDivColors(m.bMeta?.division || "");
   const { aColor: barA, bColor: barB } = barColors(m.aMeta?.division || "", m.bMeta?.division || "");
   const aWinning = m.pair.team1.points > m.pair.team2.points;
   const margin = Math.abs(m.pair.team1.points - m.pair.team2.points);
@@ -683,8 +673,8 @@ function PulseStat({ label, value, color }: { label: string; value: number; colo
 }
 
 function SummaryRow({ label, m, kind }: { label: string; m: EnrichedMatchup; kind: "closest" | "biggest" }) {
-  const dcA = divColor(m.aMeta?.division || "");
-  const dcB = divColor(m.bMeta?.division || "");
+  const dcA = getDivColors(m.aMeta?.division || "");
+  const dcB = getDivColors(m.bMeta?.division || "");
   const margin = m.status === "upcoming"
     ? Math.abs(m.aProj - m.bProj)
     : Math.abs(m.pair.team1.points - m.pair.team2.points);
@@ -693,9 +683,9 @@ function SummaryRow({ label, m, kind }: { label: string; m: EnrichedMatchup; kin
       <div style={{ fontSize: 9, color: T.muted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: T.bodyFont, marginBottom: 6 }}>{label}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: T.surface, border: `1px solid ${T.cardBorder}`, borderRadius: 6 }}>
         <OwnerAvatar name={m.aName} division={m.aMeta?.division || ""} size={22} />
-        <span style={{ fontSize: 11, fontWeight: 600, color: dcA.color, fontFamily: T.bodyFont }}><OwnerLink name={m.aName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.aName}</OwnerLink></span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: dcA.text, fontFamily: T.bodyFont }}><OwnerLink name={m.aName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.aName}</OwnerLink></span>
         <span style={{ fontSize: 10, color: T.muted }}>vs</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: dcB.color, fontFamily: T.bodyFont }}><OwnerLink name={m.bName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.bName}</OwnerLink></span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: dcB.text, fontFamily: T.bodyFont }}><OwnerLink name={m.bName} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{m.bName}</OwnerLink></span>
         <OwnerAvatar name={m.bName} division={m.bMeta?.division || ""} size={22} />
         <span style={{ flex: 1 }} />
         <span style={{ fontFamily: T.monoFont, fontSize: 11, fontWeight: 700, color: kind === "closest" ? T.gold : T.accent }}>&plusmn;{margin.toFixed(1)}</span>
@@ -756,7 +746,7 @@ function StandingsSnapshot({ teamMeta }: { teamMeta: Record<string, TeamMeta> })
       </div>
       <div style={{ padding: "8px 0" }}>
         {sorted.slice(0, 8).map((t, i) => {
-          const d = divColor(t.division);
+          const d = getDivColors(t.division);
           const isPlayoff = i < playoffCount;
           return (
             <div key={t.displayName} style={{

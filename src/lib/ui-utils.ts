@@ -1,3 +1,40 @@
+import { OWNER_DIVISION } from "./config";
+
+// ── Accent colors ───────────────────────────────────────────────────────────
+
+export const ACCENT = "#FD4A48";
+export const ACCENT_DIM = "rgba(253,74,72,0.12)";
+export const GOLD = "#E8B84B";
+export const WIN_COLOR = "#4ade80";
+export const LOSS_COLOR = "#fd7b7a";
+
+// ── Typography ──────────────────────────────────────────────────────────────
+
+export const HEADER_FONT = "'Barlow Condensed', sans-serif";
+export const MONO_FONT = "'JetBrains Mono', monospace";
+
+// ── Division colors ─────────────────────────────────────────────────────────
+
+export const DIVISION_COLORS: Record<string, { text: string; bg: string; border: string }> = {
+  "Concussion":        { text: "#60a5fa", bg: "rgba(59,130,246,0.15)",  border: "rgba(59,130,246,0.3)" },
+  "Hey Arnold":        { text: "#c084fc", bg: "rgba(168,85,247,0.15)", border: "rgba(168,85,247,0.3)" },
+  "Replacements":      { text: "#4ade80", bg: "rgba(34,197,94,0.15)",  border: "rgba(34,197,94,0.3)" },
+  "Dark Knight Rises": { text: "#fb923c", bg: "rgba(249,115,22,0.15)", border: "rgba(249,115,22,0.3)" },
+};
+
+export const FALLBACK_DIVISION_COLORS = { text: "#999999", bg: "rgba(100,100,100,0.15)", border: "rgba(100,100,100,0.3)" };
+
+export function getDivColors(division: string): { text: string; bg: string; border: string } {
+  return DIVISION_COLORS[division] || FALLBACK_DIVISION_COLORS;
+}
+
+export function getDivColorsByOwner(owner: string): { text: string; bg: string; border: string } {
+  const div = OWNER_DIVISION[owner];
+  return div ? getDivColors(div) : FALLBACK_DIVISION_COLORS;
+}
+
+// ── Division variants ───────────────────────────────────────────────────────
+
 export function getDivisionVariant(division: string): "concussion" | "hey-arnold" | "replacements" | "dark-knight" | "outline" {
   switch (division) {
     case "Concussion": return "concussion";

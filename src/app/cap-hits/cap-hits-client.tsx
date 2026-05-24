@@ -4,19 +4,8 @@ import { useState, useMemo, Fragment } from "react";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 import { PlayerLink } from "@/components/player-link";
+import { getDivColors } from "@/lib/ui-utils";
 import type { CapHitClientRow } from "./page";
-
-const DIV_COLORS: Record<string, { color: string; bg: string; border: string }> = {
-  Concussion:          { color: "#22d3ee", bg: "rgba(34,211,238,0.12)",  border: "rgba(34,211,238,0.3)" },
-  "Hey Arnold":        { color: "#fb923c", bg: "rgba(251,146,60,0.12)",  border: "rgba(251,146,60,0.3)" },
-  Replacements:        { color: "#4ade80", bg: "rgba(74,222,128,0.12)",  border: "rgba(74,222,128,0.3)" },
-  "Dark Knight Rises": { color: "#a78bfa", bg: "rgba(167,139,250,0.12)", border: "rgba(167,139,250,0.3)" },
-};
-const DEFAULT_DIV = { color: "#94a3b8", bg: "rgba(148,163,184,0.1)", border: "rgba(148,163,184,0.2)" };
-
-function divColor(division: string) {
-  return DIV_COLORS[division] || DEFAULT_DIV;
-}
 
 const POS_COLORS: Record<string, { text: string; bg: string; border: string }> = {
   QB:  { text: "#f87171", bg: "rgba(248,113,113,0.12)", border: "rgba(248,113,113,0.28)" },
@@ -81,7 +70,7 @@ export function CapHitsClient({ rows, season: currentSeason, allSeasons, ownerDi
 
 function OwnerAvatar({ name, division, size = 32, dim = false }: { name: string; division: string; size?: number; dim?: boolean }) {
   const avatarId = useOwnerAvatar(name);
-  const dc = divColor(division);
+  const dc = getDivColors(division);
   const initials = name.slice(0, 2).toUpperCase();
   return (
     <div
@@ -96,7 +85,7 @@ function OwnerAvatar({ name, division, size = 32, dim = false }: { name: string;
       <SleeperAvatarImage
         avatarId={avatarId}
         name={name}
-        fallback={<span className="font-heading font-extrabold" style={{ fontSize: size * 0.36, color: dc.color, letterSpacing: "-0.01em" }}>{initials}</span>}
+        fallback={<span className="font-heading font-extrabold" style={{ fontSize: size * 0.36, color: dc.text, letterSpacing: "-0.01em" }}>{initials}</span>}
       />
     </div>
   );
@@ -156,8 +145,8 @@ function PosBadge({ pos }: { pos: string }) {
 }
 
 function DivDot({ division, size = 6 }: { division: string; size?: number }) {
-  const dc = divColor(division);
-  return <span className="inline-block flex-shrink-0 rounded-full" style={{ width: size, height: size, background: dc.color }} />;
+  const dc = getDivColors(division);
+  return <span className="inline-block flex-shrink-0 rounded-full" style={{ width: size, height: size, background: dc.text }} />;
 }
 
 // ─── Page Header ──────────────────────────────────────────────────────────────
@@ -268,7 +257,7 @@ function FilterBar({
         <div className="flex gap-1 mt-2 flex-wrap">
           {owners.map((k) => {
             const div = ownerDivisions[k] || "";
-            const dc = divColor(div);
+            const dc = getDivColors(div);
             const on = selectedOwners.includes(k);
             return (
               <button
@@ -277,9 +266,9 @@ function FilterBar({
                 className="flex items-center gap-1.5 cursor-pointer transition-all duration-150"
                 style={{
                   padding: "3px 8px 3px 4px",
-                  border: `1px solid ${on ? dc.color : "var(--border)"}`,
+                  border: `1px solid ${on ? dc.text : "var(--border)"}`,
                   background: on ? dc.bg : "var(--secondary)",
-                  color: on ? dc.color : "var(--muted-foreground)",
+                  color: on ? dc.text : "var(--muted-foreground)",
                   borderRadius: 6, fontSize: 11, fontWeight: 600,
                   opacity: on ? 1 : 0.65,
                 }}
@@ -453,7 +442,7 @@ function SeasonBarChart({ rows, season, ownersFilter, owners, ownerDivisions, ow
       <div className="py-2">
         {data.sorted.map((r) => {
           const div = ownerDivisions[r.owner] || "";
-          const dc = divColor(div);
+          const dc = getDivColors(div);
           const pct = (r.amount / data.max) * 100;
           const aboveAvg = r.amount >= data.avg && r.amount > 0;
           const barColor = r.amount === 0 ? "var(--secondary)" : aboveAvg ? "#FD4A48" : "rgba(253,74,72,0.35)";
@@ -465,7 +454,7 @@ function SeasonBarChart({ rows, season, ownersFilter, owners, ownerDivisions, ow
                   <div className="font-heading text-[13px] font-extrabold leading-tight">
                     <OwnerLink name={r.owner} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{r.owner}</OwnerLink>
                   </div>
-                  <div className="text-[9px] font-semibold mt-0.5 flex items-center gap-1" style={{ color: dc.color }}>
+                  <div className="text-[9px] font-semibold mt-0.5 flex items-center gap-1" style={{ color: dc.text }}>
                     <DivDot division={div} size={4} /> {div}
                   </div>
                 </div>
@@ -544,7 +533,7 @@ function HistoricalHeatmap({ rows, season, ownersFilter, allSeasons, owners, own
           {/* Rows */}
           {totals.map((r) => {
             const div = ownerDivisions[r.owner] || "";
-            const dc = divColor(div);
+            const dc = getDivColors(div);
             return (
               <div
                 key={r.owner}
@@ -559,7 +548,7 @@ function HistoricalHeatmap({ rows, season, ownersFilter, allSeasons, owners, own
                   <OwnerAvatar name={r.owner} division={div} size={22} />
                   <div className="min-w-0">
                     <div className="font-heading text-xs font-extrabold leading-tight">{r.owner}</div>
-                    <div className="text-[9px] font-semibold mt-0.5" style={{ color: dc.color }}>{div}</div>
+                    <div className="text-[9px] font-semibold mt-0.5" style={{ color: dc.text }}>{div}</div>
                   </div>
                 </div>
                 {seasonsToShow.map((s) => {
@@ -757,7 +746,7 @@ function OwnerGroupRow({ group, season, maxCellValue, groupIdx, ownerDivisions }
 }) {
   const [open, setOpen] = useState(true);
   const div = ownerDivisions[group.owner] || "";
-  const dc = divColor(div);
+  const dc = getDivColors(div);
   return (
     <Fragment>
       <tr
@@ -773,7 +762,7 @@ function OwnerGroupRow({ group, season, maxCellValue, groupIdx, ownerDivisions }
               <div className="font-heading text-sm font-extrabold tracking-[0.02em]">
                 <OwnerLink name={group.owner} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{group.owner}</OwnerLink>
               </div>
-              <div className="text-[9px] font-semibold mt-0.5 flex items-center gap-1" style={{ color: dc.color }}>
+              <div className="text-[9px] font-semibold mt-0.5 flex items-center gap-1" style={{ color: dc.text }}>
                 <DivDot division={div} size={4} /> {div} · {group.items.length} hits
               </div>
             </div>

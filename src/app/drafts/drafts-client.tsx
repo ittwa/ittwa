@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { getPositionColors, getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
+import { getPositionColors, getDivisionColor, getDivisionColorAlpha, getDivColors } from "@/lib/ui-utils";
 import { OWNER_DIVISION } from "@/lib/config";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
@@ -73,19 +73,8 @@ const POS_COLORS: Record<string, { bg: string; text: string; border: string }> =
   DEF: { bg: "rgba(148,163,184,0.12)", text: "#94a3b8", border: "rgba(148,163,184,0.25)" },
 };
 
-const DIV_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  Concussion: { bg: "rgba(59,130,246,0.15)", text: "#60a5fa", border: "rgba(59,130,246,0.3)" },
-  "Hey Arnold": { bg: "rgba(168,85,247,0.15)", text: "#c084fc", border: "rgba(168,85,247,0.3)" },
-  Replacements: { bg: "rgba(34,197,94,0.15)", text: "#4ade80", border: "rgba(34,197,94,0.3)" },
-  "Dark Knight Rises": { bg: "rgba(249,115,22,0.15)", text: "#fb923c", border: "rgba(249,115,22,0.3)" },
-};
-
 function posColors(pos: string) {
   return POS_COLORS[pos] || POS_COLORS.K;
-}
-
-function divColors(div: string) {
-  return DIV_COLORS[div] || DIV_COLORS.Concussion;
 }
 
 function initials(name: string) {
@@ -97,7 +86,7 @@ function initials(name: string) {
 // ── Sub-components (placeholders) ────────────────────────────────────────────
 
 function OwnerAvatar({ name, division, size = 28 }: { name: string; division: string; size?: number }) {
-  const dc = divColors(division);
+  const dc = getDivColors(division);
   const ini = initials(name);
   const avatarId = useOwnerAvatar(name);
   return (
@@ -264,7 +253,7 @@ function PicksByOwnerChart({ data }: { data: { name: string; cnt: number; divisi
   return (
     <div className="flex flex-col gap-[5px]">
       {data.map(({ name, cnt, division }) => {
-        const dc = division ? divColors(division) : null;
+        const dc = division ? getDivColors(division) : null;
         const barColor = dc ? dc.text : "#FD4A48";
         return (
           <div key={name} className="flex items-center gap-2">
@@ -287,7 +276,7 @@ function TradedPicksChart({ data }: { data: { name: string; cnt: number; divisio
   return (
     <div className="flex flex-col gap-1.5">
       {data.map(({ name, cnt, division }) => {
-        const dc = division ? divColors(division) : null;
+        const dc = division ? getDivColors(division) : null;
         return (
           <div key={name} className="flex items-center gap-2">
             <OwnerLink name={name} className="flex items-center gap-2 hover:opacity-80 transition-opacity flex-1 min-w-0">
@@ -569,7 +558,7 @@ function FutureDraftPicks({
             </thead>
             <tbody>
               {ownerRows.map((row, i) => {
-                const dc = row.division ? divColors(row.division) : null;
+                const dc = row.division ? getDivColors(row.division) : null;
                 return (
                   <tr
                     key={row.owner}
@@ -827,7 +816,7 @@ export function DraftsClient({ drafts, ownerAvatars, futurePicksBySeason, future
               {/* Slot rows */}
               {slotData.map(({ slot, ownerName, division }) => {
                 const isEven = slot % 2 === 0;
-                const dc = division ? divColors(division) : null;
+                const dc = division ? getDivColors(division) : null;
 
                 return (
                   <div
