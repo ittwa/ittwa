@@ -197,12 +197,20 @@ function SeasonFilter({ selected, onChange, allSeasons, currentSeason }: {
             );
           })}
           <div className="border-t border-border my-1" />
-          <button
-            onClick={() => { onChange([...allSeasons]); setOpen(false); }}
-            className="w-full bg-transparent border-none cursor-pointer text-xs text-muted-foreground py-1 px-2 text-left rounded"
-          >
-            Show all seasons
-          </button>
+          <div className="flex gap-1">
+            <button
+              onClick={() => { onChange([...allSeasons]); setOpen(false); }}
+              className="flex-1 bg-transparent border-none cursor-pointer text-xs text-muted-foreground py-1 px-2 text-left rounded hover:text-foreground transition-colors"
+            >
+              All
+            </button>
+            <button
+              onClick={() => { onChange([]); setOpen(false); }}
+              className="flex-1 bg-transparent border-none cursor-pointer text-xs text-muted-foreground py-1 px-2 text-left rounded hover:text-foreground transition-colors"
+            >
+              None
+            </button>
+          </div>
         </div>
       )}
     </div>
