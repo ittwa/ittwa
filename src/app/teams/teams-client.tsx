@@ -6,6 +6,7 @@ import { SALARY_CAP, YEARS_CAP } from "@/lib/config";
 import { getDivColors, ACCENT, ACCENT_DIM, GOLD, HEADER_FONT, MONO_FONT } from "@/lib/ui-utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
+import { SectionLabel } from "@/components/section-label";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -68,32 +69,7 @@ function winPct(t: TeamDirectoryEntry): number {
 
 // ── Shared Components ────────────────────────────────────────────────────────
 
-function SectionLabel({
-  label,
-  count,
-  right,
-  color,
-}: {
-  label: string;
-  count?: string;
-  right?: React.ReactNode;
-  color?: string;
-}) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-        <span style={{ display: "block", flexShrink: 0, width: 4, height: 20, background: color || GOLD, borderRadius: 2 }} />
-        <span style={{ fontFamily: HEADER_FONT, fontSize: 18, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: color || TEXT, whiteSpace: "nowrap" }}>
-          {label}
-        </span>
-        {count != null && (
-          <span style={{ fontSize: 11, color: MUTED, fontFamily: MONO_FONT }}>{count}</span>
-        )}
-      </div>
-      {right && <div style={{ flexShrink: 0 }}>{right}</div>}
-    </div>
-  );
-}
+
 
 function DivBadge({ division, size = "md" }: { division: string; size?: "sm" | "md" }) {
   const d = getDivColors(division);

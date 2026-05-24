@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
+import { SectionLabel } from "@/components/section-label";
 
 interface TeamRecord {
   rosterId: number;
@@ -48,19 +49,6 @@ interface RecordsClientProps {
   }[];
 }
 
-function SectionLabel({ label, right }: { label: string; right?: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-2.5">
-        <span className="w-1 h-5 rounded-sm shrink-0 bg-gold" />
-        <span className="font-heading text-xl font-extrabold uppercase tracking-widest">
-          {label}
-        </span>
-      </div>
-      {right}
-    </div>
-  );
-}
 
 function RCard({
   children,
