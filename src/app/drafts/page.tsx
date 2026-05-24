@@ -18,16 +18,17 @@ export default async function DraftsPage() {
   const allDrafts = await Promise.all(
     allSeasons.map(async (season) => {
       const leagueId = SEASON_LEAGUE_IDS[season];
-      const [drafts, rosterOwnerMap] = await Promise.all([
+      const [drafts, rosterOwnerMap, seasonUsers] = await Promise.all([
         getDrafts(leagueId),
         buildRosterOwnerMap(leagueId),
+        getLeagueUsers(leagueId),
       ]);
-      return { season, drafts, rosterOwnerMap };
+      return { season, drafts, rosterOwnerMap, seasonUsers };
     })
   );
 
   const draftsWithPicks = await Promise.all(
-    allDrafts.flatMap(({ season, drafts, rosterOwnerMap }) =>
+    allDrafts.flatMap(({ season, drafts, rosterOwnerMap, seasonUsers }) =>
       drafts.map(async (draft) => {
         try {
           const picks = await getDraftPicks(draft.draft_id);
@@ -37,6 +38,12 @@ export default async function DraftsPage() {
           if (draft.slot_to_roster_id) {
             for (const [slot, rosterId] of Object.entries(draft.slot_to_roster_id)) {
               slotToOwner[Number(slot)] = rosterOwnerMap[rosterId] || `Team ${rosterId}`;
+            }
+          } else if (draft.draft_order) {
+            const userIdToName: Record<string, string> = {};
+            for (const u of seasonUsers) userIdToName[u.user_id] = getDisplayName(u);
+            for (const [userId, slot] of Object.entries(draft.draft_order)) {
+              slotToOwner[Number(slot)] = userIdToName[userId] || `Team ${slot}`;
             }
           }
 
