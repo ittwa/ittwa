@@ -338,6 +338,7 @@ export function Nav({ ownerAvatars = {} }: { ownerAvatars?: Record<string, strin
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openPanel, setOpenPanel] = useState<string | null>(null);
+  const [mobileTeamsOpen, setMobileTeamsOpen] = useState(false);
   const hoverTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleHoverOpen = useCallback((label: string) => {
@@ -352,6 +353,7 @@ export function Nav({ ownerAvatars = {} }: { ownerAvatars?: Record<string, strin
   useEffect(() => {
     setOpenPanel(null);
     setMobileOpen(false);
+    setMobileTeamsOpen(false);
   }, [pathname]);
 
   return (
@@ -451,42 +453,132 @@ export function Nav({ ownerAvatars = {} }: { ownerAvatars?: Record<string, strin
                   <div className="bg-card border border-border rounded-[14px] overflow-hidden">
                     {sec.items.map((item, i) => {
                       const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                      const isTeamsRow = item.href === "/teams";
                       return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setMobileOpen(false)}
-                          className="flex items-center gap-3.5 px-3.5 no-underline"
-                          style={{
-                            padding: "14px 14px",
-                            minHeight: 60,
-                            background: active ? "rgba(253,74,72,0.12)" : "transparent",
-                            borderBottom: i < sec.items.length - 1 ? "1px solid #2a2a2a" : "none",
-                          }}
-                        >
-                          <div
-                            className="flex items-center justify-center shrink-0 rounded-[10px]"
-                            style={{
-                              width: 38, height: 38,
-                              background: active ? "rgba(253,74,72,0.18)" : "var(--secondary)",
-                              border: `1px solid ${active ? "rgba(253,74,72,0.4)" : "var(--border)"}`,
-                            }}
-                          >
-                            <NavIcon name={item.icon} size={18} color={active ? "#FD4A48" : "#a0a0a0"} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className={cn("text-[15px]", active ? "font-semibold text-ittwa" : "font-medium text-foreground")}>
-                              {item.label}
-                            </div>
-                            <div
-                              className="text-xs mt-0.5 truncate"
-                              style={{ color: active ? "rgba(253,74,72,0.7)" : "var(--muted-foreground)" }}
+                        <div key={item.href}>
+                          {isTeamsRow ? (
+                            <button
+                              onClick={() => setMobileTeamsOpen(!mobileTeamsOpen)}
+                              className="flex items-center gap-3.5 px-3.5 no-underline w-full text-left"
+                              style={{
+                                padding: "14px 14px",
+                                minHeight: 60,
+                                background: active ? "rgba(253,74,72,0.12)" : "transparent",
+                                borderBottom: (!mobileTeamsOpen && i < sec.items.length - 1) ? "1px solid #2a2a2a" : "none",
+                              }}
                             >
-                              {item.desc}
+                              <div
+                                className="flex items-center justify-center shrink-0 rounded-[10px]"
+                                style={{
+                                  width: 38, height: 38,
+                                  background: active ? "rgba(253,74,72,0.18)" : "var(--secondary)",
+                                  border: `1px solid ${active ? "rgba(253,74,72,0.4)" : "var(--border)"}`,
+                                }}
+                              >
+                                <NavIcon name={item.icon} size={18} color={active ? "#FD4A48" : "#a0a0a0"} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className={cn("text-[15px]", active ? "font-semibold text-ittwa" : "font-medium text-foreground")}>
+                                  {item.label}
+                                </div>
+                                <div
+                                  className="text-xs mt-0.5 truncate"
+                                  style={{ color: active ? "rgba(253,74,72,0.7)" : "var(--muted-foreground)" }}
+                                >
+                                  {item.desc}
+                                </div>
+                              </div>
+                              <svg
+                                className={cn("transition-transform duration-150", mobileTeamsOpen && "rotate-90")}
+                                width={14} height={14} viewBox="0 0 24 24" fill="none"
+                                stroke={active ? "#FD4A48" : "#444"} strokeWidth={1.75}
+                                strokeLinecap="round" strokeLinejoin="round"
+                              >
+                                <path d="M9 6l6 6-6 6"/>
+                              </svg>
+                            </button>
+                          ) : (
+                            <Link
+                              href={item.href}
+                              onClick={() => setMobileOpen(false)}
+                              className="flex items-center gap-3.5 px-3.5 no-underline"
+                              style={{
+                                padding: "14px 14px",
+                                minHeight: 60,
+                                background: active ? "rgba(253,74,72,0.12)" : "transparent",
+                                borderBottom: i < sec.items.length - 1 ? "1px solid #2a2a2a" : "none",
+                              }}
+                            >
+                              <div
+                                className="flex items-center justify-center shrink-0 rounded-[10px]"
+                                style={{
+                                  width: 38, height: 38,
+                                  background: active ? "rgba(253,74,72,0.18)" : "var(--secondary)",
+                                  border: `1px solid ${active ? "rgba(253,74,72,0.4)" : "var(--border)"}`,
+                                }}
+                              >
+                                <NavIcon name={item.icon} size={18} color={active ? "#FD4A48" : "#a0a0a0"} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className={cn("text-[15px]", active ? "font-semibold text-ittwa" : "font-medium text-foreground")}>
+                                  {item.label}
+                                </div>
+                                <div
+                                  className="text-xs mt-0.5 truncate"
+                                  style={{ color: active ? "rgba(253,74,72,0.7)" : "var(--muted-foreground)" }}
+                                >
+                                  {item.desc}
+                                </div>
+                              </div>
+                              <NavIcon name="chevron" size={14} color={active ? "#FD4A48" : "#444"} />
+                            </Link>
+                          )}
+                          {isTeamsRow && mobileTeamsOpen && (
+                            <div style={{ borderBottom: i < sec.items.length - 1 ? "1px solid #2a2a2a" : "none" }}>
+                              <Link
+                                href="/teams"
+                                onClick={() => setMobileOpen(false)}
+                                className="flex items-center gap-2.5 no-underline transition-colors"
+                                style={{
+                                  padding: "10px 14px 10px 66px",
+                                  background: pathname === "/teams" ? "rgba(253,74,72,0.08)" : "transparent",
+                                  borderBottom: "1px solid #2a2a2a",
+                                }}
+                              >
+                                <NavIcon name="users" size={15} color={pathname === "/teams" ? "#FD4A48" : "#a0a0a0"} />
+                                <span className={cn("text-sm", pathname === "/teams" ? "font-semibold text-ittwa" : "font-medium text-muted-foreground")}>
+                                  All Teams
+                                </span>
+                              </Link>
+                              {[...ALL_OWNERS].sort((a, b) => a.localeCompare(b)).map((owner) => {
+                                const ownerActive = pathname === `/teams/${encodeURIComponent(owner)}`;
+                                return (
+                                  <Link
+                                    key={owner}
+                                    href={`/teams/${encodeURIComponent(owner)}`}
+                                    onClick={() => setMobileOpen(false)}
+                                    className="flex items-center gap-2.5 no-underline transition-colors"
+                                    style={{
+                                      padding: "9px 14px 9px 66px",
+                                      background: ownerActive ? "rgba(253,74,72,0.08)" : "transparent",
+                                    }}
+                                  >
+                                    <div className="w-6 h-6 rounded-full overflow-hidden bg-secondary shrink-0 flex items-center justify-center text-[10px] font-bold">
+                                      <SleeperAvatarImage
+                                        avatarId={ownerAvatars[owner]}
+                                        name={owner}
+                                        fallback={<span>{owner.charAt(0)}</span>}
+                                      />
+                                    </div>
+                                    <span className={cn("text-sm", ownerActive ? "font-semibold text-ittwa" : "font-medium text-muted-foreground")}>
+                                      {owner}
+                                    </span>
+                                  </Link>
+                                );
+                              })}
                             </div>
-                          </div>
-                          <NavIcon name="chevron" size={14} color={active ? "#FD4A48" : "#444"} />
-                        </Link>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
