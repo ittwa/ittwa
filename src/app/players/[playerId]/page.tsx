@@ -457,10 +457,22 @@ export default async function PlayerProfilePage({
   }
 
   // Depth chart data
+  // Group WR sub-positions (LWR, RWR, SWR) together; same for other position families
+  const POSITION_GROUPS: Record<string, string[]> = {
+    WR: ["LWR", "RWR", "SWR", "WR"],
+    RB: ["RB", "FB"],
+    TE: ["TE"],
+    QB: ["QB"],
+    K: ["K"],
+  };
   const depthChartPlayers: { playerId: string; name: string; role: string; isCurrent: boolean; owner: string | null }[] = [];
+  const depthChartLabel = player.position;
   if (player.team && player.depth_chart_position) {
+    const groupPositions = POSITION_GROUPS[player.position]
+      ?? [player.depth_chart_position];
+
     const teammates = Object.values(nflPlayers)
-      .filter((p) => p.team === player.team && p.depth_chart_position === player.depth_chart_position)
+      .filter((p) => p.team === player.team && p.depth_chart_position && groupPositions.includes(p.depth_chart_position))
       .sort((a, b) => (a.depth_chart_order ?? 99) - (b.depth_chart_order ?? 99));
 
     for (const mate of teammates) {
@@ -468,11 +480,12 @@ export default async function PlayerProfilePage({
       depthChartPlayers.push({
         playerId: mate.player_id,
         name: mate.full_name || `${mate.first_name} ${mate.last_name}`,
-        role: `${player.depth_chart_position}${mate.depth_chart_order ?? "?"}`,
+        role: `${mate.depth_chart_position}${mate.depth_chart_order ?? "?"}`,
         isCurrent: mate.player_id === playerId,
         owner: mateOwnerTeam?.displayName ?? null,
       });
     }
+
   }
 
   // Weekly scoring from matchup data
@@ -933,7 +946,7 @@ export default async function PlayerProfilePage({
               <CardHeader className="pb-3">
                 <SectionTick
                   label="NFL Depth Chart"
-                  sub={`${player.team} · ${player.depth_chart_position}`}
+                  sub={`${player.team} · ${depthChartLabel}`}
                 />
               </CardHeader>
               <CardContent className="space-y-1.5">
