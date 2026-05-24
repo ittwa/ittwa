@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 import { getTeamsData, buildRosterOwnerMap, getLeagueUsers } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
@@ -8,7 +8,6 @@ import { computeChampions, computeAllTimeStandings, computeMilestones, computeGa
 import { RecordsClient } from "./records-client";
 import { SleeperMatchup } from "@/types/sleeper";
 
-export const revalidate = 300;
 
 export default async function RecordsPage() {
   const [teamsData, rosterOwnerMap, scores, users, finances] = await Promise.all([

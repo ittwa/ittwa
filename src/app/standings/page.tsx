@@ -1,11 +1,10 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 import { getTeamsData, calculateStandings, getLeagueUsers } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
 import { getStandingsByDivision } from "@/lib/standings";
 import { StandingsClient } from "./standings-client";
 
-export const revalidate = 300; // 5 minutes — same cadence as matchup data
 
 export default async function StandingsPage() {
   const [{ teams, season, currentWeek, allMatchups }, users] = await Promise.all([

@@ -15,7 +15,6 @@ import { TradesClient } from "./trades-client";
 import type { EnrichedTrade } from "@/components/trade-card";
 import { buildContractLookup, enrichTrades } from "@/lib/trade-utils";
 
-export const revalidate = 300;
 
 export default async function TradesPage() {
   const [leagues, nflState, players, rawContracts, users] = await Promise.all([

@@ -23,7 +23,6 @@ import { PlayerLink } from "@/components/player-link";
 import type { SleeperTransaction, SleeperPlayersMap } from "@/types/sleeper";
 import type { ContractRow } from "@/types/contracts";
 
-export const revalidate = 300;
 
 
 function SectionTick({ label, sub }: { label: string; sub?: string }) {

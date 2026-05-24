@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -19,7 +19,6 @@ import type { CapHitEntry } from "./cap-hits-table";
 import { SleeperAvatarImage, OwnerAvatarsProvider } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 
-export const revalidate = 300;
 
 function getOwnerLastName(displayName: string): string {
   for (const [lastName, fullName] of Object.entries(OWNER_LAST_NAME_MAP)) {

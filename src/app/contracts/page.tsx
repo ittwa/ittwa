@@ -18,7 +18,6 @@ import { ContractsClient } from "./contracts-client";
 import type { ContractEntry } from "./contracts-client";
 import type { ContractWithValue } from "@/types/contracts";
 
-export const revalidate = 600;
 
 export default async function ContractsPage() {
   const [nflPlayers, rawContracts, nflState, users] = await Promise.all([

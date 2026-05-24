@@ -17,7 +17,6 @@ import { OwnerAvatarsProvider } from "@/components/owner-avatar";
 import { FreeAgentsClient } from "./free-agents-client";
 import type { ContractWithValue } from "@/types/contracts";
 
-export const revalidate = 600;
 
 export interface FreeAgentRow {
   playerId: string;

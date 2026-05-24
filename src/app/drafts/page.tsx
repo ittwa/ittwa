@@ -5,7 +5,6 @@ import { getDraftPicks, getTradedPicks, getDisplayName, getNFLState } from "@/li
 import { DraftsClient } from "./drafts-client";
 import { SEASON_LEAGUE_IDS, OWNER_DIVISION, ROOKIE_PICK_CONTRACTS } from "@/lib/config";
 
-export const revalidate = 3600;
 
 export default async function DraftsPage() {
   const allSeasons = Object.keys(SEASON_LEAGUE_IDS).sort().reverse();

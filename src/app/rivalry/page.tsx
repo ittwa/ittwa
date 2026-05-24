@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic";
-export const revalidate = 300;
+
 
 import { getMatchups, buildRosterOwnerMap, getLeagueUsers, getDisplayName } from "@/lib/sleeper";
 import { SEASON_LEAGUE_IDS } from "@/lib/config";

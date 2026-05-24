@@ -7,7 +7,6 @@ import { PowerRankingEntry } from "@/lib/power-rankings";
 import { SleeperMatchup } from "@/types/sleeper";
 import { RankingsClient } from "./rankings-client";
 
-export const revalidate = 300;
 
 function computeWeekAllPlay(
   matchups: SleeperMatchup[],

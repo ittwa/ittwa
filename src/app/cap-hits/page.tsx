@@ -8,7 +8,6 @@ import { OwnerAvatarsProvider } from "@/components/owner-avatar";
 import { CapHitsClient } from "./cap-hits-client";
 import type { CapHitRow } from "@/types/contracts";
 
-export const revalidate = 300;
 
 export interface CapHitClientRow {
   id: number;
