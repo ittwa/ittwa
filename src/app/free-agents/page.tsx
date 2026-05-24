@@ -49,7 +49,7 @@ export default async function FreeAgentsPage() {
   const season = Object.keys(SEASON_LEAGUE_IDS).sort().reverse()[0];
   const leagueId = SEASON_LEAGUE_IDS[season];
 
-  const [rawContracts, nflPlayers, rosters, rosterOwnerMap, users] =
+  const [rawContracts, nflPlayers, rosters, , users] =
     await Promise.all([
       getContracts(),
       getNFLPlayers(),
@@ -122,7 +122,7 @@ export default async function FreeAgentsPage() {
     const name = p.full_name || `${p.first_name} ${p.last_name}`;
     const nameLower = name.toLowerCase().trim();
 
-    let lastContract = contractByPlayerId.get(pid) || contractByName.get(nameLower);
+    const lastContract = contractByPlayerId.get(pid) || contractByName.get(nameLower);
 
     const status = deriveFreeAgentStatus(p, lastContract);
 
@@ -155,7 +155,6 @@ export default async function FreeAgentsPage() {
       <FreeAgentsClient
         players={freeAgents}
         season={season}
-        ownerAvatars={ownerAvatars}
         owners={ALL_OWNERS}
       />
     </OwnerAvatarsProvider>

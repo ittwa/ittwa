@@ -189,8 +189,9 @@ function TradeArrows() {
 export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTrade; defaultExpanded?: boolean }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   let playerCount = 0, pickCount = 0;
-  for (const s of trade.sides) for (const item of s.received)
-    item.type === "player" ? playerCount++ : pickCount++;
+  for (const s of trade.sides) for (const item of s.received) {
+    if (item.type === "player") playerCount++; else pickCount++;
+  }
 
   const date = new Date(trade.created).toLocaleDateString("en-US", {
     month: "short",
@@ -269,7 +270,7 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
                 if (!otherSide) return null;
                 const agg = (items: TradeItem[]) => {
                   let salary = 0, years = 0, picks = 0;
-                  for (const i of items) i.type === "player" ? (salary += i.salary, years += i.years) : picks++;
+                  for (const i of items) { if (i.type === "player") { salary += i.salary; years += i.years; } else { picks++; } }
                   return { salary, years, picks };
                 };
                 const inn = agg(side.received), out = agg(otherSide.received);

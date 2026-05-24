@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { getPositionColors, getDivisionColor, getDivisionColorAlpha, getDivColors } from "@/lib/ui-utils";
+import { getDivColors } from "@/lib/ui-utils";
 import { OWNER_DIVISION } from "@/lib/config";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
@@ -680,16 +680,6 @@ export function DraftsClient({ drafts, ownerAvatars, futurePicksBySeason, future
       lookup[p.round][slot] = p;
     }
     return lookup;
-  }, [draft]);
-
-  // Position counts for charts
-  const posCounts = useMemo(() => {
-    if (!draft) return { QB: 0, RB: 0, WR: 0, TE: 0 };
-    const counts: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
-    for (const p of draft.picks) {
-      if (counts[p.position] !== undefined) counts[p.position]++;
-    }
-    return counts;
   }, [draft]);
 
   // Picks per owner for chart

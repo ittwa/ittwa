@@ -107,7 +107,6 @@ export default async function DraftsPage() {
     buildRosterOwnerMap(currentLeagueId),
   ]);
 
-  const numTeams = Object.keys(futureRosterOwnerMap).length || 12;
   const NUM_FUTURE_ROUNDS = 3;
 
   const futurePicksBySeason: Record<string, {

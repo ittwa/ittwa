@@ -35,7 +35,7 @@ export default async function MatchupsPage({
     getLeagueUsers(leagueId),
   ]);
 
-  const { teams, season, currentWeek: rawCurrentWeek, allMatchups } = teamsData;
+  const { teams, currentWeek: rawCurrentWeek, allMatchups } = teamsData;
   const lastWeekWithData = allMatchups.size > 0
     ? Math.max(...Array.from(allMatchups.keys()))
     : 1;

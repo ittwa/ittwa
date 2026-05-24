@@ -28,7 +28,6 @@ import { PowerRankingEntry } from "@/lib/power-rankings";
 // ─── Data helpers ─────────────────────────────────────────────────────────────
 
 async function fetchDashboardData(): Promise<{
-  leagueName: string;
   currentWeek: number;
   season: string;
   matchupPairs: MatchupPair[];
@@ -38,7 +37,6 @@ async function fetchDashboardData(): Promise<{
   nflPlayers: SleeperPlayersMap;
   ownerAvatars: Record<string, string>;
 }> {
-  let leagueName = "ITTWA";
   let currentWeek = 1;
   let season = new Date().getFullYear().toString();
   let matchupPairs: MatchupPair[] = [];
@@ -46,10 +44,10 @@ async function fetchDashboardData(): Promise<{
   let powerRankings: PowerRankingEntry[] = [];
   let transactions: SleeperTransaction[] = [];
   let nflPlayers: SleeperPlayersMap = {};
-  let ownerAvatars: Record<string, string> = {};
+  const ownerAvatars: Record<string, string> = {};
 
   try {
-    const [teamsData, nflState, users] = await Promise.all([
+    const [teamsData, , users] = await Promise.all([
       getTeamsData(),
       getNFLState(),
       getLeagueUsers(),
@@ -76,7 +74,7 @@ async function fetchDashboardData(): Promise<{
     }
 
     const weekToShow = Math.max(currentWeek - 1, 1);
-    const [pairs, txns, ownerMap, playersData] = await Promise.all([
+    const [pairs, txns, , playersData] = await Promise.all([
       getMatchupPairs(weekToShow).catch(() => [] as MatchupPair[]),
       getAllTransactions().catch(() => [] as SleeperTransaction[]),
       buildRosterOwnerMap().catch(() => ({} as Record<number, string>)),
@@ -92,7 +90,7 @@ async function fetchDashboardData(): Promise<{
     console.error("[dashboard] data fetch error:", err);
   }
 
-  return { leagueName, currentWeek, season, matchupPairs, standings, powerRankings, transactions, nflPlayers, ownerAvatars };
+  return { currentWeek, season, matchupPairs, standings, powerRankings, transactions, nflPlayers, ownerAvatars };
 }
 
 function formatDate(timestampMs: number): string {
@@ -476,7 +474,7 @@ function TransactionsSection({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function HomePage() {
-  const { leagueName, currentWeek, season, matchupPairs, standings, powerRankings, transactions, nflPlayers, ownerAvatars } =
+  const { currentWeek, season, matchupPairs, standings, powerRankings, transactions, nflPlayers, ownerAvatars } =
     await fetchDashboardData();
 
   const rosterOwnerMap: Record<number, string> = {};

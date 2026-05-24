@@ -74,7 +74,6 @@ export default async function CapHitsPage() {
         season={season}
         allSeasons={allSeasons}
         ownerDivisions={ownerDivisions}
-        ownerAvatars={ownerAvatars}
         owners={ALL_OWNERS}
       />
     </OwnerAvatarsProvider>

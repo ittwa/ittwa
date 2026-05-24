@@ -21,7 +21,6 @@ import { SleeperAvatarImage } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 import { PlayerLink } from "@/components/player-link";
 import type { SleeperTransaction, SleeperPlayersMap } from "@/types/sleeper";
-import type { ContractRow } from "@/types/contracts";
 
 
 

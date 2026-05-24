@@ -126,14 +126,6 @@ export function RecordsClient({
     return [...set].sort().reverse();
   }, [availableSeasons, season]);
 
-  const ringCounts = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const c of champions) map.set(c.champion, (map.get(c.champion) || 0) + 1);
-    return [...map.entries()]
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [champions]);
-
   const ringLeaders = useMemo(() => {
     return [...allTimeStandings].sort((a, b) => b.rings - a.rings || b.playoffs - a.playoffs);
   }, [allTimeStandings]);

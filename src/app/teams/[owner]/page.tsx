@@ -2,13 +2,13 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap, getLatestActiveContracts, getLeagueUsers } from "@/lib/data";
 import { getNFLPlayers, getDisplayName } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP, AUCTION_DATE, SALARY_CAP, ROSTER_SIZE } from "@/lib/config";
 import { TradeCard } from "@/components/trade-card";
-import type { EnrichedTrade } from "@/components/trade-card";
+
 import { buildContractLookup, enrichTrades } from "@/lib/trade-utils";
 import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
 import { ContractWithValue } from "@/types/contracts";

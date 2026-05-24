@@ -220,9 +220,7 @@ export function ScheduleClient({
             <TeamFocusPanel
               data={data}
               teamKey={team}
-              season={season}
               isCurrentSeason={isCurrentSeason}
-              currentWeek={currentWeek}
               ownerAvatars={ownerAvatars}
             />
           ) : (
@@ -492,7 +490,6 @@ function MatrixView({
   ownerAvatars: Record<string, string>;
 }) {
   const hasPlayoff = playoffWeeks.length > 0;
-  const regCount = regularWeeks.length;
 
   return (
     <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
@@ -939,16 +936,12 @@ function TeamSide({
 function TeamFocusPanel({
   data,
   teamKey,
-  season,
   isCurrentSeason,
-  currentWeek,
   ownerAvatars,
 }: {
   data: SeasonData;
   teamKey: string;
-  season: string;
   isCurrentSeason: boolean;
-  currentWeek: number;
   ownerAvatars: Record<string, string>;
 }) {
   const info = data.teams[teamKey];

@@ -138,13 +138,12 @@ type SortKey = "player" | "pos" | "owner" | "points" | "salary" | "contract";
 interface Props {
   players: FreeAgentRow[];
   season: string;
-  ownerAvatars: Record<string, string>;
   owners: string[];
 }
 
 // ── Main Client Component ────────────────────────────────────────────────────
 
-export function FreeAgentsClient({ players, season, ownerAvatars, owners }: Props) {
+export function FreeAgentsClient({ players, season, owners }: Props) {
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState("");
   const [maxAge, setMaxAge] = useState("");

@@ -3,7 +3,7 @@ import { getDisplayName } from "@/lib/sleeper";
 import { Nav } from "./nav";
 
 export async function NavServer() {
-  let ownerAvatars: Record<string, string> = {};
+  const ownerAvatars: Record<string, string> = {};
   try {
     const users = await getLeagueUsers();
     for (const user of users) {

@@ -70,7 +70,7 @@ export async function getTeamsData(leagueId?: string): Promise<{
   const completedWeeks = allMatchups.size > 0 ? Math.max(...Array.from(allMatchups.keys())) : 0;
 
   // Build division records from matchups
-  const divRecords = calculateDivisionRecords(rosters, allMatchups, userMap);
+  const divRecords = calculateDivisionRecords(rosters, allMatchups);
 
   // Build teams — use Sleeper's roster.settings.division (a number 1-4) to resolve
   // division name, since Sleeper display names often don't match the real names
@@ -105,7 +105,6 @@ export async function getTeamsData(leagueId?: string): Promise<{
 function calculateDivisionRecords(
   rosters: SleeperRoster[],
   allMatchups: Map<number, SleeperMatchup[]>,
-  userMap: Record<string, string>
 ): Map<number, string> {
   const records = new Map<number, { wins: number; losses: number }>();
 

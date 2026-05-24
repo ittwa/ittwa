@@ -64,7 +64,7 @@ export function TradesClient({ trades, season, ownerAvatars }: TradesClientProps
   const { totalPlayers, totalPicks } = useMemo(() => {
     let players = 0, picks = 0;
     for (const t of filtered) for (const s of t.sides) for (const item of s.received)
-      item.type === "player" ? players++ : picks++;
+      if (item.type === "player") players++; else picks++;
     return { totalPlayers: players, totalPicks: picks };
   }, [filtered]);
 

@@ -27,11 +27,10 @@ interface Props {
   season: string;
   allSeasons: number[];
   ownerDivisions: Record<string, string>;
-  ownerAvatars: Record<string, string>;
   owners: string[];
 }
 
-export function CapHitsClient({ rows, season: currentSeason, allSeasons, ownerDivisions, ownerAvatars, owners }: Props) {
+export function CapHitsClient({ rows, season: currentSeason, allSeasons, ownerDivisions, owners }: Props) {
   const [season, setSeason] = useState(() => {
     const num = parseInt(currentSeason);
     return allSeasons.includes(num) ? num : allSeasons[0];
@@ -51,14 +50,14 @@ export function CapHitsClient({ rows, season: currentSeason, allSeasons, ownerDi
         search={search} setSearch={setSearch}
         posFilter={posFilter} setPosFilter={setPosFilter}
         allSeasons={allSeasons} currentSeason={parseInt(currentSeason)}
-        owners={owners} ownerDivisions={ownerDivisions} ownerAvatars={ownerAvatars}
+        owners={owners} ownerDivisions={ownerDivisions}
       />
-      <KpiRow rows={rows} season={season} ownersFilter={ownersFilter} ownerDivisions={ownerDivisions} ownerAvatars={ownerAvatars} />
+      <KpiRow rows={rows} season={season} ownersFilter={ownersFilter} ownerDivisions={ownerDivisions} />
       <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-4 mb-5">
-        <SeasonBarChart rows={rows} season={season} ownersFilter={ownersFilter} owners={owners} ownerDivisions={ownerDivisions} ownerAvatars={ownerAvatars} />
-        <HistoricalHeatmap rows={rows} season={season} ownersFilter={ownersFilter} allSeasons={allSeasons} owners={owners} ownerDivisions={ownerDivisions} ownerAvatars={ownerAvatars} />
+        <SeasonBarChart rows={rows} season={season} ownersFilter={ownersFilter} owners={owners} ownerDivisions={ownerDivisions} />
+        <HistoricalHeatmap rows={rows} season={season} ownersFilter={ownersFilter} allSeasons={allSeasons} owners={owners} ownerDivisions={ownerDivisions} />
       </div>
-      <BreakdownTable rows={rows} season={season} ownersFilter={ownersFilter} search={search} posFilter={posFilter} owners={owners} ownerDivisions={ownerDivisions} ownerAvatars={ownerAvatars} />
+      <BreakdownTable rows={rows} season={season} ownersFilter={ownersFilter} search={search} posFilter={posFilter} ownerDivisions={ownerDivisions} />
       <p className="mt-6 text-[10px] text-muted-foreground leading-relaxed">
         Cap hits are calculated from contracts cut or traded before completion, distributed across the remaining
         seasons of the original deal. Luxury-tax penalties are shown as <span className="text-foreground/70">TAX</span> rows.
@@ -170,14 +169,14 @@ function PageHeader({ season }: { season: number }) {
 
 function FilterBar({
   season, setSeason, selectedOwners, setSelectedOwners, search, setSearch,
-  posFilter, setPosFilter, allSeasons, currentSeason, owners, ownerDivisions, ownerAvatars,
+  posFilter, setPosFilter, allSeasons, currentSeason, owners, ownerDivisions,
 }: {
   season: number; setSeason: (s: number) => void;
   selectedOwners: string[]; setSelectedOwners: (o: string[]) => void;
   search: string; setSearch: (s: string) => void;
   posFilter: string; setPosFilter: (p: string) => void;
   allSeasons: number[]; currentSeason: number;
-  owners: string[]; ownerDivisions: Record<string, string>; ownerAvatars: Record<string, string>;
+  owners: string[]; ownerDivisions: Record<string, string>;
 }) {
   const allOn = selectedOwners.length === owners.length;
   const toggleOwner = (k: string) => {
@@ -342,9 +341,9 @@ function KpiCard({ label, value, suffix, color, sub, avatar }: {
   );
 }
 
-function KpiRow({ rows, season, ownersFilter, ownerDivisions, ownerAvatars }: {
+function KpiRow({ rows, season, ownersFilter, ownerDivisions }: {
   rows: CapHitClientRow[]; season: number; ownersFilter: string[] | null;
-  ownerDivisions: Record<string, string>; ownerAvatars: Record<string, string>;
+  ownerDivisions: Record<string, string>;
 }) {
   const stats = useMemo(() => {
     const byOwner: Record<string, number> = {};
@@ -407,9 +406,9 @@ function KpiRow({ rows, season, ownersFilter, ownerDivisions, ownerAvatars }: {
 
 // ─── Season Bar Chart ─────────────────────────────────────────────────────────
 
-function SeasonBarChart({ rows, season, ownersFilter, owners, ownerDivisions, ownerAvatars }: {
+function SeasonBarChart({ rows, season, ownersFilter, owners, ownerDivisions }: {
   rows: CapHitClientRow[]; season: number; ownersFilter: string[] | null;
-  owners: string[]; ownerDivisions: Record<string, string>; ownerAvatars: Record<string, string>;
+  owners: string[]; ownerDivisions: Record<string, string>;
 }) {
   const data = useMemo(() => {
     const byOwner: Record<string, number> = {};
@@ -484,9 +483,9 @@ function SeasonBarChart({ rows, season, ownersFilter, owners, ownerDivisions, ow
 
 // ─── Historical Heatmap ───────────────────────────────────────────────────────
 
-function HistoricalHeatmap({ rows, season, ownersFilter, allSeasons, owners, ownerDivisions, ownerAvatars }: {
+function HistoricalHeatmap({ rows, season, ownersFilter, allSeasons, owners, ownerDivisions }: {
   rows: CapHitClientRow[]; season: number; ownersFilter: string[] | null;
-  allSeasons: number[]; owners: string[]; ownerDivisions: Record<string, string>; ownerAvatars: Record<string, string>;
+  allSeasons: number[]; owners: string[]; ownerDivisions: Record<string, string>;
 }) {
   const seasonsToShow = allSeasons.slice(0, 10);
 
@@ -606,10 +605,10 @@ function SortTh({ label, field, sortKey, sortDir, onSort, align = "left", classN
 
 const BREAKDOWN_COLS = [2023, 2024, 2025, 2026, 2027];
 
-function BreakdownTable({ rows, season, ownersFilter, search, posFilter, owners, ownerDivisions, ownerAvatars }: {
+function BreakdownTable({ rows, season, ownersFilter, search, posFilter, ownerDivisions }: {
   rows: CapHitClientRow[]; season: number; ownersFilter: string[] | null;
   search: string; posFilter: string;
-  owners: string[]; ownerDivisions: Record<string, string>; ownerAvatars: Record<string, string>;
+  ownerDivisions: Record<string, string>;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>("seasonHit");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -724,7 +723,7 @@ function BreakdownTable({ rows, season, ownersFilter, search, posFilter, owners,
                   <OwnerGroupRow key={g.owner} group={g} season={season} maxCellValue={maxCellValue} groupIdx={gi} ownerDivisions={ownerDivisions} />
                 ))
               : sortedFlat.map((h, i) => (
-                  <BreakdownRow key={h.id} h={h} i={i} total={sortedFlat.length} season={season} maxCellValue={maxCellValue} showOwner ownerDivisions={ownerDivisions} />
+                  <BreakdownRow key={h.id} h={h} i={i} season={season} maxCellValue={maxCellValue} showOwner ownerDivisions={ownerDivisions} />
                 ))
             }
             {sortedFlat.length === 0 && (
@@ -793,14 +792,14 @@ function OwnerGroupRow({ group, season, maxCellValue, groupIdx, ownerDivisions }
         })}
       </tr>
       {open && group.items.map((h, i) => (
-        <BreakdownRow key={h.id} h={h} i={i} total={group.items.length} season={season} maxCellValue={maxCellValue} showOwner={false} ownerDivisions={ownerDivisions} />
+        <BreakdownRow key={h.id} h={h} i={i} season={season} maxCellValue={maxCellValue} showOwner={false} ownerDivisions={ownerDivisions} />
       ))}
     </Fragment>
   );
 }
 
-function BreakdownRow({ h, i, total, season, maxCellValue, showOwner, ownerDivisions }: {
-  h: CapHitClientRow; i: number; total: number; season: number; maxCellValue: number;
+function BreakdownRow({ h, i, season, maxCellValue, showOwner, ownerDivisions }: {
+  h: CapHitClientRow; i: number; season: number; maxCellValue: number;
   showOwner?: boolean; ownerDivisions: Record<string, string>;
 }) {
   const seasonAmt = h.yearlyHits[season] || 0;

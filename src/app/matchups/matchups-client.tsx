@@ -303,11 +303,10 @@ function WinProbBar({ winProb, aDivision, bDivision, aName, bName }: {
 
 // ── Hero Matchup Components ──────────────────────────────────────────────────
 
-function TeamSide({ name, meta, align, isWinning }: {
+function TeamSide({ name, meta, align }: {
   name: string;
   meta: TeamMeta | null;
   align: "left" | "right";
-  isWinning: boolean;
 }) {
   const division = meta?.division || "";
   const right = align === "right";
@@ -421,7 +420,7 @@ function HeroMatchup({ m, week, season }: { m: EnrichedMatchup; week: number; se
 
       {/* Score row */}
       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-7 items-center p-4 pb-3 md:px-8 md:pt-8 md:pb-6">
-        <TeamSide name={m.aName} meta={m.aMeta} align="left" isWinning={aWinning && m.status !== "upcoming"} />
+        <TeamSide name={m.aName} meta={m.aMeta} align="left" />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
           <ScoreBlock value={m.pair.team1.points} proj={m.aProj} isWinning={aWinning && m.status !== "upcoming"} status={m.status} />
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
@@ -436,7 +435,7 @@ function HeroMatchup({ m, week, season }: { m: EnrichedMatchup; week: number; se
           </div>
           <ScoreBlock value={m.pair.team2.points} proj={m.bProj} isWinning={!aWinning && m.status !== "upcoming"} status={m.status} />
         </div>
-        <TeamSide name={m.bName} meta={m.bMeta} align="right" isWinning={!aWinning && m.status !== "upcoming"} />
+        <TeamSide name={m.bName} meta={m.bMeta} align="right" />
       </div>
 
       {/* Win prob bar */}
@@ -590,8 +589,6 @@ function MatchupCard({ m, idx, expanded, onToggle }: {
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const dcA = getDivColors(m.aMeta?.division || "");
-  const dcB = getDivColors(m.bMeta?.division || "");
   const { aColor: barA, bColor: barB } = barColors(m.aMeta?.division || "", m.bMeta?.division || "");
   const aWinning = m.pair.team1.points > m.pair.team2.points;
   const margin = Math.abs(m.pair.team1.points - m.pair.team2.points);
@@ -746,7 +743,6 @@ function StandingsSnapshot({ teamMeta }: { teamMeta: Record<string, TeamMeta> })
       </div>
       <div style={{ padding: "8px 0" }}>
         {sorted.slice(0, 8).map((t, i) => {
-          const d = getDivColors(t.division);
           const isPlayoff = i < playoffCount;
           return (
             <div key={t.displayName} style={{
