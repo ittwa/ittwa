@@ -199,7 +199,7 @@ export function StandingsClient({
       <StatSummary standings={standings} />
 
       {/* Tab bar */}
-      <div className="flex gap-1">
+      <div className="flex gap-1 mb-4">
         {([["overall", "Overall"], ["division", "By Division"]] as const).map(([key, label]) => (
           <button
             key={key}
