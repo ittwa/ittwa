@@ -429,9 +429,9 @@ export function RankingsClient({
   );
 
   return (
-    <div>
+    <div className="space-y-5">
       {/* ── Page Header ───────────────────────────────────────────────── */}
-      <div className="pb-6 border-b border-border mb-6">
+      <div className="pb-6 border-b border-border">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1.5">
