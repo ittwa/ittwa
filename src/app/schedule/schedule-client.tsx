@@ -204,7 +204,7 @@ export function ScheduleClient({
       />
 
       {/* Body: main content + sidebar */}
-      <div className="flex flex-col lg:grid lg:gap-5" style={{ gridTemplateColumns: "minmax(0, 1fr) 320px", alignItems: "start" }}>
+      <div className="flex flex-col lg:grid lg:gap-5 lg:items-start" style={{ gridTemplateColumns: "minmax(0, 1fr) 320px" }}>
         <div style={{ minWidth: 0 }}>
           {view === "matrix" ? (
             <MatrixView
