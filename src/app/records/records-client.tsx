@@ -272,7 +272,7 @@ export function RecordsClient({
                 ? `All-time records across ${champions.length} seasons · `
                 : `${activeTab} season records · `}
               <span className="text-gold">
-                {showAllTime ? `${allTimeStandings.length} owners` : `Week ${currentWeek}`}
+                {showAllTime ? `${allTimeStandings.length} owners` : currentWeek <= 1 ? "Preseason" : `Week ${currentWeek}`}
               </span>
             </p>
           </div>
