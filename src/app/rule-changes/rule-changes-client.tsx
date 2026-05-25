@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ruleChanges, type RuleStatus, type RuleChange } from "@/lib/rule-changes";
 import { GOLD } from "@/lib/ui-utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { ProposerAnalytics } from "./proposer-analytics";
 
 const STATUS_META: Record<RuleStatus, { label: string; icon: string; color: string; dim: string }> = {
   Passed:  { label: "Passed",  icon: "✅", color: "#4ade80", dim: "rgba(74,222,128,0.12)" },
@@ -261,6 +262,9 @@ export function RuleChangesClient({ ownerAvatars }: { ownerAvatars: Record<strin
           </div>
         </div>
       </div>
+
+      {/* Proposer Analytics */}
+      <ProposerAnalytics />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap mb-6">
