@@ -402,17 +402,27 @@ export default async function PlayerProfilePage({
 
   // Current contract from sheets
   const activeContracts = getLatestActiveContracts(contracts);
-  const currentContract = activeContracts.find((c) => c.playerId === playerId);
+  const currentContract = activeContracts.find((c) => c.playerId === playerId)
+    ?? activeContracts.find((c) => c.player.toLowerCase() === playerName.toLowerCase());
 
-  // Contract history across seasons
-  const contractHistory = contracts
-    .filter(
-      (c) =>
-        c.playerId === playerId &&
-        c.contractStatus.toLowerCase() === "active" &&
-        c.position.toLowerCase() !== "draft pick",
-    )
-    .sort((a, b) => a.season.localeCompare(b.season));
+  // Contract history across seasons — fall back to name match when Sheet
+  // player ID diverges from the Sleeper player ID used in the URL.
+  const contractHistoryFilter = (matchFn: (c: { playerId: string; player: string }) => boolean) =>
+    contracts
+      .filter(
+        (c) =>
+          matchFn(c) &&
+          c.contractStatus.toLowerCase() === "active" &&
+          c.position.toLowerCase() !== "draft pick",
+      )
+      .sort((a, b) => a.season.localeCompare(b.season));
+
+  let contractHistory = contractHistoryFilter((c) => c.playerId === playerId);
+  if (contractHistory.length === 0) {
+    contractHistory = contractHistoryFilter(
+      (c) => c.player.toLowerCase() === playerName.toLowerCase(),
+    );
+  }
 
   // Owner avatars
   const ownerAvatars: Record<string, string> = {};
