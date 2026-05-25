@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { ruleChanges, type RuleChange } from "@/lib/rule-changes";
 import { SectionLabel } from "@/components/section-label";
+import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -121,15 +122,37 @@ function computeAnalytics(data: RuleChange[]) {
   };
 }
 
+// ─── Owner Avatar ───────────────────────────────────────────────────────────
+
+function AnalyticsAvatar({ name, size = 20 }: { name: string; size?: number }) {
+  const avatarId = useOwnerAvatar(name);
+  const initials = name.slice(0, 2).toUpperCase();
+  return (
+    <div
+      className="rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden"
+      style={{ width: size, height: size, background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+    >
+      <SleeperAvatarImage
+        avatarId={avatarId}
+        name={name}
+        fallback={<span className="font-heading font-bold text-[#60a5fa]" style={{ fontSize: size * 0.38 }}>{initials}</span>}
+      />
+    </div>
+  );
+}
+
 // ─── KPI Card ───────────────────────────────────────────────────────────────
 
-function KPICard({ label, value, sub, accent }: { label: string; value: string; sub: string; accent: string }) {
+function KPICard({ label, value, sub, accent, avatar }: { label: string; value: string; sub: string; accent: string; avatar?: string }) {
   return (
     <div className="flex overflow-hidden bg-card border border-border rounded-xl">
       <div className="w-1 shrink-0" style={{ background: accent }} />
       <div className="flex-1 px-4 py-3.5">
         <div className="text-[10px] font-bold tracking-[0.08em] uppercase" style={{ color: MUTED }}>{label}</div>
-        <div className="font-heading text-[28px] font-extrabold leading-none mt-1" style={{ color: accent }}>{value}</div>
+        <div className="flex items-center gap-2 mt-1">
+          {avatar && <AnalyticsAvatar name={avatar} size={28} />}
+          <span className="font-heading text-[28px] font-extrabold leading-none" style={{ color: accent }}>{value}</span>
+        </div>
         <div className="text-[11px] mt-1.5" style={{ color: "#555" }}>{sub}</div>
       </div>
     </div>
@@ -234,14 +257,14 @@ function ActivityChart({ seasons, minYear, maxYear }: { seasons: SeasonStat[]; m
 
 // ─── Owner Leaderboard ──────────────────────────────────────────────────────
 
-function OwnerLeaderboard({ owners, maxYear, cutoffYear }: { owners: ProposerStat[]; maxYear: number; cutoffYear: number }) {
+function OwnerLeaderboard({ owners, maxYear, cutoffYear, selectedOwner, onOwnerClick }: { owners: ProposerStat[]; maxYear: number; cutoffYear: number; selectedOwner: string | null; onOwnerClick: (name: string) => void }) {
   const maxTotal = Math.max(...owners.map((o) => o.total), 1);
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3.5 flex items-center justify-between gap-3 flex-wrap">
-        <span className="font-heading text-sm font-extrabold tracking-[0.06em] uppercase">Owner Leaderboard</span>
+        <span className="font-heading text-sm font-extrabold tracking-[0.06em] uppercase">Leaderboard</span>
         <div className="flex items-center gap-3">
           {([["Passed", EMERALD], ["Denied", RED], ["Pending", AMBER]] as const).map(([label, color]) => (
             <span key={label} className="flex items-center gap-1.5 text-[10px]" style={{ color: MUTED }}>
@@ -263,15 +286,23 @@ function OwnerLeaderboard({ owners, maxYear, cutoffYear }: { owners: ProposerSta
       {/* Rows */}
       {owners.map((o) => {
         const isActive = o.recentCount > 0;
+        const isSelected = selectedOwner === o.name;
         return (
           <div
             key={o.name}
-            className="grid items-center px-4 py-2.5 border-b border-border/50"
-            style={{ gridTemplateColumns: "minmax(80px, 1fr) minmax(100px, 2fr) 60px 70px" }}
+            onClick={() => onOwnerClick(o.name)}
+            className="grid items-center px-4 py-2.5 border-b border-border/50 cursor-pointer transition-colors"
+            style={{
+              gridTemplateColumns: "minmax(80px, 1fr) minmax(100px, 2fr) 60px 70px",
+              background: isSelected ? "rgba(232,184,75,0.08)" : undefined,
+            }}
           >
-            <div>
-              <div className="text-[13px] font-semibold">{o.name}</div>
-              <div className="font-code text-[10px]" style={{ color: "#555" }}>{o.total} prop{o.total !== 1 ? "s" : ""}</div>
+            <div className="flex items-center gap-2">
+              <AnalyticsAvatar name={o.name} size={22} />
+              <div>
+                <div className="text-[13px] font-semibold">{o.name}</div>
+                <div className="font-code text-[10px]" style={{ color: "#555" }}>{o.total} prop{o.total !== 1 ? "s" : ""}</div>
+              </div>
             </div>
             <StackedBar passed={o.passed} denied={o.denied} pending={o.pending} maxTotal={maxTotal} />
             <div className="font-code text-[13px] font-bold text-right" style={{ color: o.passRate === null ? MUTED : o.passRate >= 50 ? EMERALD : RED }}>
@@ -308,7 +339,7 @@ function OwnerLeaderboard({ owners, maxYear, cutoffYear }: { owners: ProposerSta
 
 // ─── Main Analytics Section ─────────────────────────────────────────────────
 
-export function ProposerAnalytics() {
+export function ProposerAnalytics({ selectedOwner, onOwnerClick }: { selectedOwner: string | null; onOwnerClick: (name: string) => void }) {
   const a = useMemo(() => computeAnalytics(ruleChanges), []);
 
   return (
@@ -339,6 +370,7 @@ export function ProposerAnalytics() {
             value={a.topCloser.name}
             sub={`${a.topCloser.passed}/${a.topCloser.decided} passed · ${a.topCloser.passRate}%`}
             accent={EMERALD}
+            avatar={a.topCloser.name}
           />
         )}
         <KPICard
@@ -351,7 +383,7 @@ export function ProposerAnalytics() {
 
       {/* Two-column: leaderboard + chart */}
       <div className="grid grid-cols-1 lg:grid-cols-[57%_1fr] gap-2.5">
-        <OwnerLeaderboard owners={a.owners} maxYear={a.maxYear} cutoffYear={a.cutoffYear} />
+        <OwnerLeaderboard owners={a.owners} maxYear={a.maxYear} cutoffYear={a.cutoffYear} selectedOwner={selectedOwner} onOwnerClick={onOwnerClick} />
         <ActivityChart seasons={a.seasons} minYear={a.minYear} maxYear={a.maxYear} />
       </div>
     </div>
