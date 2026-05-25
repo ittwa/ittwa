@@ -46,7 +46,13 @@ const NAV_STRUCTURE: NavGroup[] = [
     type: "dropdown", label: "League", panelLabel: "League", panelCaption: "12 owners",
     items: [
       { href: "/teams", label: "All Teams", icon: "users", desc: "Owner profiles & rosters" },
+    ],
+  },
+  {
+    type: "dropdown", label: "Constitution", panelLabel: "Constitution", panelCaption: "Est. 2014",
+    items: [
       { href: "/constitution", label: "Constitution", icon: "scroll", desc: "League bylaws & rules" },
+      { href: "/rule-changes", label: "Rule Changes", icon: "gavel", desc: "Proposal history & votes" },
     ],
   },
 ];
@@ -77,7 +83,10 @@ const MOBILE_NAV_SECTIONS: MobileNavSectionDef[] = [
   ]},
   { label: "League", items: [
     { href: "/teams", label: "Teams", icon: "users", desc: "Owner profiles" },
+  ]},
+  { label: "Constitution", items: [
     { href: "/constitution", label: "Constitution", icon: "scroll", desc: "League bylaws" },
+    { href: "/rule-changes", label: "Rule Changes", icon: "gavel", desc: "Proposals & votes" },
   ]},
 ];
 
@@ -136,6 +145,8 @@ function NavIcon({ name, size = 20, color = "currentColor" }: { name: string; si
       return <svg {...p}><path d="M6 3h12a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v0"/><path d="M6 9v9a3 3 0 0 0 6 0v-1h6a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3H9"/></svg>;
     case "chevron":
       return <svg {...p}><path d="M9 6l6 6-6 6"/></svg>;
+    case "gavel":
+      return <svg {...p}><path d="M14.5 3.5l4 4-2 2-4-4 2-2z"/><path d="M9.5 8.5l4 4-2 2-4-4 2-2z"/><path d="M3 20l5-5"/><path d="M5 22h14"/></svg>;
     case "football":
       return <svg {...p}><ellipse cx="12" cy="12" rx="9" ry="6" transform="rotate(-30 12 12)" fill={color} stroke="none"/><path d="M8 12h8M10 10v4M12 9v6M14 10v4" stroke="#0a0a0a" strokeWidth="1.5"/></svg>;
     default:
