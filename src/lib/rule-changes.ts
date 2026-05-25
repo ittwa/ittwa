@@ -44,7 +44,7 @@ export const ruleChanges: RuleChange[] = [
   { season: 2021, rule: "Disallow One-Way Expiring Trades", description: "Prohibit one-way trades involving players on expiring contracts", proposedBy: "Clancy", result: "Passed", implementedSeason: 2021 },
   { season: 2021, rule: "Add Third Rookie Draft Round", description: "Add a 3rd round to the rookie draft with 3-year $1 contracts, not guaranteed until the auction draft", proposedBy: "Durkin", result: "Passed", implementedSeason: 2021 },
   { season: 2021, rule: "Jail, War, or Death Clause", description: "If a player goes to jail, war, or dies, their contract is voided and can be cut with retiree cap hit rules", proposedBy: "Durkin", result: "Passed", implementedSeason: 2021 },
-  { season: 2021, rule: "Trade Cap Hits", description: "Allow trading of cap hit penalties between teams", proposedBy: "Chapman", result: "Pending", implementedSeason: null },
+  { season: 2021, rule: "Trade Cap Hits", description: "Allow trading of cap hit penalties between teams", proposedBy: "Chapman", result: "Denied", implementedSeason: null },
 
   // --- 2020 ---
   { season: 2020, rule: "Schedule Change", description: "Update the schedule to reflect the NFL's 17-game season", proposedBy: "Durkin", result: "Passed", implementedSeason: 2021 },

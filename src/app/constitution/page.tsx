@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 
 const SECTIONS = [
@@ -180,11 +181,11 @@ export default function ConstitutionPage() {
               <InfoBox>
                 <div className="flex items-center justify-around gap-4">
                   <InfoStat label="Owners" value="12" />
-                  <InfoStat label="Annual Dues" value="$150" />
+                  <InfoStat label="Annual Dues" value="$200" />
                   <InfoStat label="Platform" value="Sleeper" />
                 </div>
               </InfoBox>
-              <P>12 owners; $150 annual dues due by FA Auction date; platform is Sleeper.</P>
+              <P>12 owners; $200 annual dues due by FA Auction date; platform is Sleeper.</P>
 
               <SectionHeader id="ownership" title="2. Ownership" />
               <P>Ownership belongs to the League and cannot be sold. Replacements chosen from Waiting List in order joined; must be voted in by majority with a Sponsor.</P>
@@ -204,6 +205,9 @@ export default function ConstitutionPage() {
               </ul>
               <SubHeader>Owner Removal</SubHeader>
               <P>&#8532; quorum vote required.</P>
+
+              <SubHeader>Fines</SubHeader>
+              <P>Owners will be fined $10 for the following infractions: (1) failure to pay league dues by the Free Agent Auction, (2) failure to set a lineup (per week of infringement). The owner may choose to pay the fine in real cash (added to the current season&apos;s pot) or accept a $10 salary cap hit for the following season.</P>
 
               <SectionHeader id="administration" title="4. Administration" />
               <P>Commissioner enforces rules and handles admin but cannot unilaterally create or amend rules. Distributes payouts within 10 days of Week 16 Championship.</P>
@@ -227,7 +231,7 @@ export default function ConstitutionPage() {
                 </div>
                 <p className="text-xs text-muted-foreground text-center mt-2">+ 1 Flex · 13 Bench · 4 IR</p>
               </InfoBox>
-              <P>22 players: start 1 QB / 2 RB / 3 WR / 1 TE / 1 D/ST / 1 Flex; 13 bench + 4 IR; 2 IR returns per season.</P>
+              <P>22 players: start 1 QB / 2 RB / 3 WR / 1 TE / 1 D/ST / 1 Flex; 13 bench + 4 IR; 2 IR returns per season. Only injured players are eligible for IR — suspended and holdout players are not.</P>
 
               <SubHeader>Salary Cap</SubHeader>
               <div className="flex items-center justify-between rounded-lg border border-gold/30 bg-gold/5 px-4 py-3 mb-3">
@@ -249,8 +253,12 @@ export default function ConstitutionPage() {
               <SubHeader>Franchise Tag</SubHeader>
               <P>One expired-contract player per year; must have been on roster at season end. Salary = average of 5 highest at position for prior year OR 120% of prior salary (whichever is greater). 2nd consecutive = 120% of prior tag; 3rd consecutive = 144%. Deadline = 3rd Friday in June.</P>
 
+              <SubHeader>Player Options</SubHeader>
+              <P>First round rookie draft picks are eligible for a 5th year player option. The salary for the option year is 75% of the previous season&apos;s franchise tag amount at the player&apos;s position. The option must be declared one year prior to the contract expiring. For top 6 picks, the option salary is the average of the top 10 salaries at the position. For picks 7–12, it is the average of the top 25.</P>
+
               <SubHeader>Retirement</SubHeader>
               <P>Drop remaining contract for 25% of total remaining value; player returns to FA pool if he comes back.</P>
+              <P>If a player is arrested/jailed, deployed to war, or dies, their contract is voided and the owner may cut the player using the standard retirement cap hit (25% of remaining contract value).</P>
 
               <SubHeader>Cut Penalty</SubHeader>
               <P>50% of remaining contract value, rounded to one decimal.</P>
@@ -259,10 +267,16 @@ export default function ConstitutionPage() {
               <P>Lump sum at season end OR spread over remaining years; owner must choose before next FA Auction.</P>
 
               <SubHeader>Waiver Claim</SubHeader>
-              <P>If cut player is claimed same week, no penalty to cutter; claimer assumes the contract.</P>
+              <P>If a player who is cut is immediately claimed on waivers (during the same week that the player is dropped), there will be no penalty to the owner who cut the player. The claiming owner receives the player without inheriting the previous contract.</P>
+
+              <SubHeader>Post-Lock Roster Drops</SubHeader>
+              <P>Owners may drop players after rosters lock for the season. However, no player additions are allowed after the lock.</P>
+
+              <SubHeader>Cut Deadline</SubHeader>
+              <P>All cuts must be completed by the week before the Free Agent Auction.</P>
 
               <SectionHeader id="rookie-draft" title="6. Rookie Draft" />
-              <P>2 rounds; post-NFL Draft, pre-FA Auction; NOT a snake draft (same order both rounds).</P>
+              <P>3 rounds; post-NFL Draft, pre-FA Auction; NOT a snake draft (same order all rounds). 3rd round picks receive 3-year, $1 contracts — not guaranteed until the Free Agent Auction.</P>
               <SubHeader>Pick Order</SubHeader>
               <ol className="list-decimal list-inside space-y-1 mb-3">
                 <Li>Picks 1–6: non-playoff teams in reverse optimal points order (fewest first)</Li>
@@ -272,7 +286,10 @@ export default function ConstitutionPage() {
                 <Li>Pick 11: runner-up</Li>
                 <Li>Pick 12: champion</Li>
               </ol>
-              <P>Each owner has 12 hours per pick. See pick contract values on the Drafts page.</P>
+              <P>Each owner has 6 hours per pick. See pick contract values on the Drafts page.</P>
+
+              <SubHeader>Waiving Picks</SubHeader>
+              <P>Owners may choose to skip (waive) a rookie draft pick in order to avoid receiving that pick&apos;s contract.</P>
 
               <SectionHeader id="free-agency" title="7. Free Agency" />
               <P>Expired contract players are Free Agents. All rostered players at season end are Restricted Free Agents (RFAs) — previous owner may match any auction offer. Bids include salary + years.</P>
@@ -295,6 +312,9 @@ export default function ConstitutionPage() {
                 ))}
               </div>
               <P>Minimum bid $1M; under $10M may use $0.5M increments.</P>
+
+              <SubHeader>Post-Auction Bid Adjustment</SubHeader>
+              <P>After winning a player in the Free Agent Auction, an owner may choose to increase their winning bid to a higher contract value (more years or higher salary). The bid cannot be lowered.</P>
 
               <SectionHeader id="divisions" title="8. Divisions" />
               <P>Permanent year-over-year divisions:</P>
@@ -331,7 +351,16 @@ export default function ConstitutionPage() {
               <P>4 division winners + 2 wild cards; top 2 seeds get byes; 3 vs 6, 4 vs 5 in wildcard round; re-seeded for semis (#1 plays lowest remaining). 3-point home field advantage; ties go to higher seed.</P>
 
               <SectionHeader id="trades" title="10. Trades" />
-              <P>In-season deadline: Thursday of Week 10 at 12PM EST. Off-season trades reopen after season ends. Players and picks only — no real-life incentives.</P>
+              <P>In-season deadline: Thursday of Week 11 at 12PM EST. Off-season trades reopen after season ends. Players and picks only — no real-life incentives.</P>
+
+              <SubHeader>Expiring Contract Trades</SubHeader>
+              <P>One-way trades (trading a player for nothing in return) involving players on expiring contracts are not allowed.</P>
+
+              <SubHeader>Draft Pick Trading Window</SubHeader>
+              <P>Rookie draft picks may be traded up to two (2) years in advance.</P>
+
+              <SubHeader>Trading RFA Rights</SubHeader>
+              <P>Owners may trade Restricted Free Agent (RFA) matching rights. The acquiring owner gains the ability to match the highest bid on that player during the Free Agent Auction.</P>
 
               <SectionHeader id="waiver-wire" title="11. Waiver Wire" />
               <InfoBox>
@@ -386,7 +415,7 @@ export default function ConstitutionPage() {
                 <ScoreChip value="+1" label="Sack" />
                 <ScoreChip value="+2" label="INT" />
                 <ScoreChip value="+2" label="Fum Rec" />
-                <ScoreChip value="+2" label="Safety" />
+                <ScoreChip value="+4" label="Safety" />
                 <ScoreChip value="+2" label="Blk Kick" />
               </div>
               <div className="overflow-x-auto mb-3">
@@ -412,27 +441,30 @@ export default function ConstitutionPage() {
               </div>
 
               <SectionHeader id="amendments" title="13. Amendments" />
-              <P>Rule changes passed by &#8532; quorum override the Constitution and are tracked in league records.</P>
+              <P>Rule changes passed by &#8532; quorum override the Constitution. Rule changes are tracked and recorded on the <Link href="/rule-changes" className="text-gold hover:underline">Rule Changes</Link> page of the league website.</P>
 
               <SectionHeader id="payouts" title="14. Payouts" />
               <div className="space-y-3">
                 <div className="flex items-center justify-between rounded-lg border px-5 py-4" style={{ borderColor: "rgba(232,184,75,0.3)", background: "rgba(232,184,75,0.06)" }}>
                   <span className="font-medium">1st Place</span>
-                  <span className="font-heading text-4xl font-black text-gold">$1,250</span>
+                  <span className="font-heading text-4xl font-black text-gold">$1,300</span>
                 </div>
                 <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 px-5 py-3">
                   <span className="font-medium">2nd Place</span>
-                  <span className="font-heading text-2xl font-bold">$300</span>
+                  <span className="font-heading text-2xl font-bold">$600</span>
                 </div>
                 <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 px-5 py-3">
                   <span className="font-medium">3rd Place</span>
-                  <span className="font-heading text-2xl font-bold">$150</span>
+                  <span className="font-heading text-2xl font-bold">$300</span>
                 </div>
                 <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 px-5 py-3">
-                  <span className="font-medium">Regular Season Points Leader</span>
-                  <span className="font-heading text-2xl font-bold">$100</span>
+                  <span className="font-medium">Most Points (Max PF)</span>
+                  <span className="font-heading text-2xl font-bold">$200</span>
                 </div>
               </div>
+
+              <SubHeader>Sacko Punishment</SubHeader>
+              <P>The Sacko (last place) is determined by worst regular season record. The Sacko recipient must complete a variation of the IHOP challenge as determined by the league.</P>
 
             </CardContent>
           </Card>
