@@ -43,19 +43,10 @@ function StatusPill({ status }: { status: RuleStatus }) {
   const m = STATUS_META[status];
   return (
     <span
-      className="inline-flex items-center gap-1.5 whitespace-nowrap"
-      style={{
-        padding: "4px 10px",
-        borderRadius: 999,
-        background: m.dim,
-        color: m.color,
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: "0.04em",
-        border: `1px solid ${m.color}30`,
-      }}
+      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2 py-0.5 text-[11px] font-bold tracking-wide"
+      style={{ background: m.dim, color: m.color, border: `1px solid ${m.color}30` }}
     >
-      <span style={{ fontSize: 11 }}>{m.icon}</span>
+      <span>{m.icon}</span>
       <span>{m.label}</span>
     </span>
   );
@@ -66,19 +57,11 @@ function CountBadge({ count, status }: { count: number; status: RuleStatus }) {
   const m = STATUS_META[status];
   return (
     <span
-      className="inline-flex items-center gap-1.5 whitespace-nowrap"
-      style={{
-        padding: "3px 9px",
-        borderRadius: 999,
-        background: m.dim,
-        color: m.color,
-        fontSize: 11,
-        fontWeight: 700,
-        border: `1px solid ${m.color}25`,
-      }}
+      className="inline-flex items-center gap-1 whitespace-nowrap rounded-[5px] px-[7px] py-0.5 text-[11px] font-bold"
+      style={{ background: m.dim, color: m.color, border: `1px solid ${m.color}25` }}
     >
       <span>{count}</span>
-      <span style={{ opacity: 0.9 }}>{m.label.toLowerCase()}</span>
+      <span className="opacity-90">{m.label.toLowerCase()}</span>
     </span>
   );
 }
@@ -86,45 +69,25 @@ function CountBadge({ count, status }: { count: number; status: RuleStatus }) {
 function RuleCard({ rule }: { rule: RuleChange }) {
   const m = STATUS_META[rule.result];
   return (
-    <div
-      className="flex overflow-hidden"
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--border)",
-        borderRadius: 10,
-      }}
-    >
-      <div style={{ width: 4, background: m.color, flexShrink: 0 }} />
-      <div style={{ flex: 1, padding: "16px 18px 14px" }}>
-        <div className="flex items-start justify-between gap-3" style={{ marginBottom: 8 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--foreground)", lineHeight: 1.3 }}>
-            {rule.rule}
-          </h3>
+    <div className="flex overflow-hidden bg-card border border-border rounded-[10px]">
+      <div className="w-1 shrink-0" style={{ background: m.color }} />
+      <div className="flex-1 px-4 py-3.5">
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <h3 className="text-[15px] font-bold leading-snug">{rule.rule}</h3>
           <StatusPill status={rule.result} />
         </div>
-        <p style={{ fontSize: 13, lineHeight: 1.6, color: "#a8a8a8", marginBottom: 12, maxWidth: 720 }}>
+        <p className="text-[13px] leading-relaxed text-muted-foreground mb-3 max-w-[720px]">
           {rule.description}
         </p>
-        <div
-          className="flex items-center justify-between gap-3 flex-wrap"
-          style={{ paddingTop: 10, borderTop: "1px solid var(--border)" }}
-        >
+        <div className="flex items-center justify-between gap-3 flex-wrap pt-2.5 border-t border-border">
           <div className="flex items-center gap-2">
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
-              Proposed by
-            </span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)" }}>
-              {rule.proposedBy}
-            </span>
+            <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground">Proposed by</span>
+            <span className="text-[13px] font-semibold">{rule.proposedBy}</span>
           </div>
           {rule.result === "Passed" && rule.implementedSeason && (
             <div className="flex items-center gap-2">
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
-                Implemented in
-              </span>
-              <span className="font-code" style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>
-                {rule.implementedSeason}
-              </span>
+              <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground">Implemented in</span>
+              <span className="font-code text-[13px] font-bold text-[#E8B84B]">{rule.implementedSeason}</span>
             </div>
           )}
         </div>
@@ -155,47 +118,32 @@ function SeasonGroup({
     <div>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-4 w-full text-left cursor-pointer flex-wrap"
-        style={{
-          background: "transparent",
-          border: "none",
-          padding: "14px 4px",
-          borderBottom: "1px solid var(--border)",
-        }}
+        className="flex items-center gap-3 w-full text-left cursor-pointer flex-wrap py-3 px-1 border-b border-border bg-transparent"
+        style={{ border: "none", borderBottom: "1px solid var(--border)" }}
       >
-        <span className="flex-shrink-0" style={{ width: 4, height: 24, background: GOLD, borderRadius: 2 }} />
-        <h2 className="font-heading" style={{ fontSize: 26, fontWeight: 900, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--foreground)" }}>
-          {season} <span style={{ color: "var(--muted-foreground)", fontWeight: 700 }}>Season</span>
+        <div className="w-1 h-6 bg-[#E8B84B] rounded-sm shrink-0" />
+        <h2 className="font-heading text-2xl font-black tracking-[0.04em] uppercase">
+          {season} <span className="text-muted-foreground font-bold">Season</span>
         </h2>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap">
           <CountBadge count={passed} status="Passed" />
           <CountBadge count={denied} status="Denied" />
           <CountBadge count={pending} status="Pending" />
         </div>
         <div className="ml-auto flex items-center gap-2.5">
-          <span className="font-code" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+          <span className="font-code text-[11px] text-muted-foreground">
             {rules.length} proposal{rules.length !== 1 ? "s" : ""}
           </span>
           <span
-            className="inline-flex items-center justify-center"
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: 6,
-              background: "var(--secondary)",
-              border: "1px solid var(--border)",
-              color: "var(--muted-foreground)",
-              fontSize: 12,
-              transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.18s",
-            }}
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-secondary border border-border text-muted-foreground text-xs transition-transform"
+            style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
           >
             ▾
           </span>
         </div>
       </button>
       {isOpen && (
-        <div className="flex flex-col gap-2.5" style={{ marginTop: 16, marginBottom: 8 }}>
+        <div className="flex flex-col gap-2.5 mt-4 mb-2">
           {rules.map((r, i) => (
             <RuleCard key={i} rule={r} />
           ))}
@@ -248,56 +196,37 @@ export function RuleChangesClient() {
   ];
 
   return (
-    <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 24px 60px" }}>
+    <div>
       {/* Page header */}
-      <div style={{ padding: "32px 0 24px", borderBottom: "1px solid var(--border)", marginBottom: 24 }}>
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+      <div className="pb-6 border-b border-border mb-6">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <div className="flex items-center gap-3" style={{ marginBottom: 8 }}>
-              <span style={{ display: "block", width: 4, height: 28, background: GOLD, borderRadius: 2 }} />
-              <h1 className="font-heading" style={{ fontSize: 40, fontWeight: 900, letterSpacing: "0.04em", textTransform: "uppercase" }}>
-                Rule Changes
-              </h1>
+            <div className="flex items-center gap-3 mb-1.5">
+              <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
+              <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Rule Changes</h1>
             </div>
-            <p style={{ fontSize: 13, color: "var(--muted-foreground)", marginLeft: 16, maxWidth: 540, lineHeight: 1.5 }}>
+            <p className="text-[13px] text-muted-foreground ml-4">
               Every proposal. Every vote. Every bad idea Chap ever had.
             </p>
           </div>
-          {/* Quick stats */}
-          <div className="grid grid-cols-2 lg:flex gap-4 lg:gap-6 items-end">
-            <div className="text-right">
-              <div className="font-heading" style={{ fontSize: 28, fontWeight: 800, color: GOLD, lineHeight: 1 }}>
-                {stats.total}
+          <div className="flex gap-5">
+            {([
+              [stats.total, "Total", GOLD],
+              [stats.passed, "Passed", STATUS_META.Passed.color],
+              [stats.denied, "Denied", STATUS_META.Denied.color],
+            ] as const).map(([val, lbl, color]) => (
+              <div key={lbl} className="text-right">
+                <div className="font-heading text-[30px] font-extrabold leading-none" style={{ color }}>{val}</div>
+                <div className="text-[10px] text-muted-foreground font-semibold tracking-[0.06em] uppercase mt-0.5">{lbl}</div>
               </div>
-              <div style={{ fontSize: 10, color: "var(--muted-foreground)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 4 }}>
-                Total Proposals
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="font-heading" style={{ fontSize: 28, fontWeight: 800, color: STATUS_META.Passed.color, lineHeight: 1 }}>
-                {stats.passed}
-              </div>
-              <div style={{ fontSize: 10, color: "var(--muted-foreground)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 4 }}>
-                Passed
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="font-heading" style={{ fontSize: 28, fontWeight: 800, color: STATUS_META.Denied.color, lineHeight: 1 }}>
-                {stats.denied}
-              </div>
-              <div style={{ fontSize: 10, color: "var(--muted-foreground)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 4 }}>
-                Denied
-              </div>
-            </div>
+            ))}
             {stats.topProposer && (
               <div className="text-right">
-                <div style={{ fontSize: 18, fontWeight: 800, color: "var(--foreground)", lineHeight: 1, whiteSpace: "nowrap" }}>
-                  {stats.topProposer.name}{" "}
-                  <span className="font-code" style={{ color: GOLD, fontSize: 14 }}>·{stats.topProposer.count}</span>
+                <div className="font-heading text-[30px] font-extrabold leading-none">
+                  {stats.topProposer.name}
+                  <span className="font-code text-[14px] text-[#E8B84B] ml-1">·{stats.topProposer.count}</span>
                 </div>
-                <div style={{ fontSize: 10, color: "var(--muted-foreground)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 4 }}>
-                  Most Prolific
-                </div>
+                <div className="text-[10px] text-muted-foreground font-semibold tracking-[0.06em] uppercase mt-0.5">Most Prolific</div>
               </div>
             )}
           </div>
@@ -305,8 +234,7 @@ export function RuleChangesClient() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 flex-wrap" style={{ marginBottom: 36 }}>
-        {/* Status pills */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap mb-6">
         <div className="flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
           {pillItems.map((p) => {
             const active = statusFilter === p.id;
@@ -314,37 +242,22 @@ export function RuleChangesClient() {
               <button
                 key={p.id}
                 onClick={() => setStatusFilter(p.id)}
-                className="flex items-center gap-2 whitespace-nowrap cursor-pointer transition-all"
+                className="flex items-center gap-2 whitespace-nowrap cursor-pointer text-[13px] rounded-lg px-3 py-1.5"
                 style={{
-                  padding: "6px 14px",
-                  borderRadius: 7,
-                  fontSize: 12,
-                  fontWeight: active ? 700 : 500,
                   background: active ? "rgba(232,184,75,0.1)" : "var(--secondary)",
-                  border: `1px solid ${active ? "rgba(232,184,75,0.4)" : "var(--border)"}`,
-                  color: active ? GOLD : "var(--muted-foreground)",
+                  border: `1px solid ${active ? "rgba(232,184,75,0.35)" : "var(--border)"}`,
+                  color: active ? "#E8B84B" : "var(--muted-foreground)",
+                  fontWeight: active ? 600 : 400,
                 }}
               >
                 <span>{p.label}</span>
-                <span
-                  className="font-code"
-                  style={{
-                    fontSize: 11,
-                    color: active ? GOLD : "var(--muted-foreground)",
-                    background: active ? "rgba(232,184,75,0.08)" : "transparent",
-                    padding: "1px 6px",
-                    borderRadius: 3,
-                  }}
-                >
-                  {p.count}
-                </span>
+                <span className="font-code text-[11px]">{p.count}</span>
               </button>
             );
           })}
         </div>
 
         <div className="flex items-center gap-3 sm:ml-auto flex-wrap">
-          {/* Search */}
           <div className="relative">
             <svg
               className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -359,78 +272,50 @@ export function RuleChangesClient() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search rules…"
-              className="bg-secondary border border-border rounded-lg py-[6px] pl-8 pr-3 text-[12px] w-48"
-              style={{
-                color: "var(--foreground)",
-                fontWeight: 500,
-              }}
+              className="bg-secondary border border-border rounded-lg py-1.5 pl-8 pr-3 text-[13px] text-foreground w-48"
             />
           </div>
 
-          {/* Proposer dropdown */}
-          <div className="flex items-center gap-2.5">
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
-              Proposed By
-            </span>
-            <div className="relative">
-              <select
-                value={proposerFilter}
-                onChange={(e) => setProposerFilter(e.target.value)}
-                className="appearance-none border rounded-[7px] cursor-pointer"
-                style={{
-                  background: "var(--secondary)",
-                  borderColor: proposerFilter !== "all" ? "rgba(232,184,75,0.4)" : "var(--border)",
-                  color: proposerFilter !== "all" ? GOLD : "var(--foreground)",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  padding: "6px 32px 6px 12px",
-                }}
-              >
-                <option value="all">All Owners</option>
-                {allProposers.map((name) => (
-                  <option key={name} value={name}>{name}</option>
-                ))}
-              </select>
-              <span
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: "var(--muted-foreground)", fontSize: 10 }}
-              >
-                ▼
-              </span>
-            </div>
+          <div className="relative">
+            <select
+              value={proposerFilter}
+              onChange={(e) => setProposerFilter(e.target.value)}
+              className="appearance-none pr-7 pl-3 py-1.5 text-[13px] rounded-lg cursor-pointer"
+              style={{
+                background: proposerFilter !== "all" ? "rgba(232,184,75,0.1)" : "var(--secondary)",
+                border: `1px solid ${proposerFilter !== "all" ? "rgba(232,184,75,0.35)" : "var(--border)"}`,
+                color: proposerFilter !== "all" ? "#E8B84B" : "var(--muted-foreground)",
+                fontWeight: proposerFilter !== "all" ? 600 : 400,
+              }}
+            >
+              <option value="all">All Owners</option>
+              {allProposers.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] text-muted-foreground">▼</span>
           </div>
         </div>
       </div>
 
-      {/* Active filter summary */}
       {hasActiveFilter && (
-        <div className="text-xs mb-4" style={{ color: "var(--muted-foreground)" }}>
+        <div className="text-xs text-muted-foreground mb-4">
           Showing {filtered.length} of {stats.total} proposals
           <button
             onClick={() => { setStatusFilter("all"); setProposerFilter("all"); setSearch(""); }}
-            className="ml-2 underline underline-offset-2 cursor-pointer"
-            style={{ color: GOLD }}
+            className="ml-2 underline underline-offset-2 cursor-pointer text-[#E8B84B]"
           >
             Clear filters
           </button>
         </div>
       )}
 
-      {/* Season groups */}
-      <div className="flex flex-col gap-7">
+      <div className="flex flex-col gap-6">
         {grouped.length === 0 ? (
-          <div
-            className="text-center"
-            style={{
-              background: "var(--card)",
-              border: "1px dashed var(--border)",
-              borderRadius: 10,
-              padding: "40px 24px",
-            }}
-          >
-            <div style={{ fontSize: 24, marginBottom: 8 }}>🗳️</div>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>No proposals match these filters</div>
-            <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Try widening the status or owner selection.</div>
+          <div className="text-center bg-card border border-dashed border-border rounded-[10px] px-6 py-10">
+            <div className="text-2xl mb-2">🗳️</div>
+            <div className="text-sm font-semibold mb-1">No proposals match these filters</div>
+            <div className="text-xs text-muted-foreground">Try widening the status or owner selection.</div>
           </div>
         ) : (
           grouped.map((g, i) => (
@@ -445,10 +330,9 @@ export function RuleChangesClient() {
         )}
       </div>
 
-      {/* Footnote */}
-      <div style={{ marginTop: 40, paddingTop: 20, borderTop: "1px solid var(--border)", fontSize: 11, color: "var(--muted-foreground)", lineHeight: 1.6 }}>
+      <div className="mt-8 pt-5 border-t border-border text-[11px] text-muted-foreground leading-relaxed">
         Rule amendments require a simple majority of active owners to pass.
-        See <Link href="/constitution" style={{ color: GOLD, textDecoration: "none" }}>Constitution § 13 — Amendments</Link> for the full ratification procedure.
+        See <Link href="/constitution" className="text-[#E8B84B] no-underline hover:underline">Constitution § 13 — Amendments</Link> for the full ratification procedure.
       </div>
     </div>
   );
