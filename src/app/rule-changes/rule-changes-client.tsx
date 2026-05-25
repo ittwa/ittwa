@@ -264,7 +264,14 @@ export function RuleChangesClient({ ownerAvatars }: { ownerAvatars: Record<strin
       </div>
 
       {/* Proposer Analytics */}
-      <ProposerAnalytics />
+      <ProposerAnalytics
+        selectedOwner={proposerFilter !== "all" ? proposerFilter : null}
+        onOwnerClick={(name) => {
+          setProposerFilter((prev) => prev === name ? "all" : name);
+          setStatusFilter("all");
+          setSearch("");
+        }}
+      />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap mb-6">
