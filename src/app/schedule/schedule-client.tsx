@@ -248,7 +248,7 @@ function PageHeader({ season, currentSeason, currentWeek }: { season: string; cu
         <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Schedule</h1>
       </div>
       <p className="text-[13px] text-muted-foreground ml-4">
-        {season} season{isCurrentSeason ? ` · Week ${currentWeek}` : " · Archive"}
+        {season} season{isCurrentSeason ? (currentWeek <= 1 ? " · Preseason" : ` · Week ${currentWeek}`) : " · Archive"}
       </p>
     </div>
   );

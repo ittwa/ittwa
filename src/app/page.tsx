@@ -140,7 +140,7 @@ function MatchupsSection({ pairs, week, ownerAvatars, divisionMap }: { pairs: Ma
   if (pairs.length === 0) {
     return (
       <Card>
-        <CardHeader className="pb-3"><SectionTick label={`Week ${week} Matchups`} /></CardHeader>
+        <CardHeader className="pb-3"><SectionTick label={week < 1 ? "Preseason" : `Week ${week} Matchups`} /></CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground italic">
             No matchup data found. The NFL is probably on a bye.
@@ -152,7 +152,7 @@ function MatchupsSection({ pairs, week, ownerAvatars, divisionMap }: { pairs: Ma
 
   return (
     <Card>
-      <CardHeader className="pb-3"><SectionTick label={`Week ${week} Matchups`} /></CardHeader>
+      <CardHeader className="pb-3"><SectionTick label={week < 1 ? "Preseason" : `Week ${week} Matchups`} /></CardHeader>
       <CardContent className="p-0">
         <div>
           {pairs.map((pair, i) => {
@@ -508,9 +508,16 @@ export default async function HomePage() {
               <span className="text-[11px] font-bold tracking-widest px-2 py-0.5 bg-ittwa text-white rounded-sm">
                 {season}
               </span>
-              <span className="text-[11px] font-semibold text-muted-foreground">
-                · WEEK {weekToShow}
-              </span>
+              {weekToShow >= 1 && currentWeek > 1 && (
+                <span className="text-[11px] font-semibold text-muted-foreground">
+                  · WEEK {weekToShow}
+                </span>
+              )}
+              {currentWeek <= 1 && (
+                <span className="text-[11px] font-semibold text-muted-foreground">
+                  · PRESEASON
+                </span>
+              )}
             </div>
             <p className="text-[13px] text-muted-foreground">
               Contract dynasty league · Founded 2014 · 12 owners

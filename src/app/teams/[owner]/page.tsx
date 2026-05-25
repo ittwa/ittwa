@@ -258,7 +258,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                 <span className="font-heading text-[32px] font-extrabold text-red-400">{team.losses}</span>
                 {team.ties > 0 && <span className="font-heading text-xl text-muted-foreground ml-1">({team.ties}T)</span>}
               </div>
-              <span className="font-heading text-sm font-semibold text-muted-foreground tracking-wide pl-2.5 border-l border-border whitespace-nowrap uppercase">Week {currentWeek} · {season}</span>
+              <span className="font-heading text-sm font-semibold text-muted-foreground tracking-wide pl-2.5 border-l border-border whitespace-nowrap uppercase">{currentWeek <= 1 ? "Preseason" : `Week ${currentWeek}`} · {season}</span>
             </div>
           </div>
 

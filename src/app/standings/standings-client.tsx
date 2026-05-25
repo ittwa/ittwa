@@ -183,7 +183,7 @@ export function StandingsClient({
               <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Standings</h1>
             </div>
             <p className="text-[13px] text-muted-foreground ml-4">
-              {season} season · Through week {currentWeek - 1}
+              {season} season · {currentWeek <= 1 ? "Preseason" : `Through week ${currentWeek - 1}`}
             </p>
           </div>
           <div

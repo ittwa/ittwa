@@ -73,7 +73,7 @@ export function enrichTrades(
       received: sideMap.get(rid) || [],
     }));
 
-    const week = t.week < 1 ? -1 : t.week;
+    const week = t.week == null || t.week < 1 ? -1 : t.week;
     trades.push({ id: tradeId, created: t.created, week, season, sides });
   }
 
