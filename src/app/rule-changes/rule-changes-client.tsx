@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ruleChanges, type RuleStatus, type RuleChange } from "@/lib/rule-changes";
 import { GOLD } from "@/lib/ui-utils";
+import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
 const STATUS_META: Record<RuleStatus, { label: string; icon: string; color: string; dim: string }> = {
   Passed:  { label: "Passed",  icon: "✅", color: "#4ade80", dim: "rgba(74,222,128,0.12)" },
@@ -37,6 +38,23 @@ function getProposers(data: RuleChange[]): string[] {
     }
   }
   return [...set].sort();
+}
+
+function OwnerAvatar({ name, size = 22 }: { name: string; size?: number }) {
+  const avatarId = useOwnerAvatar(name);
+  const initials = name.slice(0, 2).toUpperCase();
+  return (
+    <div
+      className="rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden"
+      style={{ width: size, height: size, background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+    >
+      <SleeperAvatarImage
+        avatarId={avatarId}
+        name={name}
+        fallback={<span className="font-heading font-bold text-[#60a5fa]" style={{ fontSize: size * 0.38 }}>{initials}</span>}
+      />
+    </div>
+  );
 }
 
 function StatusPill({ status }: { status: RuleStatus }) {
@@ -82,7 +100,14 @@ function RuleCard({ rule }: { rule: RuleChange }) {
         <div className="flex items-center justify-between gap-3 flex-wrap pt-2.5 border-t border-border">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground">Proposed by</span>
-            <span className="text-[13px] font-semibold">{rule.proposedBy}</span>
+            <span className="flex items-center gap-1.5">
+              {rule.proposedBy.split(",").map((p) => p.trim()).map((name) => (
+                <span key={name} className="inline-flex items-center gap-1">
+                  {name !== "—" && name !== "Everyone" && <OwnerAvatar name={name} size={18} />}
+                  <span className="text-[13px] font-semibold">{name}</span>
+                </span>
+              ))}
+            </span>
           </div>
           {rule.result === "Passed" && rule.implementedSeason && (
             <div className="flex items-center gap-2">
@@ -153,7 +178,7 @@ function SeasonGroup({
   );
 }
 
-export function RuleChangesClient() {
+export function RuleChangesClient({ ownerAvatars }: { ownerAvatars: Record<string, string> }) {
   const stats = useMemo(() => computeStats(ruleChanges), []);
   const allProposers = useMemo(() => getProposers(ruleChanges), []);
 
@@ -196,6 +221,7 @@ export function RuleChangesClient() {
   ];
 
   return (
+    <OwnerAvatarsProvider avatars={ownerAvatars}>
     <div>
       {/* Page header */}
       <div className="pb-6 border-b border-border mb-6">
@@ -222,9 +248,12 @@ export function RuleChangesClient() {
             ))}
             {stats.topProposer && (
               <div className="text-right">
-                <div className="font-heading text-[30px] font-extrabold leading-none">
-                  {stats.topProposer.name}
-                  <span className="font-code text-[14px] text-[#E8B84B] ml-1">·{stats.topProposer.count}</span>
+                <div className="flex items-center justify-end gap-2">
+                  <OwnerAvatar name={stats.topProposer.name} size={28} />
+                  <div className="font-heading text-[30px] font-extrabold leading-none">
+                    {stats.topProposer.name}
+                    <span className="font-code text-[14px] text-[#E8B84B] ml-1">·{stats.topProposer.count}</span>
+                  </div>
                 </div>
                 <div className="text-[10px] text-muted-foreground font-semibold tracking-[0.06em] uppercase mt-0.5">Most Prolific</div>
               </div>
@@ -335,5 +364,6 @@ export function RuleChangesClient() {
         See <Link href="/constitution" className="text-[#E8B84B] no-underline hover:underline">Constitution § 13 — Amendments</Link> for the full ratification procedure.
       </div>
     </div>
+    </OwnerAvatarsProvider>
   );
 }
