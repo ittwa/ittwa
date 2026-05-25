@@ -6,45 +6,92 @@ Dynasty fantasy football league site for the ITTWA league (est. 2014). 12 teams,
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 (App Router) with React 19
-- **Styling**: Tailwind CSS v4, shadcn/ui components, inline styles for data-driven UI
-- **Data**: Sleeper API (rosters, matchups, drafts, transactions), Google Sheets (contracts/salaries)
-- **Fonts**: Inter (body), Barlow Condensed (headings), JetBrains Mono (data/numbers)
-- **Deployment**: Vercel
+- Framework: Next.js 16 (App Router) with React 19
+- Styling: Tailwind CSS v4, shadcn/ui components, inline styles for data-driven UI
+- Data: Sleeper API (rosters, matchups, drafts, transactions), Google Sheets (contracts/salaries)
+- Fonts: Inter (body), Barlow Condensed (headings), JetBrains Mono (data/numbers)
+- Deployment: Vercel
 
 ## Key Directories
 
-- `src/app/` — App Router pages. Each route has a server `page.tsx` (data fetching) and a `*-client.tsx` (interactive UI).
-- `src/lib/` — Data layer and utilities. `sleeper.ts` and `data.ts` fetch from Sleeper API; `sheets.ts` fetches from Google Sheets; `config.ts` has league constants; `ui-utils.ts` has shared color/style utilities; `rule-changes.ts` has rule proposal history data.
-- `src/components/` — Shared components: `section-label.tsx`, `owner-avatar.tsx`, `player-avatar.tsx`, `trade-card.tsx`, nav, theme provider, shadcn/ui.
-- `src/types/` — TypeScript type definitions for Sleeper API and contracts.
+- `src/app/` — App Router pages (server `page.tsx` + `*-client.tsx` pattern)
+- `src/lib/` — Data layer and utilities
+- `src/components/` — Shared components
+- `src/types/` — TypeScript type definitions
+
+## Data Architecture
+
+Two data sources, joined by `player_id`:
+
+1. **Sleeper API** — rosters, matchups, drafts, transactions, player metadata. Uses `force-dynamic` because data changes in real-time. Revalidate at 90s.
+2. **Google Sheets** — contracts and cap hits only. Two tabs: Contracts and CapHits. Revalidate at 600s. Uses a public API key (server-side only, never expose to client).
+
+**Join key:** `player_id` links Sleeper data to Google Sheets rows. Sheet player IDs can diverge from Sleeper IDs — handle mismatches gracefully (log, don't crash).
+
+**Contract Status field:** If `Active`, show the player on rosters even if salary is $0. A $0/0-year active player is a mid-season waiver pickup who becomes a free agent after the season.
+
+## Contract Value Formula
+
+This is custom league logic. Always use this formula and include inline comments when implementing:
+
+```
+Years = 0:  $0       (mid-season pickup, no contract value)
+1-year:     Salary × 1.0
+2-year:     Salary × 1.4
+3-year:     Salary × 1.7
+4-year:     Salary × 1.9
+5-year:     Salary × 2.0
+```
+
+Salary cap is $270. Cap floor is $220 (not counting cap penalties). Years cap is 60 total.
+
+## Cap Hit / Penalty Rules
+
+- Cut with years remaining: penalty = 50% of remaining contract value. Rounded to one decimal.
+- Penalty can be lump sum or spread evenly over remaining years. Owner chooses before FA Auction.
+- If a cut player is claimed on waivers the same week: no penalty to the cutter, claimer assumes contract.
+- Retirement with years remaining: penalty = 25% of remaining contract (half the normal cut penalty).
+
+## Franchise Tag
+
+- Eligible: player rostered and under contract at end of previous season, whose contract just expired.
+- Tag salary = higher of: average of top 5 salaries at position, or 120% of previous salary.
+- Consecutive tags: Year 2 = 120% of tag salary. Year 3 = 144% of tag salary.
 
 ## Page Patterns
 
-All pages follow a consistent structure:
-
-- **Container**: Layout provides `<main className="mx-auto max-w-7xl px-4 py-6">`. Pages render directly inside — do NOT add custom max-width or padding wrappers.
-- **Page header**: `<div className="pb-6 border-b border-border mb-6">` with gold bar (`w-1 h-7 bg-[#E8B84B] rounded-sm`) + `font-heading text-4xl font-black tracking-[0.04em] uppercase` title + `text-[13px] text-muted-foreground ml-4` subtitle.
-- **Quick stats in header**: `flex gap-5` with `font-heading text-[30px] font-extrabold leading-none` values + `text-[10px] text-muted-foreground font-semibold tracking-[0.06em] uppercase` labels.
-- **Cards**: `bg-card border border-border rounded-[10px]` with `px-4 py-3.5` padding.
-- **Badges**: `rounded-[5px] px-2 py-0.5 text-[11px] font-bold tracking-wide` with dynamic color background/border.
-- **Filter controls**: Match the trades page `FilterSelect` pattern — `appearance-none pr-7 pl-3 py-1.5 text-[13px] rounded-lg` with gold active state.
-- **Owner avatars**: Fetch via `getLeagueUsers()` server-side, pass `ownerAvatars` prop, wrap client with `OwnerAvatarsProvider`. Use `useOwnerAvatar(name)` + `SleeperAvatarImage` for rendering.
+- Container: Layout provides `<main className="mx-auto max-w-7xl px-4 py-6">`
+- Page header: `pb-6 border-b border-border mb-6` with gold bar + `font-heading` title
+- Common patterns: quick stats cards, filter controls, owner avatars, badges
 
 ## Shared Constants and Utilities
 
-- **League config** (`src/lib/config.ts`): `SALARY_CAP`, `YEARS_CAP`, `DIVISIONS`, `OWNER_DIVISION`, `USERNAME_OVERRIDES`, `SEASON_LEAGUE_IDS`, `NFL_TEAMS`, `ROOKIE_PICK_CONTRACTS`, `REVALIDATE`.
-- **UI utilities** (`src/lib/ui-utils.ts`): `ACCENT`, `GOLD`, `WIN_COLOR`, `LOSS_COLOR`, division color maps (`DIVISION_COLORS`, `getDivColors`, `getDivColorsByOwner`), position color helpers, salary bar colors.
-- **CSS utilities** (`src/app/globals.css`): `font-heading` (Barlow Condensed via `--font-heading`), `.font-code` (JetBrains Mono).
-- **Shared components**: `SectionLabel` (gold-bar section headers), `OwnerLink`/`PlayerLink` (navigation), `PlayerAvatar`/`SleeperAvatarImage` (avatars via next/image).
+- `lib/league-config.ts` — league-wide constants
+- `lib/ui-utils.ts` — `getDivColors()`, `getDivColorsByOwner()`
+- `lib/username-overrides.ts` — `USERNAME_OVERRIDES` map (Sleeper username → display name)
+- `globals.css` — `.font-heading` (Barlow Condensed), `.font-code` (JetBrains Mono)
+
+## Do Not Touch
+
+These files are working and fragile. Do not refactor, reorganize, or "improve" them:
+
+- `lib/sleeper.ts`
+- `lib/data.ts`
+- `lib/sheets.ts`
+- `globals.css` theme variables and color values
 
 ## Gotchas
 
-- **`force-dynamic` is required** on all `page.tsx` files that fetch from Sleeper API. Removing it causes build failures because Sleeper API returns 403 during static prerendering. Static pages (like `/constitution`) that only use client-side data are fine without it.
-- **Do not refactor the data layer** (`lib/sleeper.ts`, `lib/data.ts`, `lib/sheets.ts`). Changes there risk breaking API integration.
-- **`font-heading` vs `font-code`**: `className="font-heading"` uses Barlow Condensed (mapped to CSS var `--font-heading`). `className="font-code"` uses JetBrains Mono (custom utility class). Do NOT use `className="font-mono"` — the CSS `--font-mono` variable does not include JetBrains Mono.
-- **Owner names**: All owner display names go through `USERNAME_OVERRIDES` in config.ts. Use `getDisplayName()` from sleeper.ts to convert Sleeper usernames.
-- **Division colors**: Use `getDivColors(division)` or `getDivColorsByOwner(owner)` from ui-utils.ts. Returns `{ text, bg, border }`.
-- **Sleeper CDN images**: `sleepercdn.com` is configured in `next.config.ts` remotePatterns. Use `next/image` for all Sleeper-hosted images.
-- **Sheet player IDs may diverge from Sleeper IDs**: The Google Sheet `playerId` column can have stale values. Player page lookups fall back to name matching when ID match fails. Do not assume Sheet IDs and Sleeper IDs are always in sync.
-- **Prefer Tailwind classes over inline styles**: Match existing pages — use `bg-card`, `border-border`, `text-muted-foreground`, etc. Only use inline `style` for dynamic/computed values (colors from data, conditional backgrounds).
+- `force-dynamic` is required on Sleeper API pages — do not remove it
+- `font-heading` = Barlow Condensed (CSS var). `font-code` = JetBrains Mono (utility class, not the same as Tailwind's `font-mono`)
+- Owner display names always go through `USERNAME_OVERRIDES`, never use raw Sleeper usernames in UI
+- Division colors via `getDivColors()`/`getDivColorsByOwner()` — do not hardcode division color values
+- Sleeper CDN images must use `next/image` (already in `next.config.ts` remotePatterns)
+- Prefer Tailwind classes over inline styles. Only use inline styles for truly dynamic values (computed colors, percentages, conditionals)
+
+## How I Work
+
+- For large file changes, use a skeleton-first approach: write the structure, then fill sections with `str_replace`. Do not attempt to rewrite entire large files in a single response — this causes stream idle timeouts.
+- Always run `npm run build` after changes to verify nothing is broken.
+- Commit after each logical unit of work, not at the end of a big batch.
+- When in doubt about whether a change is safe, leave a `// TODO` comment instead of guessing.
