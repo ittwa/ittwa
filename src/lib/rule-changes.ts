@@ -11,7 +11,7 @@ export type RuleChange = {
 
 export const ruleChanges: RuleChange[] = [
   // --- 2024 ---
-  { season: 2024, rule: "Franchise Tag Free Agents", description: "Add the ability to franchise tag free agents", proposedBy: "Hogan", result: "Pending", implementedSeason: null },
+  { season: 2024, rule: "Franchise Tag Free Agents", description: "Add the ability to franchise tag free agents", proposedBy: "HoganLamb", result: "Pending", implementedSeason: null },
 
   // --- 2023 ---
   { season: 2023, rule: "Lower Rookie Draft Pick Time", description: "Reduce the pick timer in the rookie draft to 6 hours", proposedBy: "Everyone", result: "Passed", implementedSeason: 2023 },
@@ -22,26 +22,26 @@ export const ruleChanges: RuleChange[] = [
   { season: 2022, rule: "Increase Buy-In to $200", description: "Raise annual dues from $150 to $200", proposedBy: "Cummings", result: "Passed", implementedSeason: 2022 },
   { season: 2022, rule: "Update Payouts", description: "Change payouts to 1300/600/300/200 (max PF)", proposedBy: "Cummings", result: "Passed", implementedSeason: 2022 },
   { season: 2022, rule: "Higher 3rd Place Payout", description: "Increase the 3rd place payout", proposedBy: "Cummings", result: "Passed", implementedSeason: 2022 },
-  { season: 2022, rule: "Last Wildcard is Most Points", description: "Award the last wildcard playoff spot to the team with the most regular season points", proposedBy: "Tiger", result: "Denied", implementedSeason: null },
+  { season: 2022, rule: "Last Wildcard is Most Points", description: "Award the last wildcard playoff spot to the team with the most regular season points", proposedBy: "Clancy", result: "Denied", implementedSeason: null },
   { season: 2022, rule: "Pay Out Highest Weekly Score", description: "Add a payout for the highest single-week score", proposedBy: "Cummings", result: "Denied", implementedSeason: null },
   { season: 2022, rule: "Pay Out End-of-Year Superlatives", description: "Add payouts for end-of-year superlative awards", proposedBy: "Cummings", result: "Denied", implementedSeason: null },
   { season: 2022, rule: "Get Rid of Cap Years", description: "Remove the years cap from the salary system", proposedBy: "Peterson", result: "Denied", implementedSeason: null },
-  { season: 2022, rule: "Best Ball Format", description: "Switch to a best ball format", proposedBy: "Tiger", result: "Denied", implementedSeason: null },
+  { season: 2022, rule: "Best Ball Format", description: "Switch to a best ball format", proposedBy: "Clancy", result: "Denied", implementedSeason: null },
   { season: 2022, rule: "Allow Trading Cap Hits", description: "Allow owners to trade cap hit penalties to other teams", proposedBy: "Chapman", result: "Denied", implementedSeason: null },
   { season: 2022, rule: "Move Waivers to Wednesday", description: "Move waiver processing from Thursday to Wednesday", proposedBy: "Durkin", result: "Denied", implementedSeason: null },
-  { season: 2022, rule: "Bring Kickers Back", description: "Add kickers back to the roster", proposedBy: "Katz, Liam", result: "Denied", implementedSeason: null },
+  { season: 2022, rule: "Bring Kickers Back", description: "Add kickers back to the roster", proposedBy: "Katz, Collins", result: "Denied", implementedSeason: null },
   { season: 2022, rule: "Increase IR Spots", description: "Add more IR spots to team rosters", proposedBy: "Katz", result: "Denied", implementedSeason: null },
   { season: 2022, rule: "Expand Playoffs to 7 Teams", description: "Expand playoffs to 7 teams so only the top seed gets a bye", proposedBy: "Peterson", result: "Denied", implementedSeason: null },
-  { season: 2022, rule: "Push Back Trade Deadline (Hogan)", description: "Move the trade deadline to a later week", proposedBy: "Hogan", result: "Denied", implementedSeason: null },
-  { season: 2022, rule: "Don't Lock Playoff Rosters", description: "Remove the roster lock for teams in the playoffs", proposedBy: "Hogan", result: "Denied", implementedSeason: null },
+  { season: 2022, rule: "Push Back Trade Deadline (Hogan)", description: "Move the trade deadline to a later week", proposedBy: "HoganLamb", result: "Denied", implementedSeason: null },
+  { season: 2022, rule: "Don't Lock Playoff Rosters", description: "Remove the roster lock for teams in the playoffs", proposedBy: "HoganLamb", result: "Denied", implementedSeason: null },
 
   // --- 2021 ---
-  { season: 2021, rule: "Move from GroupMe to Discord", description: "Switch the league's communication platform from GroupMe to Discord", proposedBy: "Tiger", result: "Passed", implementedSeason: 2021 },
+  { season: 2021, rule: "Move from GroupMe to Discord", description: "Switch the league's communication platform from GroupMe to Discord", proposedBy: "Clancy", result: "Passed", implementedSeason: 2021 },
   { season: 2021, rule: "Bid Up Yourself Post-Auction", description: "Allow an owner to change their winning auction bid to a higher contract value after winning", proposedBy: "Chapman", result: "Passed", implementedSeason: 2021 },
-  { season: 2021, rule: "Remove Trade Stamp Requirement", description: "Remove the requirement for owners to \"stamp\" (confirm) trades", proposedBy: "Tiger", result: "Passed", implementedSeason: 2021 },
-  { season: 2021, rule: "Change Cut Deadline", description: "Move the cut deadline to the week before the FA auction", proposedBy: "Jorge", result: "Passed", implementedSeason: 2021 },
+  { season: 2021, rule: "Remove Trade Stamp Requirement", description: "Remove the requirement for owners to \"stamp\" (confirm) trades", proposedBy: "Clancy", result: "Passed", implementedSeason: 2021 },
+  { season: 2021, rule: "Change Cut Deadline", description: "Move the cut deadline to the week before the FA auction", proposedBy: "Albarran", result: "Passed", implementedSeason: 2021 },
   { season: 2021, rule: "Allow Post-Lock Drops", description: "Allow owners to drop players after rosters lock (no additions allowed)", proposedBy: "Durkin", result: "Passed", implementedSeason: 2021 },
-  { season: 2021, rule: "Disallow One-Way Expiring Trades", description: "Prohibit one-way trades involving players on expiring contracts", proposedBy: "Tiger", result: "Passed", implementedSeason: 2021 },
+  { season: 2021, rule: "Disallow One-Way Expiring Trades", description: "Prohibit one-way trades involving players on expiring contracts", proposedBy: "Clancy", result: "Passed", implementedSeason: 2021 },
   { season: 2021, rule: "Add Third Rookie Draft Round", description: "Add a 3rd round to the rookie draft with 3-year $1 contracts, not guaranteed until the auction draft", proposedBy: "Durkin", result: "Passed", implementedSeason: 2021 },
   { season: 2021, rule: "Jail, War, or Death Clause", description: "If a player goes to jail, war, or dies, their contract is voided and can be cut with retiree cap hit rules", proposedBy: "Durkin", result: "Passed", implementedSeason: 2021 },
   { season: 2021, rule: "Trade Cap Hits", description: "Allow trading of cap hit penalties between teams", proposedBy: "Chapman", result: "Pending", implementedSeason: null },
