@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { PlayerLink } from "@/components/player-link";
 import { getPositionVariant, getSalaryBarColor } from "@/lib/ui-utils";
+import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
 export interface RosterPlayer {
   playerId: string;
@@ -59,6 +60,22 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
     <span className={`inline-flex ml-1 text-[10px] leading-none ${active ? "text-foreground" : "text-muted-foreground/40"}`}>
       {active ? (dir === "asc" ? "▲" : "▼") : "▴"}
     </span>
+  );
+}
+
+function DPOwnerAvatar({ name }: { name: string }) {
+  const avatarId = useOwnerAvatar(name);
+  return (
+    <div
+      className="w-5 h-5 rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden"
+      style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+    >
+      <SleeperAvatarImage
+        avatarId={avatarId}
+        name={name}
+        fallback={<span className="font-heading text-[7px] font-bold text-[#60a5fa]">{name.slice(0, 2).toUpperCase()}</span>}
+      />
+    </div>
   );
 }
 
@@ -133,7 +150,14 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
                     <Badge variant={getPositionVariant(p.position)}>{p.position}</Badge>
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell">{p.nflTeam}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs hidden md:table-cell">{p.dpOriginalOwner || "—"}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground text-xs hidden md:table-cell">
+                    {p.dpOriginalOwner ? (
+                      <div className="flex items-center gap-1.5">
+                        <DPOwnerAvatar name={p.dpOriginalOwner} />
+                        <span>{p.dpOriginalOwner}</span>
+                      </div>
+                    ) : "—"}
+                  </td>
                   <td className="px-4 py-2.5 text-right tabular-nums">
                     {p.isMidSeasonPickup ? (
                       <Badge variant="warning">Pickup</Badge>
