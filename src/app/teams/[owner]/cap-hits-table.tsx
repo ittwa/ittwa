@@ -14,9 +14,10 @@ export interface CapHitEntry {
   years: number;
   capHit: number;
   seasonCapHit: number;
+  season: string;
 }
 
-type SortKey = "player" | "position" | "salary" | "years" | "capHit" | "seasonCapHit";
+type SortKey = "player" | "position" | "season" | "salary" | "years" | "capHit" | "seasonCapHit";
 type SortDir = "asc" | "desc";
 
 const POSITION_ORDER: Record<string, number> = { QB: 0, RB: 1, WR: 2, TE: 3, K: 4, DEF: 5 };
@@ -31,6 +32,8 @@ function compare(a: CapHitEntry, b: CapHitEntry, key: SortKey, dir: SortDir): nu
       const pb = POSITION_ORDER[b.position] ?? 99;
       return pa !== pb ? m * (pa - pb) : a.player.localeCompare(b.player);
     }
+    case "season":
+      return a.season !== b.season ? m * a.season.localeCompare(b.season) : a.player.localeCompare(b.player);
     case "salary":
       return a.salary !== b.salary ? m * (a.salary - b.salary) : a.player.localeCompare(b.player);
     case "years":
@@ -69,13 +72,14 @@ export function CapHitsTable({ entries, displaySeason }: CapHitsTableProps) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(key);
-      setSortDir(key === "player" || key === "position" ? "asc" : "desc");
+      setSortDir(key === "player" || key === "position" || key === "season" ? "asc" : "desc");
     }
   }
 
   const columns: { key: SortKey; label: string; className: string }[] = [
     { key: "player", label: "Player", className: "px-4 py-2 text-left font-medium" },
     { key: "position", label: "Pos", className: "px-4 py-2 text-left font-medium" },
+    { key: "season", label: "Season", className: "px-4 py-2 text-center font-medium" },
     { key: "salary", label: "Salary", className: "px-4 py-2 text-right font-medium" },
     { key: "years", label: "Years", className: "px-4 py-2 text-center font-medium" },
     { key: "capHit", label: "Cap Hit", className: "px-4 py-2 text-right font-medium" },
@@ -111,6 +115,7 @@ export function CapHitsTable({ entries, displaySeason }: CapHitsTableProps) {
               <td className="px-4 py-2">
                 <Badge variant={getPositionVariant(ch.position)}>{ch.position}</Badge>
               </td>
+              <td className="px-4 py-2 text-center tabular-nums text-muted-foreground">{ch.season}</td>
               <td className="px-4 py-2 text-right tabular-nums">${ch.salary.toFixed(1)}</td>
               <td className="px-4 py-2 text-center tabular-nums">{ch.years}</td>
               <td className="px-4 py-2 text-right text-ittwa font-medium tabular-nums">${ch.capHit.toFixed(1)}</td>

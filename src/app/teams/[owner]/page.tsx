@@ -182,6 +182,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
     years: ch.years,
     capHit: ch.capHit,
     seasonCapHit: ch.yearlyHits[displaySeason] || 0,
+    season: ch.season,
   }));
 
   // Schedule — use allScheduleMatchups which includes future/unplayed weeks
@@ -209,6 +210,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   const ghostInitials = team.displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
+    <OwnerAvatarsProvider avatars={ownerAvatars}>
     <div className="space-y-6">
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <div className="relative overflow-hidden border-b border-border">
@@ -338,7 +340,23 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                   {ownerDraftPicks.map((dp, i) => (
                     <tr key={i} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
                       <td className="px-4 py-2 font-medium">{dp.player}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{dp.dpOriginalOwner || "—"}</td>
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {dp.dpOriginalOwner ? (
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="w-5 h-5 rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden"
+                              style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+                            >
+                              <SleeperAvatarImage
+                                avatarId={ownerAvatars[dp.dpOriginalOwner]}
+                                name={dp.dpOriginalOwner}
+                                fallback={<span className="font-heading text-[7px] font-bold text-[#60a5fa]">{dp.dpOriginalOwner.slice(0, 2).toUpperCase()}</span>}
+                              />
+                            </div>
+                            <span>{dp.dpOriginalOwner}</span>
+                          </div>
+                        ) : "—"}
+                      </td>
                       <td className="px-4 py-2 text-right tabular-nums">
                         {dp.salary > 0 ? <span className="text-gold">{`$${dp.salary.toFixed(1)}`}</span> : <span className="text-muted-foreground">—</span>}
                       </td>
@@ -452,15 +470,14 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
             </CardContent>
           </Card>
         ) : (
-          <OwnerAvatarsProvider avatars={ownerAvatars}>
             <div className="flex flex-col gap-3.5">
               {enrichedTrades.map((trade) => (
                 <TradeCard key={trade.id} trade={trade} defaultExpanded={false} />
               ))}
             </div>
-          </OwnerAvatarsProvider>
         )}
       </div>
     </div>
+    </OwnerAvatarsProvider>
   );
 }
