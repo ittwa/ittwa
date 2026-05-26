@@ -70,8 +70,13 @@ function buildMergedRoster(
   });
 }
 
+const POSITION_ORDER: Record<string, number> = { QB: 0, RB: 1, WR: 2, TE: 3, K: 4, DEF: 5 };
+
 function sortRoster(players: RosterPlayer[]): RosterPlayer[] {
   return [...players].sort((a, b) => {
+    const pa = POSITION_ORDER[a.position] ?? 99;
+    const pb = POSITION_ORDER[b.position] ?? 99;
+    if (pa !== pb) return pa - pb;
     const salA = a.salary ?? -1;
     const salB = b.salary ?? -1;
     if (salA !== salB) return salB - salA;

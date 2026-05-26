@@ -32,7 +32,10 @@ function comparePlayers(a: RosterPlayer, b: RosterPlayer, key: SortKey, dir: Sor
     case "position": {
       const pa = POSITION_ORDER[a.position] ?? 99;
       const pb = POSITION_ORDER[b.position] ?? 99;
-      return pa !== pb ? m * (pa - pb) : a.name.localeCompare(b.name);
+      if (pa !== pb) return m * (pa - pb);
+      const sa = a.salary ?? -1;
+      const sb = b.salary ?? -1;
+      return sa !== sb ? -(sa - sb) : a.name.localeCompare(b.name);
     }
     case "nflTeam":
       return m * a.nflTeam.localeCompare(b.nflTeam) || a.name.localeCompare(b.name);
@@ -86,8 +89,8 @@ interface RosterTableProps {
 }
 
 export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTableProps) {
-  const [sortKey, setSortKey] = useState<SortKey>("salary");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [sortKey, setSortKey] = useState<SortKey>("position");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const sorted = useMemo(
     () => [...players].sort((a, b) => comparePlayers(a, b, sortKey, sortDir)),
