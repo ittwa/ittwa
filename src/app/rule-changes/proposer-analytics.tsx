@@ -113,12 +113,29 @@ function computeAnalytics(data: RuleChange[]) {
 
   const uniqueOwners = ownerMap.size;
 
+  // Per-owner-per-season matrix
+  const ownerSeasonMap = new Map<string, Map<number, { passed: number; denied: number; pending: number }>>();
+  for (const r of data) {
+    if (r.proposedBy === "—" || r.proposedBy === "Everyone") continue;
+    const names = r.proposedBy.split(",").map((s) => s.trim());
+    for (const name of names) {
+      if (!ownerSeasonMap.has(name)) ownerSeasonMap.set(name, new Map());
+      const sm = ownerSeasonMap.get(name)!;
+      if (!sm.has(r.season)) sm.set(r.season, { passed: 0, denied: 0, pending: 0 });
+      const cell = sm.get(r.season)!;
+      if (r.result === "Passed") cell.passed++;
+      else if (r.result === "Denied") cell.denied++;
+      else cell.pending++;
+    }
+  }
+
   return {
     minYear, maxYear, cutoffYear,
     owners, seasons, busiest,
     leaguePassRate, totalPassed, totalDecided, totalDenied,
     topCloser, longestGap, uniqueOwners,
     totalProposals: data.length,
+    ownerSeasonMap,
   };
 }
 
@@ -337,6 +354,109 @@ function OwnerLeaderboard({ owners, maxYear, cutoffYear, selectedOwner, onOwnerC
   );
 }
 
+// ─── Owner × Season Matrix ──────────────────────────────────────────────────
+
+function OwnerSeasonMatrix({ owners, seasons, ownerSeasonMap }: {
+  owners: ProposerStat[];
+  seasons: SeasonStat[];
+  ownerSeasonMap: Map<string, Map<number, { passed: number; denied: number; pending: number }>>;
+}) {
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3.5 flex items-center justify-between gap-3">
+        <span className="font-heading text-sm font-extrabold tracking-[0.06em] uppercase">Owner × Season</span>
+        <div className="flex items-center gap-3">
+          {([["P", EMERALD], ["D", RED], ["?", AMBER]] as const).map(([label, color]) => (
+            <span key={label} className="flex items-center gap-1 text-[9px] font-bold" style={{ color: MUTED }}>
+              <span className="inline-block w-2 h-2 rounded-sm" style={{ background: color }} />
+              {label === "P" ? "Passed" : label === "D" ? "Denied" : "Pending"}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[11px]" style={{ minWidth: 480 }}>
+          <thead>
+            <tr className="border-y border-border">
+              <th className="text-left text-[10px] font-bold tracking-[0.08em] uppercase px-4 py-2 sticky left-0 bg-card z-10" style={{ color: MUTED }}>Owner</th>
+              {seasons.map((s) => (
+                <th key={s.season} className="text-center font-code text-[10px] font-bold px-1.5 py-2" style={{ color: MUTED }}>
+                  {`'${String(s.season).slice(2)}`}
+                </th>
+              ))}
+              <th className="text-center text-[10px] font-bold tracking-[0.08em] uppercase px-3 py-2" style={{ color: GOLD }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {owners.map((o) => {
+              const sm = ownerSeasonMap.get(o.name);
+              return (
+                <tr key={o.name} className="border-b border-border/30">
+                  <td className="px-4 py-1.5 sticky left-0 bg-card z-10">
+                    <div className="flex items-center gap-1.5">
+                      <AnalyticsAvatar name={o.name} size={18} />
+                      <span className="font-semibold text-[12px] whitespace-nowrap">{o.name}</span>
+                    </div>
+                  </td>
+                  {seasons.map((s) => {
+                    const cell = sm?.get(s.season);
+                    if (!cell || (cell.passed + cell.denied + cell.pending) === 0) {
+                      return <td key={s.season} className="text-center px-1.5 py-1.5"><span style={{ color: "#333" }}>·</span></td>;
+                    }
+                    return (
+                      <td key={s.season} className="text-center px-1.5 py-1.5">
+                        <div className="flex items-center justify-center gap-px">
+                          {cell.passed > 0 && (
+                            <span className="inline-flex items-center justify-center rounded-sm font-bold text-black/80" style={{ background: EMERALD, width: 16, height: 16, fontSize: 9 }}>
+                              {cell.passed}
+                            </span>
+                          )}
+                          {cell.denied > 0 && (
+                            <span className="inline-flex items-center justify-center rounded-sm font-bold text-white/90" style={{ background: RED, width: 16, height: 16, fontSize: 9 }}>
+                              {cell.denied}
+                            </span>
+                          )}
+                          {cell.pending > 0 && (
+                            <span className="inline-flex items-center justify-center rounded-sm font-bold text-black/80" style={{ background: AMBER, width: 16, height: 16, fontSize: 9 }}>
+                              {cell.pending}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                  <td className="text-center px-3 py-1.5">
+                    <span className="font-code font-bold text-[12px]">{o.total}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t border-border">
+              <td className="px-4 py-2 sticky left-0 bg-card z-10">
+                <span className="text-[10px] font-bold tracking-[0.08em] uppercase" style={{ color: MUTED }}>Total</span>
+              </td>
+              {seasons.map((s) => (
+                <td key={s.season} className="text-center px-1.5 py-2">
+                  <span className="font-code font-bold text-[11px]" style={{ color: s.total > 0 ? "var(--foreground)" : "#333" }}>
+                    {s.total || "·"}
+                  </span>
+                </td>
+              ))}
+              <td className="text-center px-3 py-2">
+                <span className="font-code font-bold text-[12px]" style={{ color: GOLD }}>
+                  {owners.reduce((sum, o) => sum + o.total, 0)}
+                </span>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Analytics Section ─────────────────────────────────────────────────
 
 export function ProposerAnalytics({ selectedOwner, onOwnerClick }: { selectedOwner: string | null; onOwnerClick: (name: string) => void }) {
@@ -381,10 +501,13 @@ export function ProposerAnalytics({ selectedOwner, onOwnerClick }: { selectedOwn
         />
       </div>
 
-      {/* Two-column: leaderboard + chart */}
+      {/* Two-column: leaderboard + chart + matrix */}
       <div className="grid grid-cols-1 lg:grid-cols-[57%_1fr] gap-2.5">
         <OwnerLeaderboard owners={a.owners} maxYear={a.maxYear} cutoffYear={a.cutoffYear} selectedOwner={selectedOwner} onOwnerClick={onOwnerClick} />
-        <ActivityChart seasons={a.seasons} minYear={a.minYear} maxYear={a.maxYear} />
+        <div className="flex flex-col gap-2.5">
+          <ActivityChart seasons={a.seasons} minYear={a.minYear} maxYear={a.maxYear} />
+          <OwnerSeasonMatrix owners={a.owners} seasons={a.seasons} ownerSeasonMap={a.ownerSeasonMap} />
+        </div>
       </div>
     </div>
   );
