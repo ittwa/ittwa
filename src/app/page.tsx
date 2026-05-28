@@ -24,6 +24,7 @@ import { OwnerLink } from "@/components/owner-link";
 import { SleeperTransaction, SleeperPlayersMap, MatchupPair } from "@/types/sleeper";
 import { StandingsEntry } from "@/lib/standings";
 import { PowerRankingEntry } from "@/lib/power-rankings";
+import { KeyDatesTicker } from "@/components/key-dates-ticker";
 
 // ─── Data helpers ─────────────────────────────────────────────────────────────
 
@@ -491,6 +492,9 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-8">
+      {/* ── Key Dates Ticker ──────────────────────────────────────────────── */}
+      <KeyDatesTicker />
+
       {/* ── Hero ────────────────────────────────────────────────────────────── */}
       <section className="pb-6 mb-7 border-b border-border">
         <div className="flex items-center gap-4">
