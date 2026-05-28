@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap, getLatestActiveContracts, getLeagueUsers, getLeagueHistory } from "@/lib/data";
 import { getNFLPlayers, getDisplayName } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP, AUCTION_DATE, SALARY_CAP, ROSTER_SIZE } from "@/lib/config";
-import { TradeCard } from "@/components/trade-card";
+import { TradeHistory } from "./trade-history";
 
 import { buildContractLookup, enrichTrades } from "@/lib/trade-utils";
 import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
@@ -490,11 +490,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
             </CardContent>
           </Card>
         ) : (
-            <div className="flex flex-col gap-3.5">
-              {enrichedTrades.map((trade) => (
-                <TradeCard key={trade.id} trade={trade} defaultExpanded={false} />
-              ))}
-            </div>
+          <TradeHistory trades={enrichedTrades} />
         )}
       </div>
     </div>
