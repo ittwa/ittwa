@@ -157,7 +157,7 @@ export default function ConstitutionPage() {
                   href={`#${s.id}`}
                   className={`flex items-center gap-2.5 px-3 py-1.5 text-sm rounded-md border-l-2 transition-colors ${
                     activeSection === s.id
-                      ? "border-gold text-white font-medium bg-gold/5"
+                      ? "border-gold font-medium bg-gold text-background"
                       : "border-transparent text-muted-foreground hover:text-foreground hover:bg-accent"
                   }`}
                 >
