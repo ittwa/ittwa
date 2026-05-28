@@ -265,7 +265,7 @@ export function StandingsClient({
                   const isPlayoffLine = rank === PLAYOFF_SPOTS;
                   return (
                     <Fragment key={entry.rosterId}>
-                      <tr className="border-b border-border/50 hover:bg-[#141414] transition-colors">
+                      <tr className="border-b border-border/50 hover:bg-accent/50 transition-colors">
                         <td className="px-4 py-3 text-center">
                           <div className="flex justify-center"><RankBadge rank={rank} /></div>
                         </td>
@@ -372,7 +372,7 @@ export function StandingsClient({
                       {divRows.map((entry) => {
                         const total = entry.wins + entry.losses;
                         return (
-                          <tr key={entry.rosterId} className="border-b border-border/50 hover:bg-[#141414] transition-colors last:border-0">
+                          <tr key={entry.rosterId} className="border-b border-border/50 hover:bg-accent/50 transition-colors last:border-0">
                             <td className="px-4 py-3 text-center">
                               <div className="flex justify-center"><RankBadge rank={entry.rank} /></div>
                             </td>
