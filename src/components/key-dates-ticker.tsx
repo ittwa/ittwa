@@ -42,8 +42,8 @@ export function KeyDatesTicker() {
   const { next, others, past } = classify(now);
 
   return (
-    <div className="border-b border-border -mx-4 -mt-6 mb-6 px-4" style={{ background: "var(--card)" }}>
-      <div className="flex items-stretch min-h-[44px] overflow-hidden">
+    <div className="border-b border-border -mx-4 -mt-6 mb-6" style={{ background: "var(--card)" }}>
+      <div className="flex items-stretch min-h-[44px] overflow-x-auto px-4" style={{ scrollbarWidth: "none" }}>
         {/* Leading label */}
         <div className="flex items-center gap-2.5 pr-4 mr-1 border-r border-border shrink-0">
           <span className="w-2 h-2 rounded-full bg-[#FD4A48] shrink-0 animate-pulse" />
@@ -84,29 +84,27 @@ export function KeyDatesTicker() {
           );
         })()}
 
-        {/* Upcoming + past chips — scrollable */}
-        <div className="flex items-stretch flex-1 overflow-x-auto min-w-0" style={{ scrollbarWidth: "none" }}>
-          {others.map((e, i) => {
-            const d = new Date(e.date);
-            return (
-              <div key={i} className="inline-flex items-center gap-2 px-3.5 whitespace-nowrap shrink-0 border-r border-dashed border-border last:border-r-0">
-                <span className="font-code text-[11px] font-bold" style={{ color: "#9a9aa6" }}>{dateMono(d)}</span>
-                <span className="font-heading text-[12px] font-bold tracking-[0.08em] uppercase">{e.short}</span>
-                {e.note && <span className="font-code text-[10px] text-muted-foreground">{e.note}</span>}
-              </div>
-            );
-          })}
-          {past.slice(-2).map((e, i) => {
-            const d = new Date(e.date);
-            return (
-              <div key={`past-${i}`} className="inline-flex items-center gap-2 px-3.5 whitespace-nowrap shrink-0 border-r border-dashed border-border last:border-r-0">
-                <span className="text-[11px] font-extrabold text-[#4ade80]">✓</span>
-                <span className="font-code text-[11px] font-bold text-muted-foreground line-through">{dateMono(d)}</span>
-                <span className="font-heading text-[12px] font-bold tracking-[0.08em] uppercase text-muted-foreground line-through">{e.short}</span>
-              </div>
-            );
-          })}
-        </div>
+        {/* Upcoming + past chips */}
+        {others.map((e, i) => {
+          const d = new Date(e.date);
+          return (
+            <div key={i} className="inline-flex items-center gap-2 px-3.5 whitespace-nowrap shrink-0 border-r border-dashed border-border last:border-r-0">
+              <span className="font-code text-[11px] font-bold" style={{ color: "#9a9aa6" }}>{dateMono(d)}</span>
+              <span className="font-heading text-[12px] font-bold tracking-[0.08em] uppercase">{e.short}</span>
+              {e.note && <span className="font-code text-[10px] text-muted-foreground">{e.note}</span>}
+            </div>
+          );
+        })}
+        {past.slice(-2).map((e, i) => {
+          const d = new Date(e.date);
+          return (
+            <div key={`past-${i}`} className="inline-flex items-center gap-2 px-3.5 whitespace-nowrap shrink-0 border-r border-dashed border-border last:border-r-0">
+              <span className="text-[11px] font-extrabold text-[#4ade80]">✓</span>
+              <span className="font-code text-[11px] font-bold text-muted-foreground line-through">{dateMono(d)}</span>
+              <span className="font-heading text-[12px] font-bold tracking-[0.08em] uppercase text-muted-foreground line-through">{e.short}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
