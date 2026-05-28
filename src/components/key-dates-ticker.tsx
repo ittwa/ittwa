@@ -42,7 +42,7 @@ export function KeyDatesTicker() {
   const { next, others, past } = classify(now);
 
   return (
-    <div className="border-b border-border -mx-4 -mt-6 mb-6" style={{ background: "var(--card)" }}>
+    <div className="border-b border-border -mx-4 -mt-10 mb-6" style={{ background: "var(--card)" }}>
       <div className="flex items-stretch min-h-[44px] overflow-x-auto px-4" style={{ scrollbarWidth: "none" }}>
         {/* Leading label */}
         <div className="flex items-center gap-2.5 pr-4 mr-1 border-r border-border shrink-0">
