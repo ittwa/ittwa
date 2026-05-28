@@ -6,6 +6,7 @@ import { PlayerAvatar } from "@/components/player-avatar";
 import { PlayerLink } from "@/components/player-link";
 import { getPositionVariant, getPositionColor } from "@/lib/ui-utils";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { OwnerLink } from "@/components/owner-link";
 
 export interface RosterPlayer {
   playerId: string;
@@ -110,7 +111,7 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
     { key: "name", label: "Player", className: "px-4 py-3 text-left font-medium" },
     { key: "position", label: "Pos", className: "px-4 py-3 text-left font-medium" },
     { key: "nflTeam", label: "Team", className: "px-4 py-3 text-left font-medium hidden sm:table-cell" },
-    { key: "dpOriginalOwner", label: "DP Owner", className: "px-4 py-3 text-left font-medium hidden md:table-cell" },
+    { key: "dpOriginalOwner", label: "DP Original Owner", className: "px-4 py-3 text-left font-medium hidden md:table-cell" },
     { key: "salary", label: "Salary", className: "px-4 py-3 text-right font-medium" },
     { key: "years", label: "Years", className: "px-4 py-3 text-center font-medium" },
   ];
@@ -157,7 +158,7 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
                     {p.dpOriginalOwner ? (
                       <div className="flex items-center gap-1.5">
                         <DPOwnerAvatar name={p.dpOriginalOwner} />
-                        <span>{p.dpOriginalOwner}</span>
+                        <OwnerLink name={p.dpOriginalOwner} className="hover:text-foreground hover:underline underline-offset-2 transition-colors">{p.dpOriginalOwner}</OwnerLink>
                       </div>
                     ) : "—"}
                   </td>

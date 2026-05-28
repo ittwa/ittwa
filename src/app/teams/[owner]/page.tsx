@@ -358,7 +358,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
                                 fallback={<span className="font-heading text-[7px] font-bold text-[#60a5fa]">{dp.dpOriginalOwner.slice(0, 2).toUpperCase()}</span>}
                               />
                             </div>
-                            <span>{dp.dpOriginalOwner}</span>
+                            <OwnerLink name={dp.dpOriginalOwner} className="text-muted-foreground hover:text-foreground hover:underline underline-offset-2 transition-colors">{dp.dpOriginalOwner}</OwnerLink>
                           </div>
                         ) : "—"}
                       </td>
