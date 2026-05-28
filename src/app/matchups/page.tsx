@@ -89,6 +89,7 @@ export default async function MatchupsPage({
       currentWeek={currentWeek}
       teamMeta={teamMeta}
       playoffWeekStart={playoffWeekStart}
+      playoffTeams={playoffTeams}
       ownerAvatars={ownerAvatars}
       availableSeasons={availableSeasons}
     />

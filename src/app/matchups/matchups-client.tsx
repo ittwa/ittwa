@@ -6,6 +6,7 @@ import { MatchupPair } from "@/types/sleeper";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 import { getDivColors } from "@/lib/ui-utils";
+import { calculateGameOfTheWeek } from "./gotw";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +29,7 @@ interface MatchupsClientProps {
   currentWeek: number;
   teamMeta: Record<string, TeamMeta>;
   playoffWeekStart: number;
+  playoffTeams: number;
   ownerAvatars: Record<string, string>;
   availableSeasons: string[];
 }
@@ -765,7 +767,7 @@ function StandingsSnapshot({ teamMeta }: { teamMeta: Record<string, TeamMeta> })
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 
-export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playoffWeekStart, ownerAvatars, availableSeasons }: MatchupsClientProps) {
+export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playoffWeekStart, playoffTeams, ownerAvatars, availableSeasons }: MatchupsClientProps) {
   const defaultWeek = Math.max(currentWeek - 1, 1);
   const [week, setWeek] = useState(defaultWeek);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -775,16 +777,9 @@ export function MatchupsClient({ allPairs, season, currentWeek, teamMeta, playof
     return pairs.map(p => enrichMatchup(p, teamMeta, currentWeek));
   }, [allPairs, week, teamMeta, currentWeek]);
 
-  const heroIdx = useMemo(() => {
-    if (matchups.length === 0) return -1;
-    let bestIdx = 0;
-    let bestDiff = Infinity;
-    matchups.forEach((m, i) => {
-      const d = Math.abs(m.spread);
-      if (d < bestDiff) { bestDiff = d; bestIdx = i; }
-    });
-    return bestIdx;
-  }, [matchups]);
+  const heroIdx = useMemo(() =>
+    calculateGameOfTheWeek(matchups, teamMeta, week, playoffWeekStart, playoffTeams),
+    [matchups, teamMeta, week, playoffWeekStart, playoffTeams]);
 
   const hero = heroIdx >= 0 ? matchups[heroIdx] : null;
   const others = matchups.filter((_, i) => i !== heroIdx);
