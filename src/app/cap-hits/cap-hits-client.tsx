@@ -424,7 +424,7 @@ function SeasonBarChart({ rows, season, ownersFilter, owners, ownerDivisions }: 
   }, [rows, season, ownersFilter, owners]);
 
   return (
-    <div className="bg-card border border-border rounded-[10px] overflow-hidden">
+    <div className="bg-card border border-border rounded-[10px] overflow-hidden flex flex-col">
       <div className="px-4 py-3 border-b border-border bg-secondary flex items-center justify-between flex-wrap gap-2">
         <div>
           <div className="font-heading text-sm font-extrabold tracking-[0.06em] uppercase">{season} Cap Hits by Owner</div>
@@ -439,7 +439,7 @@ function SeasonBarChart({ rows, season, ownersFilter, owners, ownerDivisions }: 
           </span>
         </div>
       </div>
-      <div className="py-2">
+      <div className="flex-1 flex flex-col justify-between py-2">
         {data.sorted.map((r) => {
           const div = ownerDivisions[r.owner] || "";
           const dc = getDivColors(div);
@@ -447,7 +447,7 @@ function SeasonBarChart({ rows, season, ownersFilter, owners, ownerDivisions }: 
           const aboveAvg = r.amount >= data.avg && r.amount > 0;
           const barColor = r.amount === 0 ? "var(--secondary)" : aboveAvg ? "#FD4A48" : "rgba(253,74,72,0.35)";
           return (
-            <div key={r.owner} className="grid items-center gap-2.5 px-4 py-1.5 border-b border-border" style={{ gridTemplateColumns: "140px 1fr 70px" }}>
+            <div key={r.owner} className="grid items-center gap-2.5 px-4 py-1.5 border-b border-border last:border-b-0" style={{ gridTemplateColumns: "140px 1fr 70px" }}>
               <div className="flex items-center gap-2 min-w-0">
                 <OwnerAvatar name={r.owner} division={div} size={24} />
                 <div className="min-w-0">
