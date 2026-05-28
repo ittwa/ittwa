@@ -62,6 +62,17 @@ export function getSalaryBarColor(salary: number): string {
   return "#52525b";
 }
 
+export function getPositionColor(pos: string): string {
+  switch (pos) {
+    case "QB": return "#EF4444";
+    case "RB": return "#22C55E";
+    case "WR": return "#3B82F6";
+    case "TE": return "#F97316";
+    case "K": return "#A855F7";
+    default: return "#52525b";
+  }
+}
+
 export function getDivisionColor(division: string): string {
   switch (division) {
     case "Concussion": return "#3B82F6";

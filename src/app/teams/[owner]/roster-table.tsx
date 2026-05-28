@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { PlayerLink } from "@/components/player-link";
-import { getPositionVariant, getSalaryBarColor } from "@/lib/ui-utils";
+import { getPositionVariant, getPositionColor } from "@/lib/ui-utils";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 
 export interface RosterPlayer {
@@ -172,7 +172,7 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
                             className="h-full rounded-full"
                             style={{
                               width: `${Math.max((p.salary / maxRosterSalary) * 100, 6)}%`,
-                              backgroundColor: getSalaryBarColor(p.salary),
+                              backgroundColor: getPositionColor(p.position),
                             }}
                           />
                         </div>
@@ -191,10 +191,13 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
         </table>
       </div>
       <div className="flex items-center gap-4 px-4 py-2.5 border-t border-border bg-secondary">
-        <span className="text-[10px] font-semibold tracking-[0.06em] uppercase text-muted-foreground">Salary scale</span>
-        <div className="flex items-center gap-1">
-          <div className="w-8 h-[3px] rounded-sm" style={{ background: "linear-gradient(90deg, #E8B84B, #FD4A48)" }} />
-          <span className="text-[10px] text-muted-foreground">{`$1 → $${maxRosterSalary}`}</span>
+        <div className="flex items-center gap-3">
+          {(["QB", "RB", "WR", "TE"] as const).map((pos) => (
+            <div key={pos} className="flex items-center gap-1">
+              <div className="w-3 h-[3px] rounded-sm" style={{ backgroundColor: getPositionColor(pos) }} />
+              <span className="text-[10px] font-semibold text-muted-foreground">{pos}</span>
+            </div>
+          ))}
         </div>
         <span className="text-[10px] text-muted-foreground ml-auto">Total: <span className="text-ittwa font-semibold">{fmtDollar(rosterSalary)}</span> / $270</span>
       </div>
