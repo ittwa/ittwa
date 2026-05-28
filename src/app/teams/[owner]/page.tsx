@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap, getLatestActiveContracts, getLeagueUsers } from "@/lib/data";
+import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap, getLatestActiveContracts, getLeagueUsers, getLeagueHistory } from "@/lib/data";
 import { getNFLPlayers, getDisplayName } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP, AUCTION_DATE, SALARY_CAP, ROSTER_SIZE } from "@/lib/config";
 import { TradeCard } from "@/components/trade-card";
@@ -101,14 +101,14 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   const { owner: rawOwner } = await params;
   const ownerName = decodeURIComponent(rawOwner);
 
-  const [teamsData, contracts, capHits, rosterOwnerMap, nflPlayers, allTxns, users] = await Promise.all([
+  const [teamsData, contracts, capHits, rosterOwnerMap, nflPlayers, users, leagues] = await Promise.all([
     getTeamsData(),
     getContracts(),
     getCapHits(),
     buildRosterOwnerMap(),
     getNFLPlayers(),
-    getAllTransactions().catch(() => [] as Awaited<ReturnType<typeof getAllTransactions>>),
     getLeagueUsers(),
+    getLeagueHistory(),
   ]);
 
   const { teams, season, currentWeek, allMatchups, allScheduleMatchups } = teamsData;
@@ -204,10 +204,25 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   }
 
   const contractMap = buildContractLookup(allActiveContracts);
-  const counter = { value: 0 };
-  const allEnrichedTrades = enrichTrades(allTxns, rosterOwnerMap, contractMap, nflPlayers, season, counter);
+
+  const leagueResults = await Promise.all(
+    leagues.map(async (league) => {
+      const [txns, leagueRosterMap] = await Promise.all([
+        getAllTransactions(league.league_id).catch(() => [] as Awaited<ReturnType<typeof getAllTransactions>>),
+        buildRosterOwnerMap(league.league_id),
+      ]);
+      return { season: league.season, txns, rosterOwnerMap: leagueRosterMap };
+    })
+  );
+
+  const allEnrichedTrades: import("@/components/trade-card").EnrichedTrade[] = [];
+  for (const { season: leagueSeason, txns, rosterOwnerMap: leagueRosterMap } of leagueResults) {
+    const counter = { value: 0 };
+    allEnrichedTrades.push(...enrichTrades(txns, leagueRosterMap, contractMap, nflPlayers, leagueSeason, counter));
+  }
+
   const enrichedTrades = allEnrichedTrades
-    .filter((t) => t.sides.some((s) => s.rosterId === team.rosterId))
+    .filter((t) => t.sides.some((s) => s.owner === ownerName))
     .sort((a, b) => b.created - a.created);
 
   // Hero helpers
@@ -464,13 +479,13 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
       {/* ── Trade History ─────────────────────────────────────────────────────── */}
       <div>
         <div className="mb-4">
-          <SectionTick label="Trade History" />
+          <SectionTick label={`Trade History (${enrichedTrades.length})`} />
         </div>
         {enrichedTrades.length === 0 ? (
           <Card>
             <CardContent>
               <p className="text-sm text-muted-foreground italic">
-                No trades this season. Either everyone is happy or nobody has leverage.
+                No trades on record. Either everyone is happy or nobody has leverage.
               </p>
             </CardContent>
           </Card>
