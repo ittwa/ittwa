@@ -15,7 +15,10 @@ async function fetchSheet(tab: string, range: string): Promise<string[][]> {
   }
 
   const url = `${SHEETS_API_BASE}/${GOOGLE_SHEETS_ID}/values/${encodeURIComponent(tab)}!${range}?key=${apiKey}`;
-  const res = await fetch(url, { cache: "no-store" });
+  // Contracts/cap-hits change rarely — cache in the Data Cache for 10 min (matches
+  // the documented sheets revalidation). Using no-store here previously disabled
+  // caching AND forced every consuming page into uncached dynamic rendering.
+  const res = await fetch(url, { next: { revalidate: 600 } });
 
   if (!res.ok) {
     console.error(`Google Sheets API error: ${res.status} for tab "${tab}"`);

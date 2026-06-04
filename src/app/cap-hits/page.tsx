@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 import { getCapHits, getLeagueUsers, getNFLPlayers } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
@@ -37,6 +37,7 @@ function buildClientRows(capHits: CapHitRow[], nameToPlayerId: Map<string, strin
 }
 
 export default async function CapHitsPage() {
+  await connection();
   const season = Object.keys(SEASON_LEAGUE_IDS).sort().reverse()[0];
 
   const [capHits, users, nflPlayers] = await Promise.all([

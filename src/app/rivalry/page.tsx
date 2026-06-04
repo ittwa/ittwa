@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 
 import { getMatchups, buildRosterOwnerMap, getLeagueUsers, getDisplayName } from "@/lib/sleeper";
@@ -7,6 +7,7 @@ import { RivalryClient, type HistoricalMatchup } from "./rivalry-client";
 import type { SleeperMatchup } from "@/types/sleeper";
 
 export default async function RivalryPage() {
+  await connection();
   const seasons = Object.keys(SEASON_LEAGUE_IDS).sort();
   const allMatchups: HistoricalMatchup[] = [];
 

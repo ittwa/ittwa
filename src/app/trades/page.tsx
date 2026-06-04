@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 import {
   getAllTransactions,
@@ -17,6 +17,7 @@ import { buildContractLookup, enrichTrades } from "@/lib/trade-utils";
 
 
 export default async function TradesPage() {
+  await connection();
   const [leagues, nflState, players, rawContracts, users] = await Promise.all([
     getLeagueHistory(),
     getNFLState(),

@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 
 import {
@@ -19,6 +19,7 @@ export default async function MatchupsPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  await connection();
   const params = await searchParams;
   const availableSeasons = Object.keys(SEASON_LEAGUE_IDS).sort().reverse();
   const selectedSeason =
