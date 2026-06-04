@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 
 import {
@@ -22,6 +22,7 @@ function getOwnerLastName(displayName: string): string {
 }
 
 export default async function TeamsPage() {
+  await connection();
   const [teamsData, contracts, capHits, nflPlayers, league, users] = await Promise.all([
     getTeamsData(),
     getContracts(),

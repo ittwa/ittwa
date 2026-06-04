@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 import { getTeamsData, calculateStandings, getLeagueUsers } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
@@ -7,6 +7,7 @@ import { StandingsClient } from "./standings-client";
 
 
 export default async function StandingsPage() {
+  await connection();
   const [{ teams, season, currentWeek, allMatchups }, users] = await Promise.all([
     getTeamsData(),
     getLeagueUsers(),

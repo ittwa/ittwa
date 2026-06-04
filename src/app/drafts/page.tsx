@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 import { getDrafts, buildRosterOwnerMap, getLeagueUsers } from "@/lib/data";
 import { getDraftPicks, getTradedPicks, getDisplayName, getNFLState } from "@/lib/sleeper";
@@ -7,6 +7,7 @@ import { SEASON_LEAGUE_IDS, OWNER_DIVISION, ROOKIE_PICK_CONTRACTS } from "@/lib/
 
 
 export default async function DraftsPage() {
+  await connection();
   const allSeasons = Object.keys(SEASON_LEAGUE_IDS).sort().reverse();
   const users = await getLeagueUsers();
   const ownerAvatars: Record<string, string> = {};

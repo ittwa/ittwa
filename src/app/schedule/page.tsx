@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 
 import {
@@ -14,6 +14,7 @@ import { ScheduleClient, type SeasonData, type ScheduleMatchup, type ScheduleTea
 import type { SleeperMatchup } from "@/types/sleeper";
 
 export default async function SchedulePage() {
+  await connection();
   const nflState = await getNFLState();
   const currentSeason = nflState.season;
   const currentWeek = nflState.week;

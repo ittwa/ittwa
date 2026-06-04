@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 import { getTeamsData, buildRosterOwnerMap, getLeagueUsers } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
@@ -10,6 +10,7 @@ import { SleeperMatchup } from "@/types/sleeper";
 
 
 export default async function RecordsPage() {
+  await connection();
   const [teamsData, rosterOwnerMap, scores, users, finances] = await Promise.all([
     getTeamsData(),
     buildRosterOwnerMap(),

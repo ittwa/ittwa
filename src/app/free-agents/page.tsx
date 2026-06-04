@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 import {
   getContracts,
@@ -46,6 +46,7 @@ function deriveFreeAgentStatus(
 }
 
 export default async function FreeAgentsPage() {
+  await connection();
   const season = Object.keys(SEASON_LEAGUE_IDS).sort().reverse()[0];
   const leagueId = SEASON_LEAGUE_IDS[season];
 

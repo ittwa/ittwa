@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 import { getTeamsData, getLeagueUsers, calculatePowerRankings, calculateRankChanges } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
@@ -27,6 +27,7 @@ function computeWeekAllPlay(
 }
 
 export default async function PowerRankingsPage() {
+  await connection();
   const [{ teams, season, currentWeek, allMatchups }, users] =
     await Promise.all([getTeamsData(), getLeagueUsers(LEAGUE_ID)]);
 

@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 import { Fragment } from "react";
 import Link from "next/link";
@@ -475,6 +475,7 @@ function TransactionsSection({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function HomePage() {
+  await connection();
   const { currentWeek, season, matchupPairs, standings, powerRankings, transactions, nflPlayers, ownerAvatars } =
     await fetchDashboardData();
 

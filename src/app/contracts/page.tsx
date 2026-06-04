@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 import {
   getRosters,
@@ -20,6 +20,7 @@ import type { ContractWithValue } from "@/types/contracts";
 
 
 export default async function ContractsPage() {
+  await connection();
   const [nflPlayers, rawContracts, nflState, users] = await Promise.all([
     getNFLPlayers(),
     getContracts(),

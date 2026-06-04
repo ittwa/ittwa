@@ -23,7 +23,7 @@ Dynasty fantasy football league site for the ITTWA league (est. 2014). 12 teams,
 
 Two data sources, joined by `player_id`:
 
-1. **Sleeper API** — rosters, matchups, drafts, transactions, player metadata. Uses `force-dynamic` because data changes in real-time. Revalidate at 90s.
+1. **Sleeper API** — rosters, matchups, drafts, transactions, player metadata. Each fetch sets its own `revalidate` (see `REVALIDATE` in `config.ts`: matchups 5min, rosters 1h, players 24h) so results are served from the Next.js Data Cache between requests.
 2. **Google Sheets** — contracts and cap hits only. Two tabs: Contracts and CapHits. Revalidate at 600s. Uses a public API key (server-side only, never expose to client).
 
 **Join key:** `player_id` links Sleeper data to Google Sheets rows. Sheet player IDs can diverge from Sleeper IDs — handle mismatches gracefully (log, don't crash).
@@ -82,7 +82,7 @@ These files are working and fragile. Do not refactor, reorganize, or "improve" t
 
 ## Gotchas
 
-- `force-dynamic` is required on Sleeper API pages — do not remove it
+- **Do NOT use `force-dynamic` on data pages.** It forces every `fetch` to `no-store`, disabling the Data Cache and re-fetching everything on every navigation (the cause of past 1–5s page lag). The reason `force-dynamic` was originally added — pages prerendering at build time and failing when the Sleeper API is unreachable — is solved correctly by `await connection()` (from `next/server`) as the first line of the page component. `connection()` defers rendering to request time (no build-time fetch) **without** disabling caching. Dynamic-param routes (`teams/[owner]`, `players/[playerId]`) instead use `export const revalidate = N` for full-route caching, since they aren't prerendered at build (no `generateStaticParams`).
 - `font-heading` = Barlow Condensed (CSS var). `font-code` = JetBrains Mono (utility class, not the same as Tailwind's `font-mono`)
 - Owner display names always go through `USERNAME_OVERRIDES`, never use raw Sleeper usernames in UI
 - Division colors via `getDivColors()`/`getDivColorsByOwner()` — do not hardcode division color values
