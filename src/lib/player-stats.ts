@@ -6,6 +6,7 @@ interface SleeperSeasonStats {
   pos_rank_half_ppr?: number;
   rank_half_ppr?: number;
   tm?: string;
+  team?: string;
   pos?: string;
   [key: string]: unknown;
 }
@@ -78,7 +79,7 @@ export async function getPlayerCareerStats(
       posRank: stats.pos_rank_half_ppr ?? null,
       overallRank: stats.rank_half_ppr ?? null,
       position: stats.pos || position,
-      nflTeam: stats.tm || null,
+      nflTeam: stats.team || stats.tm || null,
     });
   }
 

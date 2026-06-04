@@ -230,10 +230,12 @@ function CareerStatsTable({
   stats,
   position,
   posColor,
+  currentTeam,
 }: {
   stats: PlayerSeasonSummary[];
   position: string;
   posColor: string;
+  currentTeam: string | null;
 }) {
   if (stats.length === 0) return null;
 
@@ -251,11 +253,11 @@ function CareerStatsTable({
             <tr className="border-b border-border text-muted-foreground">
               <th className="px-4 py-2 text-left font-medium">Season</th>
               <th className="px-4 py-2 text-left font-medium">Team</th>
-              <th className="px-4 py-2 text-center font-medium">GP</th>
-              <th className="px-4 py-2 text-right font-medium">Points</th>
-              <th className="px-4 py-2 text-right font-medium">PPG</th>
               <th className="px-4 py-2 text-center font-medium">Pos Rank</th>
               <th className="px-4 py-2 text-center font-medium">Overall</th>
+              <th className="px-4 py-2 text-right font-medium">Points</th>
+              <th className="px-4 py-2 text-right font-medium">PPG</th>
+              <th className="px-4 py-2 text-center font-medium">GP</th>
             </tr>
           </thead>
           <tbody>
@@ -265,14 +267,7 @@ function CareerStatsTable({
                 className="border-b border-border/50 hover:bg-accent/50 transition-colors"
               >
                 <td className="px-4 py-2.5 font-heading text-sm font-bold">{s.season}</td>
-                <td className="px-4 py-2.5 font-code text-xs text-muted-foreground">{s.nflTeam || "—"}</td>
-                <td className="px-4 py-2.5 text-center font-code tabular-nums">{s.gamesPlayed}</td>
-                <td className="px-4 py-2.5 text-right font-code tabular-nums" style={{ color: s.totalPoints === bestPts ? posColor : undefined }}>
-                  {s.totalPoints.toFixed(1)}
-                </td>
-                <td className="px-4 py-2.5 text-right font-code tabular-nums" style={{ color: s.ppg === bestPpg ? posColor : undefined }}>
-                  {s.ppg.toFixed(1)}
-                </td>
+                <td className="px-4 py-2.5 font-code text-xs text-muted-foreground">{s.nflTeam || currentTeam || "—"}</td>
                 <td className="px-4 py-2.5 text-center">
                   {s.posRank != null ? (
                     <Badge variant={getPositionVariant(position)}>{position}{s.posRank}</Badge>
@@ -283,6 +278,13 @@ function CareerStatsTable({
                 <td className="px-4 py-2.5 text-center font-code tabular-nums text-muted-foreground">
                   {s.overallRank != null ? `#${s.overallRank}` : "—"}
                 </td>
+                <td className="px-4 py-2.5 text-right font-code tabular-nums" style={{ color: s.totalPoints === bestPts ? posColor : undefined }}>
+                  {s.totalPoints.toFixed(1)}
+                </td>
+                <td className="px-4 py-2.5 text-right font-code tabular-nums" style={{ color: s.ppg === bestPpg ? posColor : undefined }}>
+                  {s.ppg.toFixed(1)}
+                </td>
+                <td className="px-4 py-2.5 text-center font-code tabular-nums">{s.gamesPlayed}</td>
               </tr>
             ))}
           </tbody>
@@ -875,6 +877,7 @@ export default async function PlayerProfilePage({
             stats={careerStats}
             position={player.position}
             posColor={posColors.text}
+            currentTeam={player.team || null}
           />
 
           {/* Transaction History */}
