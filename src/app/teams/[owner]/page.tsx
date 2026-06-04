@@ -1,8 +1,10 @@
 export const revalidate = 300;
 
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap, getLatestActiveContracts, getLeagueUsers, getLeagueHistory } from "@/lib/data";
 import { getNFLPlayers, getDisplayName } from "@/lib/sleeper";
@@ -97,18 +99,91 @@ function SectionTick({ label }: { label: string }) {
   );
 }
 
+function TradeHistorySkeleton() {
+  return (
+    <div>
+      <div className="mb-4">
+        <SectionTick label="Trade History" />
+      </div>
+      <div className="flex flex-col gap-3.5">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="p-4 flex items-center gap-3">
+            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-4 w-24 ml-auto" />
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Streamed separately because it needs the full league-history chain plus every
+// season's transactions — the heaviest fetch on the page. The rest of the page
+// (hero, roster, draft picks, schedule, cap hits) renders without waiting on it.
+async function OwnerTradeHistory({
+  ownerName,
+  nflPlayers,
+  allActiveContracts,
+}: {
+  ownerName: string;
+  nflPlayers: SleeperPlayersMap;
+  allActiveContracts: ContractWithValue[];
+}) {
+  const leagues = await getLeagueHistory();
+  const contractMap = buildContractLookup(allActiveContracts);
+
+  const leagueResults = await Promise.all(
+    leagues.map(async (league) => {
+      const [txns, leagueRosterMap] = await Promise.all([
+        getAllTransactions(league.league_id).catch(() => [] as Awaited<ReturnType<typeof getAllTransactions>>),
+        buildRosterOwnerMap(league.league_id),
+      ]);
+      return { season: league.season, txns, rosterOwnerMap: leagueRosterMap };
+    })
+  );
+
+  const allEnrichedTrades: import("@/components/trade-card").EnrichedTrade[] = [];
+  for (const { season: leagueSeason, txns, rosterOwnerMap: leagueRosterMap } of leagueResults) {
+    const counter = { value: 0 };
+    allEnrichedTrades.push(...enrichTrades(txns, leagueRosterMap, contractMap, nflPlayers, leagueSeason, counter));
+  }
+
+  const enrichedTrades = allEnrichedTrades
+    .filter((t) => t.sides.some((s) => s.owner === ownerName))
+    .sort((a, b) => b.created - a.created);
+
+  return (
+    <>
+      <div className="mb-4">
+        <SectionTick label={`Trade History (${enrichedTrades.length})`} />
+      </div>
+      {enrichedTrades.length === 0 ? (
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted-foreground italic">
+              No trades on record. Either everyone is happy or nobody has leverage.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <TradeHistory trades={enrichedTrades} />
+      )}
+    </>
+  );
+}
+
 export default async function TeamDetailPage({ params }: { params: Promise<{ owner: string }> }) {
   const { owner: rawOwner } = await params;
   const ownerName = decodeURIComponent(rawOwner);
 
-  const [teamsData, contracts, capHits, rosterOwnerMap, nflPlayers, users, leagues] = await Promise.all([
+  const [teamsData, contracts, capHits, rosterOwnerMap, nflPlayers, users] = await Promise.all([
     getTeamsData(),
     getContracts(),
     getCapHits(),
     buildRosterOwnerMap(),
     getNFLPlayers(),
     getLeagueUsers(),
-    getLeagueHistory(),
   ]);
 
   const { teams, season, currentWeek, allMatchups, allScheduleMatchups } = teamsData;
@@ -202,28 +277,6 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
     const completed = myMatchup.points > 0 || (oppMatchup?.points ?? 0) > 0;
     schedule.push({ week: w, opponent: oppName, myScore: myMatchup.points, oppScore: oppMatchup?.points ?? 0, completed });
   }
-
-  const contractMap = buildContractLookup(allActiveContracts);
-
-  const leagueResults = await Promise.all(
-    leagues.map(async (league) => {
-      const [txns, leagueRosterMap] = await Promise.all([
-        getAllTransactions(league.league_id).catch(() => [] as Awaited<ReturnType<typeof getAllTransactions>>),
-        buildRosterOwnerMap(league.league_id),
-      ]);
-      return { season: league.season, txns, rosterOwnerMap: leagueRosterMap };
-    })
-  );
-
-  const allEnrichedTrades: import("@/components/trade-card").EnrichedTrade[] = [];
-  for (const { season: leagueSeason, txns, rosterOwnerMap: leagueRosterMap } of leagueResults) {
-    const counter = { value: 0 };
-    allEnrichedTrades.push(...enrichTrades(txns, leagueRosterMap, contractMap, nflPlayers, leagueSeason, counter));
-  }
-
-  const enrichedTrades = allEnrichedTrades
-    .filter((t) => t.sides.some((s) => s.owner === ownerName))
-    .sort((a, b) => b.created - a.created);
 
   // Hero helpers
   const divisionColor = getDivisionColor(team.division);
@@ -476,22 +529,15 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
         </CardContent>
       </Card>
 
-      {/* ── Trade History ─────────────────────────────────────────────────────── */}
+      {/* ── Trade History (streamed — needs full league history) ──────────────── */}
       <div>
-        <div className="mb-4">
-          <SectionTick label={`Trade History (${enrichedTrades.length})`} />
-        </div>
-        {enrichedTrades.length === 0 ? (
-          <Card>
-            <CardContent>
-              <p className="text-sm text-muted-foreground italic">
-                No trades on record. Either everyone is happy or nobody has leverage.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <TradeHistory trades={enrichedTrades} />
-        )}
+        <Suspense fallback={<TradeHistorySkeleton />}>
+          <OwnerTradeHistory
+            ownerName={ownerName}
+            nflPlayers={nflPlayers}
+            allActiveContracts={allActiveContracts}
+          />
+        </Suspense>
       </div>
     </div>
     </OwnerAvatarsProvider>

@@ -1,5 +1,6 @@
 export const revalidate = 300;
 
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import {
   getTeamsData,
@@ -15,6 +16,7 @@ import { resolveOwnerName } from "@/lib/contracts";
 import { OWNER_DIVISION, SEASON_LEAGUE_IDS, NFL_TEAMS } from "@/lib/config";
 import { getPositionColors, getPositionVariant } from "@/lib/ui-utils";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { SleeperAvatarImage } from "@/components/owner-avatar";
@@ -294,6 +296,55 @@ function CareerStatsTable({
   );
 }
 
+function CareerStatsSkeleton() {
+  return (
+    <Card>
+      <div className="px-5 pt-4 pb-1">
+        <SectionTick label="Career Stats" sub="Half-PPR · by season" />
+      </div>
+      <div className="p-4 flex flex-col gap-2.5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-10" />
+            <Skeleton className="h-4 w-14 ml-auto" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// Streamed separately: each season pulls a large NFL stats file, so we let the
+// rest of the profile render immediately and fill the career table in after.
+async function CareerStatsSection({
+  playerId,
+  position,
+  yearsExp,
+  season,
+  currentTeam,
+  posColor,
+}: {
+  playerId: string;
+  position: string;
+  yearsExp: number | undefined;
+  season: string;
+  currentTeam: string | null;
+  posColor: string;
+}) {
+  const stats = await getPlayerCareerStats(playerId, position, yearsExp, season);
+  return (
+    <CareerStatsTable
+      stats={stats}
+      position={position}
+      posColor={posColor}
+      currentTeam={currentTeam}
+    />
+  );
+}
+
 type HeadlinePart = { type: "text"; text: string } | { type: "owner"; name: string };
 
 interface PlayerTransaction {
@@ -555,19 +606,16 @@ export default async function PlayerProfilePage({
   // Transaction history + career stats — fetch in parallel
   const allSeasons = Object.keys(SEASON_LEAGUE_IDS).sort().reverse();
   const recentSeasons = allSeasons.slice(0, 4);
-  const [txnsBySeasonResults, careerStats] = await Promise.all([
-    Promise.all(
-      recentSeasons.map(async (s) => {
-        const leagueId = SEASON_LEAGUE_IDS[s];
-        const [txns, rom] = await Promise.all([
-          getAllTransactions(leagueId).catch(() => [] as SleeperTransaction[]),
-          buildRosterOwnerMap(leagueId),
-        ]);
-        return { season: s, txns, rosterOwnerMap: rom };
-      }),
-    ),
-    getPlayerCareerStats(playerId, player.position, player.years_exp, season),
-  ]);
+  const txnsBySeasonResults = await Promise.all(
+    recentSeasons.map(async (s) => {
+      const leagueId = SEASON_LEAGUE_IDS[s];
+      const [txns, rom] = await Promise.all([
+        getAllTransactions(leagueId).catch(() => [] as SleeperTransaction[]),
+        buildRosterOwnerMap(leagueId),
+      ]);
+      return { season: s, txns, rosterOwnerMap: rom };
+    }),
+  );
 
   const allPlayerTxns: PlayerTransaction[] = [];
   for (const { season: s, txns, rosterOwnerMap: rom } of txnsBySeasonResults) {
@@ -872,13 +920,17 @@ export default async function PlayerProfilePage({
             season={season}
           />
 
-          {/* Career Stats */}
-          <CareerStatsTable
-            stats={careerStats}
-            position={player.position}
-            posColor={posColors.text}
-            currentTeam={player.team || null}
-          />
+          {/* Career Stats — streamed (each season's stats file is large) */}
+          <Suspense fallback={<CareerStatsSkeleton />}>
+            <CareerStatsSection
+              playerId={playerId}
+              position={player.position}
+              yearsExp={player.years_exp}
+              season={season}
+              currentTeam={player.team || null}
+              posColor={posColors.text}
+            />
+          </Suspense>
 
           {/* Transaction History */}
           <Card>
