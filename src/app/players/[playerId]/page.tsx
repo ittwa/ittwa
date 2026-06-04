@@ -21,6 +21,7 @@ import { SleeperAvatarImage } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 import { PlayerLink } from "@/components/player-link";
 import type { SleeperTransaction, SleeperPlayersMap } from "@/types/sleeper";
+import { getPlayerCareerStats, type PlayerSeasonSummary } from "@/lib/player-stats";
 
 
 
@@ -220,6 +221,72 @@ function ScoringChart({
             );
           })()}
         </svg>
+      </div>
+    </Card>
+  );
+}
+
+function CareerStatsTable({
+  stats,
+  position,
+  posColor,
+}: {
+  stats: PlayerSeasonSummary[];
+  position: string;
+  posColor: string;
+}) {
+  if (stats.length === 0) return null;
+
+  const bestPts = Math.max(...stats.map((s) => s.totalPoints));
+  const bestPpg = Math.max(...stats.map((s) => s.ppg));
+
+  return (
+    <Card>
+      <div className="px-5 pt-4 pb-1">
+        <SectionTick label="Career Stats" sub="Half-PPR · by season" />
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-muted-foreground">
+              <th className="px-4 py-2 text-left font-medium">Season</th>
+              <th className="px-4 py-2 text-left font-medium">Team</th>
+              <th className="px-4 py-2 text-center font-medium">GP</th>
+              <th className="px-4 py-2 text-right font-medium">Points</th>
+              <th className="px-4 py-2 text-right font-medium">PPG</th>
+              <th className="px-4 py-2 text-center font-medium">Pos Rank</th>
+              <th className="px-4 py-2 text-center font-medium">Overall</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stats.map((s) => (
+              <tr
+                key={s.season}
+                className="border-b border-border/50 hover:bg-accent/50 transition-colors"
+              >
+                <td className="px-4 py-2.5 font-heading text-sm font-bold">{s.season}</td>
+                <td className="px-4 py-2.5 font-code text-xs text-muted-foreground">{s.nflTeam || "—"}</td>
+                <td className="px-4 py-2.5 text-center font-code tabular-nums">{s.gamesPlayed}</td>
+                <td className="px-4 py-2.5 text-right font-code tabular-nums" style={{ color: s.totalPoints === bestPts ? posColor : undefined }}>
+                  {s.totalPoints.toFixed(1)}
+                </td>
+                <td className="px-4 py-2.5 text-right font-code tabular-nums" style={{ color: s.ppg === bestPpg ? posColor : undefined }}>
+                  {s.ppg.toFixed(1)}
+                </td>
+                <td className="px-4 py-2.5 text-center">
+                  {s.posRank != null ? (
+                    <Badge variant={getPositionVariant(position)}>{position}{s.posRank}</Badge>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-2.5 text-center font-code tabular-nums text-muted-foreground">
+                  {s.overallRank != null ? `#${s.overallRank}` : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </Card>
   );
@@ -483,19 +550,22 @@ export default async function PlayerProfilePage({
     }
   }
 
-  // Transaction history — fetch from recent seasons
+  // Transaction history + career stats — fetch in parallel
   const allSeasons = Object.keys(SEASON_LEAGUE_IDS).sort().reverse();
   const recentSeasons = allSeasons.slice(0, 4);
-  const txnsBySeasonResults = await Promise.all(
-    recentSeasons.map(async (s) => {
-      const leagueId = SEASON_LEAGUE_IDS[s];
-      const [txns, rom] = await Promise.all([
-        getAllTransactions(leagueId).catch(() => [] as SleeperTransaction[]),
-        buildRosterOwnerMap(leagueId),
-      ]);
-      return { season: s, txns, rosterOwnerMap: rom };
-    }),
-  );
+  const [txnsBySeasonResults, careerStats] = await Promise.all([
+    Promise.all(
+      recentSeasons.map(async (s) => {
+        const leagueId = SEASON_LEAGUE_IDS[s];
+        const [txns, rom] = await Promise.all([
+          getAllTransactions(leagueId).catch(() => [] as SleeperTransaction[]),
+          buildRosterOwnerMap(leagueId),
+        ]);
+        return { season: s, txns, rosterOwnerMap: rom };
+      }),
+    ),
+    getPlayerCareerStats(playerId, player.position, player.years_exp, season),
+  ]);
 
   const allPlayerTxns: PlayerTransaction[] = [];
   for (const { season: s, txns, rosterOwnerMap: rom } of txnsBySeasonResults) {
@@ -798,6 +868,13 @@ export default async function PlayerProfilePage({
             weeks={weeklyScoring}
             posColor={posColors.text}
             season={season}
+          />
+
+          {/* Career Stats */}
+          <CareerStatsTable
+            stats={careerStats}
+            position={player.position}
+            posColor={posColors.text}
           />
 
           {/* Transaction History */}
