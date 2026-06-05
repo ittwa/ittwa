@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
         hostname: "sleepercdn.com",
       },
     ],
+    formats: ["image/avif", "image/webp"],
   },
 };
 

@@ -26,8 +26,8 @@
   --color-hey-arnold: #8B5CF6;
   --color-replacements: #22C55E;
   --color-dark-knight: #F97316;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Barlow Condensed', system-ui, sans-serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-heading: var(--font-barlow), system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -94,7 +94,7 @@ body {
 }
 
 .font-code {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains), monospace;
 }
 
 @keyframes pulse {
