@@ -125,6 +125,7 @@ export default async function PowerRankingsPage({
 
         return (
           <RankingsClient
+            key={selectedSeason}
             weeklyRankings={{}}
             allPlayByWeek={{}}
             weeklyRankHistory={{}}
@@ -144,6 +145,7 @@ export default async function PowerRankingsPage({
 
       return (
         <RankingsClient
+            key={selectedSeason}
           weeklyRankings={{}}
           allPlayByWeek={{}}
           weeklyRankHistory={{}}
@@ -208,6 +210,7 @@ export default async function PowerRankingsPage({
 
     return (
       <RankingsClient
+            key={selectedSeason}
         weeklyRankings={weeklyRankings}
         allPlayByWeek={allPlayByWeek}
         weeklyRankHistory={weeklyRankHistory}
@@ -289,6 +292,7 @@ export default async function PowerRankingsPage({
 
     return (
       <RankingsClient
+            key={selectedSeason}
         weeklyRankings={weeklyRankings}
         allPlayByWeek={allPlayByWeek}
         weeklyRankHistory={weeklyRankHistory}
@@ -325,6 +329,7 @@ export default async function PowerRankingsPage({
 
   return (
     <RankingsClient
+            key={selectedSeason}
       weeklyRankings={sheetRankings}
       allPlayByWeek={sheetAllPlay}
       weeklyRankHistory={sheetRankHistory}
