@@ -7,6 +7,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap, getLatestActiveContracts, getLeagueUsers, getLeagueHistory } from "@/lib/data";
+import { getCachedNflPosRanks } from "@/lib/cached-stats";
 import { getNFLPlayers, getDisplayName } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP, AUCTION_DATE, SALARY_CAP, ROSTER_SIZE } from "@/lib/config";
 import { TradeHistory } from "./trade-history";
@@ -33,7 +34,8 @@ function getOwnerLastName(displayName: string): string {
 function buildMergedRoster(
   sleeperPlayerIds: string[],
   nflPlayers: SleeperPlayersMap,
-  contracts: ContractWithValue[]
+  contracts: ContractWithValue[],
+  posRanks: Record<string, number>,
 ): RosterPlayer[] {
   const contractByPlayerId = new Map<string, ContractWithValue>();
   const contractByName = new Map<string, ContractWithValue>();
@@ -68,6 +70,7 @@ function buildMergedRoster(
       dpOriginalOwner: contract?.dpOriginalOwner || "",
       isMidSeasonPickup: contract?.isMidSeasonPickup || false,
       hasContract: !!contract,
+      posRank: posRanks[pid],
     };
   });
 }
@@ -187,6 +190,9 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   ]);
 
   const { teams, season, currentWeek, allMatchups, allScheduleMatchups } = teamsData;
+
+  const prevSeason = String(parseInt(season, 10) - 1);
+  const posRanks = await getCachedNflPosRanks(prevSeason, nflPlayers, false);
   const standings = calculateStandings(teams, allMatchups);
 
   const team = standings.find((t) => t.displayName === ownerName);
@@ -200,7 +206,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
     if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
   }
 
-  const rosterPlayers = sortRoster(buildMergedRoster(team.players, nflPlayers, allActiveContracts));
+  const rosterPlayers = sortRoster(buildMergedRoster(team.players, nflPlayers, allActiveContracts, posRanks));
 
   const currentSeasonNum = parseInt(season, 10);
 

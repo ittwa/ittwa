@@ -18,6 +18,7 @@ export interface RosterPlayer {
   dpOriginalOwner: string;
   isMidSeasonPickup: boolean;
   hasContract: boolean;
+  posRank?: number;
 }
 
 type SortKey = "name" | "position" | "nflTeam" | "dpOriginalOwner" | "salary" | "years";
@@ -151,7 +152,10 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
                     </div>
                   </td>
                   <td className="px-4 py-2.5">
-                    <Badge variant={getPositionVariant(p.position)}>{p.position}</Badge>
+                    <Badge variant={getPositionVariant(p.position)}>
+                      {p.position}
+                      {p.posRank != null && <span style={{ opacity: 0.65 }}>{p.posRank}</span>}
+                    </Badge>
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell">{p.nflTeam}</td>
                   <td className="px-4 py-2.5 text-muted-foreground text-xs hidden md:table-cell">
