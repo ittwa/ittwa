@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getSeasonPosRanks } from "@/lib/data";
+import { SLEEPER_API_BASE } from "@/lib/config";
 import type { SleeperPlayersMap } from "@/types/sleeper";
 
 /**
@@ -30,4 +31,39 @@ export async function getCachedSeasonPosRanks(
     { revalidate: isCurrentSeason ? 600 : 86400 },
   );
   return cached(leagueId);
+}
+
+/**
+ * NFL-wide positional ranks from Sleeper's stats API (pos_rank_half_ppr).
+ * Unlike getCachedSeasonPosRanks which ranks only league-rostered players,
+ * this returns official NFL-wide positional rankings.
+ */
+export async function getCachedNflPosRanks(
+  season: string,
+  isCurrentSeason: boolean,
+): Promise<Record<string, number>> {
+  const cached = unstable_cache(
+    async (yr: string) => {
+      try {
+        const res = await fetch(`${SLEEPER_API_BASE}/stats/nfl/regular/${yr}`, {
+          next: { revalidate: isCurrentSeason ? 3600 : 86400 },
+        });
+        if (!res.ok) return {};
+        const data: Record<string, { pos_rank_half_ppr?: number }> =
+          await res.json();
+        const ranks: Record<string, number> = {};
+        for (const [pid, stats] of Object.entries(data)) {
+          if (stats.pos_rank_half_ppr && stats.pos_rank_half_ppr > 0) {
+            ranks[pid] = stats.pos_rank_half_ppr;
+          }
+        }
+        return ranks;
+      } catch {
+        return {};
+      }
+    },
+    ["nfl-pos-ranks"],
+    { revalidate: isCurrentSeason ? 3600 : 86400 },
+  );
+  return cached(season);
 }

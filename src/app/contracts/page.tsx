@@ -10,7 +10,7 @@ import {
   getActiveContractsForSeason,
   getLeagueUsers,
 } from "@/lib/data";
-import { getCachedSeasonPosRanks } from "@/lib/cached-stats";
+import { getCachedNflPosRanks } from "@/lib/cached-stats";
 import { resolveOwnerName } from "@/lib/contracts";
 import { getDisplayName } from "@/lib/sleeper";
 import { SEASON_LEAGUE_IDS } from "@/lib/config";
@@ -45,8 +45,7 @@ export default async function ContractsPage() {
   const seasonRanks = new Map<string, Record<string, number>>();
   await Promise.all(
     availableSeasons.map(async (yr) => {
-      const leagueId = SEASON_LEAGUE_IDS[yr];
-      const ranks = await getCachedSeasonPosRanks(leagueId, nflPlayers, yr === season);
+      const ranks = await getCachedNflPosRanks(yr, yr === season);
       seasonRanks.set(yr, ranks);
     })
   );
