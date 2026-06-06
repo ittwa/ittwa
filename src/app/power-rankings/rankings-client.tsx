@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { SleeperAvatarImage } from "@/components/owner-avatar";
-import { PowerRankingEntry } from "@/lib/power-rankings";
+import { PowerRankingEntry, PowerHistoryEntry } from "@/lib/power-rankings";
+import { RosterStrengthEntry } from "@/lib/roster-strength";
 import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
 
 interface RankingsClientProps {
@@ -15,34 +17,12 @@ interface RankingsClientProps {
   ownerAvatars: Record<string, string>;
   season: string;
   currentWeek: number;
-}
-
-const POWER_HISTORY: {
-  year: string;
-  powerOne: string;
-  champ: string;
-  matched: boolean | null;
-}[] = [
-  { year: "2025", powerOne: "Clancy", champ: "Clancy", matched: true },
-  { year: "2024", powerOne: "Chapman", champ: "Collins", matched: false },
-  { year: "2023", powerOne: "HoganLamb", champ: "Chapman", matched: false },
-  { year: "2022", powerOne: "Peterson", champ: "Bohne", matched: false },
-  { year: "2021", powerOne: "Clancy", champ: "Clancy", matched: true },
-  { year: "2020", powerOne: "Durkin", champ: "Durkin", matched: true },
-  { year: "2019", powerOne: "HoganLamb", champ: "Albarran", matched: false },
-  { year: "2018", powerOne: "Cummings", champ: "Cummings", matched: true },
-  { year: "2017", powerOne: "Clancy", champ: "HoganLamb", matched: false },
-  { year: "2016", powerOne: "Chapman", champ: "Katz", matched: false },
-  { year: "2015", powerOne: "Chapman", champ: "Chapman", matched: true },
-  { year: "2014", powerOne: "Clancy", champ: "Clancy", matched: true },
-];
-
-function scoreForRank(rank: number, n = 12): number {
-  const top = 96,
-    bottom = 12;
-  return +(top - (top - bottom) * Math.pow((rank - 1) / (n - 1), 0.9)).toFixed(
-    1,
-  );
+  availableSeasons: string[];
+  selectedSeason: string;
+  powerHistory: PowerHistoryEntry[];
+  mode: "season" | "offseason";
+  offseasonData?: RosterStrengthEntry[];
+  offseasonLabel?: string;
 }
 
 function allOppColor(
@@ -283,11 +263,50 @@ function LuckBar({
 /* ── Enriched entry type ────────────────────────────────────────────────── */
 
 interface EnrichedEntry extends PowerRankingEntry {
-  powerScore: number;
   expectedWins: number;
   expectedLosses: number;
   streak: string;
   weeklyRanks: number[];
+}
+
+/* ── Season Selector ──────────────────────────────────────────────────── */
+
+function SeasonSelector({
+  seasons,
+  current,
+}: {
+  seasons: string[];
+  current: string;
+}) {
+  const router = useRouter();
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {seasons.map((s) => {
+        const active = s === current;
+        return (
+          <button
+            key={s}
+            onClick={() => {
+              if (!active)
+                router.push(
+                  s === seasons[0]
+                    ? "/power-rankings"
+                    : `/power-rankings?season=${s}`,
+                );
+            }}
+            className={cn(
+              "px-2.5 py-1 rounded text-xs font-mono font-medium transition-colors",
+              active
+                ? "bg-ittwa/15 text-ittwa border border-ittwa/30"
+                : "bg-secondary border border-border text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {s}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 /* ── Main Component ─────────────────────────────────────────────────────── */
@@ -300,15 +319,19 @@ export function RankingsClient({
   ownerAvatars,
   season,
   currentWeek,
+  availableSeasons,
+  selectedSeason,
+  powerHistory,
+  mode,
+  offseasonData,
+  offseasonLabel,
 }: RankingsClientProps) {
   const [selectedWeek, setSelectedWeek] = useState(currentWeek);
   const rankings = weeklyRankings[selectedWeek] || [];
 
   const enriched: EnrichedEntry[] = useMemo(() => {
-    const n = rankings.length || 12;
     return rankings.map((entry) => ({
       ...entry,
-      powerScore: scoreForRank(entry.rank, n),
       expectedWins: +(entry.allPlayWinPct * entry.weeksPlayed).toFixed(1),
       expectedLosses: +(
         entry.weeksPlayed -
@@ -432,7 +455,7 @@ export function RankingsClient({
     <div className="space-y-5">
       {/* ── Page Header ───────────────────────────────────────────────── */}
       <div className="pb-6 border-b border-border">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
           <div>
             <div className="flex items-center gap-3 mb-1.5">
               <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
@@ -441,41 +464,115 @@ export function RankingsClient({
               </h1>
             </div>
             <p className="text-[13px] text-muted-foreground ml-4">
-              {season} &middot; All-Play Power Rankings through Week{" "}
-              {selectedWeek}
+              {mode === "offseason"
+                ? `${season} ${offseasonLabel || "Offseason"} · Roster Strength Rankings`
+                : `${season} · Recency-Weighted All-Play Rankings through Week ${selectedWeek}`}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setSelectedWeek((w) => Math.max(1, w - 1))}
-                disabled={selectedWeek <= 1}
-                className="w-7 h-7 rounded bg-secondary border border-border text-muted-foreground hover:text-foreground disabled:opacity-30 flex items-center justify-center text-xs"
-              >
-                &#8249;
-              </button>
-              <span className="px-3 py-1 bg-secondary border border-border rounded text-sm font-mono font-medium min-w-[80px] text-center">
-                Week {selectedWeek}
-              </span>
-              <button
-                onClick={() =>
-                  setSelectedWeek((w) => Math.min(currentWeek, w + 1))
-                }
-                disabled={selectedWeek >= currentWeek}
-                className="w-7 h-7 rounded bg-secondary border border-border text-muted-foreground hover:text-foreground disabled:opacity-30 flex items-center justify-center text-xs"
-              >
-                &#8250;
-              </button>
+          {mode === "season" && (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setSelectedWeek((w) => Math.max(1, w - 1))}
+                  disabled={selectedWeek <= 1}
+                  className="w-7 h-7 rounded bg-secondary border border-border text-muted-foreground hover:text-foreground disabled:opacity-30 flex items-center justify-center text-xs"
+                >
+                  &#8249;
+                </button>
+                <span className="px-3 py-1 bg-secondary border border-border rounded text-sm font-mono font-medium min-w-[80px] text-center">
+                  Week {selectedWeek}
+                </span>
+                <button
+                  onClick={() =>
+                    setSelectedWeek((w) => Math.min(currentWeek, w + 1))
+                  }
+                  disabled={selectedWeek >= currentWeek}
+                  className="w-7 h-7 rounded bg-secondary border border-border text-muted-foreground hover:text-foreground disabled:opacity-30 flex items-center justify-center text-xs"
+                >
+                  &#8250;
+                </button>
+              </div>
+              <Badge variant="outline" className="text-xs font-mono">
+                {enriched.length} teams
+              </Badge>
             </div>
-            <Badge variant="outline" className="text-xs font-mono">
-              {enriched.length} teams
-            </Badge>
-          </div>
+          )}
         </div>
+        <SeasonSelector seasons={availableSeasons} current={selectedSeason} />
       </div>
 
+      {/* ── Offseason Roster Strength Rankings ─────────────────────── */}
+      {mode === "offseason" && offseasonData && offseasonData.length > 0 && (
+        <div className="bg-card border border-border rounded-[14px] overflow-hidden">
+          <SectionHeader
+            title="ROSTER STRENGTH RANKINGS"
+            subtitle={`based on ${parseInt(season) - 1} player production${offseasonData[0].capBonus > 0 ? " + cap space" : ""}`}
+          />
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead>
+                <tr className="border-b border-border text-[10px] font-bold tracking-[0.08em] uppercase text-[#555]">
+                  <th className="px-3 py-2.5 text-center w-12">#</th>
+                  <th className="px-3 py-2.5 text-left">Owner</th>
+                  <th className="px-3 py-2.5 text-left min-w-[160px]">Strength Score</th>
+                  <th className="px-3 py-2.5 text-left">Top Players</th>
+                  {offseasonData[0].capBonus > 0 && (
+                    <th className="px-3 py-2.5 text-center">Cap Space</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {offseasonData.map((entry) => (
+                  <tr key={entry.rosterId} className="border-b border-[#181818] hover:bg-[#141414] transition-colors">
+                    <td className="px-3 py-3 text-center">
+                      <RankBadge rank={entry.rank} />
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <OwnerAvatar
+                          name={entry.displayName}
+                          avatarId={ownerAvatars[entry.displayName]}
+                          division={entry.division}
+                        />
+                        <div>
+                          <div className="text-[13px] font-semibold">{entry.displayName}</div>
+                          {entry.division && (
+                            <Badge variant={getDivisionVariant(entry.division)} className="text-[9px] mt-0.5 px-1.5 py-0">
+                              {entry.division}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <PowerBar score={Math.min(entry.totalScore / (offseasonData[0].totalScore || 1) * 96, 100)} />
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {entry.topPlayers.slice(0, 3).map((p, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-secondary border border-border rounded text-[10px] font-mono">
+                            <span className="text-muted-foreground">{p.position}</span>
+                            <span className="font-semibold">{p.name.split(" ").pop()}</span>
+                            {p.posRank < 999 && <span className="text-[9px] text-muted-foreground">#{p.posRank}</span>}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    {offseasonData[0].capBonus > 0 && (
+                      <td className="px-3 py-3 text-center">
+                        <span className="font-mono text-xs tabular-nums">${Math.round(entry.capSpace)}</span>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* ── Stat Summary ──────────────────────────────────────────────── */}
-      {statCards.length > 0 && (
+      {mode === "season" && statCards.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {statCards.map((card) => (
             <div
@@ -506,13 +603,14 @@ export function RankingsClient({
       )}
 
       {/* ── Rankings Table ─────────────────────────────────────────────── */}
-      {enriched.length === 0 ? (
+      {mode === "season" && enriched.length === 0 && (
         <div className="bg-card border border-border rounded-[14px] p-16 text-center">
           <p className="text-muted-foreground italic">
             Not enough data yet. Check back after Week 1.
           </p>
         </div>
-      ) : (
+      )}
+      {mode === "season" && enriched.length > 0 && (
         <div className="bg-card border border-border rounded-[14px] overflow-hidden">
           <SectionHeader
             title="WEEKLY POWER RANKINGS"
@@ -610,7 +708,7 @@ export function RankingsClient({
       )}
 
       {/* ── All-Opponent Heatmap ───────────────────────────────────────── */}
-      {heatmapRows.length > 0 && (
+      {mode === "season" && heatmapRows.length > 0 && (
         <div className="bg-card border border-border rounded-[14px] overflow-hidden">
           <SectionHeader
             title="ALL-OPPONENT RECORD"
@@ -728,7 +826,7 @@ export function RankingsClient({
       )}
 
       {/* ── Luck of Schedule ───────────────────────────────────────────── */}
-      {luckRows.length > 0 && (
+      {mode === "season" && luckRows.length > 0 && (
         <div className="bg-card border border-border rounded-[14px] overflow-hidden">
           <SectionHeader
             title="LUCK OF SCHEDULE"
@@ -790,57 +888,73 @@ export function RankingsClient({
       )}
 
       {/* ── History Timeline ───────────────────────────────────────────── */}
-      <div className="bg-card border border-border rounded-[14px] overflow-hidden">
-        <SectionHeader title="POWER #1 HISTORY" />
-        <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
-          {POWER_HISTORY.map((h) => (
-            <div
-              key={h.year}
-              className="bg-secondary border border-border rounded-lg p-3 relative overflow-hidden"
-            >
-              <div className="font-heading text-[22px] font-black tracking-[0.02em] leading-none mb-2">
-                {h.year}
-              </div>
-              <div className="space-y-1">
-                <div>
-                  <div className="text-[9px] font-bold tracking-[0.08em] uppercase text-[#555]">
-                    Power #1
+      {powerHistory.length > 0 && (
+        <div className="bg-card border border-border rounded-[14px] overflow-hidden">
+          <SectionHeader title="POWER #1 HISTORY" />
+          <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+            {powerHistory.map((h) => (
+              <div
+                key={h.year}
+                className="bg-secondary border border-border rounded-lg p-3 relative overflow-hidden"
+              >
+                <div className="font-heading text-[22px] font-black tracking-[0.02em] leading-none mb-2">
+                  {h.year}
+                </div>
+                <div className="space-y-1">
+                  <div>
+                    <div className="text-[9px] font-bold tracking-[0.08em] uppercase text-[#555]">
+                      Power #1
+                    </div>
+                    <div className="text-[11px] font-semibold">
+                      {h.powerOne}
+                    </div>
                   </div>
-                  <div className="text-[11px] font-semibold">
-                    {h.powerOne}
+                  <div>
+                    <div className="text-[9px] font-bold tracking-[0.08em] uppercase text-[#555]">
+                      Champion
+                    </div>
+                    <div
+                      className={cn(
+                        "text-[11px] font-semibold",
+                        h.matched && "text-[#E8B84B]",
+                      )}
+                    >
+                      {h.champ}
+                      {h.matched && (
+                        <span className="ml-1 text-[#E8B84B]">★</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-[9px] font-bold tracking-[0.08em] uppercase text-[#555]">
-                    Champion
-                  </div>
-                  <div
-                    className={cn(
-                      "text-[11px] font-semibold",
-                      h.matched && "text-[#E8B84B]",
-                    )}
-                  >
-                    {h.champ}
-                    {h.matched && (
-                      <span className="ml-1 text-[#E8B84B]">★</span>
-                    )}
-                  </div>
-                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Footnote ──────────────────────────────────────────────────── */}
       <div className="bg-card border border-border rounded-[14px] p-4">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          <strong className="text-foreground">How Power Rankings work:</strong>{" "}
-          Each week, every team&apos;s score is compared against all other
-          teams. A win is awarded for each opponent outscored. The cumulative
-          All-Play win percentage determines the power ranking. Power Score is
-          a 0&ndash;100 normalized value based on rank position. Expected
-          Record projects wins based on scoring power vs the field.
+          {mode === "offseason" ? (
+            <>
+              <strong className="text-foreground">How Offseason Rankings work:</strong>{" "}
+              Each player on a roster is scored based on their positional rank
+              from the prior season&apos;s fantasy production. Higher-ranked players
+              contribute more to the roster strength score. During the offseason
+              (before the FA auction), available cap space adds a bonus reflecting
+              auction potential.
+            </>
+          ) : (
+            <>
+              <strong className="text-foreground">How Power Rankings work:</strong>{" "}
+              Rankings use recency-weighted All-Play Win% &mdash; recent weeks
+              count more than early-season weeks. Each week, every team&apos;s
+              score is compared against all other teams. A win is awarded for
+              each opponent outscored. Power Score (0&ndash;100) blends all-play
+              performance (55%), scoring average (25%), and consistency (20%).
+              Expected Record projects wins based on scoring power vs the field.
+            </>
+          )}
         </p>
       </div>
     </div>
