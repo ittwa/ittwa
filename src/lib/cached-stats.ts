@@ -34,9 +34,13 @@ export async function getCachedSeasonPosRanks(
 }
 
 /**
- * NFL-wide positional ranks from Sleeper's stats API (pos_rank_half_ppr).
- * Unlike getCachedSeasonPosRanks which ranks only league-rostered players,
- * this returns official NFL-wide positional rankings.
+ * NFL-wide positional ranks for a season, computed from Sleeper's stats API.
+ *
+ * Unlike getCachedSeasonPosRanks (which ranks only league-rostered players from
+ * matchup blobs), this ranks every NFL player at each position by their actual
+ * half-PPR fantasy points (pts_half_ppr) — reproducing exactly the order shown
+ * in Sleeper's own Players view. We compute the rank ourselves rather than
+ * trusting the precomputed pos_rank_half_ppr field, which is inconsistent.
  */
 export async function getCachedNflPosRanks(
   season: string,
@@ -49,13 +53,24 @@ export async function getCachedNflPosRanks(
           next: { revalidate: isCurrentSeason ? 3600 : 86400 },
         });
         if (!res.ok) return {};
-        const data: Record<string, { pos_rank_half_ppr?: number }> =
+        const data: Record<string, { pts_half_ppr?: number; pos?: string }> =
           await res.json();
-        const ranks: Record<string, number> = {};
+
+        // Group players by position, ranking each by half-PPR fantasy points.
+        const byPosition = new Map<string, { pid: string; pts: number }[]>();
         for (const [pid, stats] of Object.entries(data)) {
-          if (stats.pos_rank_half_ppr && stats.pos_rank_half_ppr > 0) {
-            ranks[pid] = stats.pos_rank_half_ppr;
-          }
+          const pts = stats.pts_half_ppr;
+          const pos = stats.pos;
+          if (!pos || pts === undefined || pts <= 0) continue;
+          const arr = byPosition.get(pos) || [];
+          arr.push({ pid, pts });
+          byPosition.set(pos, arr);
+        }
+
+        const ranks: Record<string, number> = {};
+        for (const [, players] of byPosition) {
+          players.sort((a, b) => b.pts - a.pts);
+          players.forEach((p, i) => { ranks[p.pid] = i + 1; });
         }
         return ranks;
       } catch {
