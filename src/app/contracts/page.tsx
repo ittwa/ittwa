@@ -45,7 +45,7 @@ export default async function ContractsPage() {
   const seasonRanks = new Map<string, Record<string, number>>();
   await Promise.all(
     availableSeasons.map(async (yr) => {
-      const ranks = await getCachedNflPosRanks(yr, yr === season);
+      const ranks = await getCachedNflPosRanks(yr, nflPlayers, yr === season);
       seasonRanks.set(yr, ranks);
     })
   );

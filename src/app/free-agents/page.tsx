@@ -68,7 +68,7 @@ export default async function FreeAgentsPage() {
   const rankSeasonId = SEASON_LEAGUE_IDS[rankSeason] || leagueId;
 
   const [nflPosRanks, playerPoints] = await Promise.all([
-    getCachedNflPosRanks(rankSeason, rankSeason === season),
+    getCachedNflPosRanks(rankSeason, nflPlayers, rankSeason === season),
     (async () => {
       const pts = new Map<string, number>();
       const fetches = [];

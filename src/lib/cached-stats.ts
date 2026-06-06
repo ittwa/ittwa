@@ -44,6 +44,7 @@ export async function getCachedSeasonPosRanks(
  */
 export async function getCachedNflPosRanks(
   season: string,
+  nflPlayers: SleeperPlayersMap,
   isCurrentSeason: boolean,
 ): Promise<Record<string, number>> {
   const cached = unstable_cache(
@@ -53,14 +54,15 @@ export async function getCachedNflPosRanks(
           next: { revalidate: isCurrentSeason ? 3600 : 86400 },
         });
         if (!res.ok) return {};
-        const data: Record<string, { pts_half_ppr?: number; pos?: string }> =
+        const data: Record<string, { pts_half_ppr?: number }> =
           await res.json();
 
-        // Group players by position, ranking each by half-PPR fantasy points.
+        // Group players by position (from the players map — the stats blob's
+        // own pos field is unreliable), ranking each by half-PPR fantasy points.
         const byPosition = new Map<string, { pid: string; pts: number }[]>();
         for (const [pid, stats] of Object.entries(data)) {
           const pts = stats.pts_half_ppr;
-          const pos = stats.pos;
+          const pos = nflPlayers[pid]?.position;
           if (!pos || pts === undefined || pts <= 0) continue;
           const arr = byPosition.get(pos) || [];
           arr.push({ pid, pts });
