@@ -8,8 +8,8 @@ import {
   getLatestActiveContracts,
   getLeagueUsers,
   getMatchups,
-  getSeasonPosRanks,
 } from "@/lib/data";
+import { getCachedNflPosRanks } from "@/lib/cached-stats";
 import { resolveOwnerName } from "@/lib/contracts";
 import { getDisplayName } from "@/lib/sleeper";
 import { SEASON_LEAGUE_IDS, ALL_OWNERS } from "@/lib/config";
@@ -62,12 +62,13 @@ export default async function FreeAgentsPage() {
   const activeContracts = getLatestActiveContracts(rawContracts);
 
   const availableSeasons = Object.keys(SEASON_LEAGUE_IDS).sort().reverse();
-  const rankSeasonId = availableSeasons.length > 1
-    ? SEASON_LEAGUE_IDS[availableSeasons[1]]
-    : leagueId;
+  const rankSeason = availableSeasons.length > 1
+    ? availableSeasons[1]
+    : season;
+  const rankSeasonId = SEASON_LEAGUE_IDS[rankSeason] || leagueId;
 
-  const [posRanks, playerPoints] = await Promise.all([
-    getSeasonPosRanks(rankSeasonId, nflPlayers).catch(() => new Map<string, number>()),
+  const [nflPosRanks, playerPoints] = await Promise.all([
+    getCachedNflPosRanks(rankSeason, rankSeason === season),
     (async () => {
       const pts = new Map<string, number>();
       const fetches = [];
@@ -136,7 +137,7 @@ export default async function FreeAgentsPage() {
       lastSalary: lastContract?.salary ?? 0,
       lastContractYears: lastContract?.years ?? 0,
       lastPoints: Math.round((playerPoints.get(pid) || 0) * 10) / 10,
-      posRank: posRanks.get(pid) ?? null,
+      posRank: nflPosRanks[pid] ?? null,
       status,
       exp: p.years_exp ?? 0,
       age: p.age ?? 0,
