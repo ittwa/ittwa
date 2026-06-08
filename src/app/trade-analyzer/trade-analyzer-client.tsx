@@ -186,7 +186,7 @@ export function TradeAnalyzerClient({
               <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
               <h1 className="font-heading text-4xl font-black tracking-[0.04em] uppercase">Trade Analyzer</h1>
               <span className="text-[11px] font-bold px-2 py-1 rounded bg-ittwa/15 text-ittwa border border-ittwa/30">
-                Superflex · ½ PPR
+                1QB · ½ PPR
               </span>
             </div>
             <p className="text-[13px] text-muted-foreground ml-4">
