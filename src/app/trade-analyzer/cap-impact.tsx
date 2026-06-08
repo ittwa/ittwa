@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { SALARY_CAP, YEARS_CAP } from "@/lib/config";
 import { getDivisionColor } from "@/lib/ui-utils";
 import type { TeamCapImpact } from "@/lib/trade-analyzer/engine";
 import type { TradeTeam } from "@/lib/trade-analyzer/types";
+import { OwnerAvatar } from "./ui";
 
 function Delta({ value, suffix = "" }: { value: number; suffix?: string }) {
   const color = value > 0 ? "#f87171" : value < 0 ? "#4ade80" : "#9ca3af";
@@ -17,12 +19,17 @@ function Delta({ value, suffix = "" }: { value: number; suffix?: string }) {
   );
 }
 
-export function CapImpactCard({ impact, team }: { impact: TeamCapImpact; team: TradeTeam }) {
+export function CapImpactCard({ impact, team, ownerAvatars }: { impact: TeamCapImpact; team: TradeTeam; ownerAvatars: Record<string, string> }) {
   const accent = getDivisionColor(team.division);
   return (
     <div className="bg-card border border-border rounded-[14px] p-4" style={{ borderTopColor: accent, borderTopWidth: 2 }}>
       <div className="flex items-center justify-between mb-3">
-        <span className="font-heading font-extrabold text-base tracking-wide">{team.owner}</span>
+        <span className="flex items-center gap-2 font-heading font-extrabold text-base tracking-wide">
+          <OwnerAvatar name={team.owner} avatarId={ownerAvatars[team.owner]} division={team.division} size={22} />
+          <Link href={`/teams/${encodeURIComponent(team.owner)}`} className="hover:underline underline-offset-2">
+            {team.owner}
+          </Link>
+        </span>
         {(impact.overCap || impact.overYears) && (
           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-400/15 text-rose-400 border border-rose-400/30">
             {impact.overCap && impact.overYears ? "OVER CAP & YEARS" : impact.overCap ? "OVER CAP" : "OVER YEARS"}
