@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { SleeperAvatarImage } from "@/components/owner-avatar";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { getPositionColors, getDivisionColor, getDivisionColorAlpha, GOLD } from "@/lib/ui-utils";
 import type { Strategy } from "@/lib/trade-analyzer/config";
 import type { TradeAsset, TradeTeam } from "@/lib/trade-analyzer/types";
@@ -18,17 +20,19 @@ export function OwnerAvatar({
   avatarId,
   division,
   size = 26,
+  linked = false,
 }: {
   name: string;
   avatarId?: string;
   division?: string;
   size?: number;
+  linked?: boolean;
 }) {
   const initials = name.slice(0, 2).toUpperCase();
   const color = division ? getDivisionColor(division) : "#888";
   const bg = division ? getDivisionColorAlpha(division, 0.12) : "rgba(136,136,136,0.12)";
   const border = division ? getDivisionColorAlpha(division, 0.25) : "rgba(136,136,136,0.25)";
-  return (
+  const avatar = (
     <div
       className="rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
       style={{ width: size, height: size, background: bg, border: `1px solid ${border}` }}
@@ -44,19 +48,23 @@ export function OwnerAvatar({
       />
     </div>
   );
+  if (!linked) return avatar;
+  return <Link href={`/teams/${encodeURIComponent(name)}`}>{avatar}</Link>;
 }
 
-export function AssetAvatar({ name, position, size = 32 }: { name: string; position: string; size?: number }) {
-  const c = posColors(position);
-  const initials = position === "PICK" ? "PK" : name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
-  return (
-    <div
-      className="rounded-lg shrink-0 flex items-center justify-center font-heading font-extrabold"
-      style={{ width: size, height: size, background: c.bg, border: `1px solid ${c.border}`, color: c.text, fontSize: size * 0.34 }}
-    >
-      {initials}
-    </div>
-  );
+export function AssetAvatar({ id, name, position, size = 32 }: { id: string; name: string; position: string; size?: number }) {
+  if (position === "PICK") {
+    const c = posColors("PICK");
+    return (
+      <div
+        className="rounded-lg shrink-0 flex items-center justify-center font-heading font-extrabold"
+        style={{ width: size, height: size, background: c.bg, border: `1px solid ${c.border}`, color: c.text, fontSize: size * 0.34 }}
+      >
+        PK
+      </div>
+    );
+  }
+  return <PlayerAvatar playerId={id} playerName={name} position={position} size={size} />;
 }
 
 export function PosBadge({ pos }: { pos: string }) {
@@ -172,7 +180,13 @@ export function TeamSelect({
           <>
             <OwnerAvatar name={selected.owner} avatarId={ownerAvatars[selected.owner]} division={selected.division} />
             <div className="text-left min-w-0">
-              <div className="text-[13px] font-semibold truncate">{selected.owner}</div>
+              <Link
+                href={`/teams/${encodeURIComponent(selected.owner)}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-[13px] font-semibold truncate hover:underline underline-offset-2 block"
+              >
+                {selected.owner}
+              </Link>
               <div className="text-[10px] uppercase tracking-wide" style={{ color: getDivisionColor(selected.division) }}>
                 {selected.division}
               </div>
@@ -268,6 +282,7 @@ export function SearchBar({
               }}
               className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent/50 transition-colors"
             >
+              <AssetAvatar id={a.id} name={a.name} position={a.position} size={24} />
               <PosBadge pos={a.position} />
               <span className="text-[13px] font-medium truncate">{a.name}</span>
               <ContractChip salary={a.salary} years={a.years} isPick={a.type === "pick"} />

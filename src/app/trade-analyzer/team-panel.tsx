@@ -45,7 +45,7 @@ export function TeamPanel({
   const incomingYears = evaluations.reduce((s, e) => s + e.asset.years, 0);
 
   return (
-    <div className="bg-card border border-border rounded-[14px] overflow-hidden flex flex-col" style={{ borderTopColor: accent, borderTopWidth: 2 }}>
+    <div className="bg-card border border-border rounded-[14px] flex flex-col" style={{ borderTopColor: accent, borderTopWidth: 2 }}>
       <div className="p-3 space-y-2.5 border-b border-border">
         <div className="flex items-center gap-2">
           <div className="flex-1">
@@ -74,7 +74,7 @@ export function TeamPanel({
         )}
       </div>
 
-      <div className="px-4 py-3 border-t border-border bg-secondary flex items-center justify-between">
+      <div className="px-4 py-3 border-t border-border bg-secondary rounded-b-[14px] flex items-center justify-between">
         <span className="text-[11px] text-muted-foreground font-mono">
           {evaluations.length} asset{evaluations.length === 1 ? "" : "s"} · +${Math.round(incomingSalary)} · +{incomingYears}yr
         </span>
