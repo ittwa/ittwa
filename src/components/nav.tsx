@@ -31,6 +31,7 @@ const NAV_STRUCTURE: NavGroup[] = [
       { href: "/contracts", label: "Contracts", icon: "doc", desc: "Player deals & extensions" },
       { href: "/cap-hits", label: "Cap Hits", icon: "wallet", desc: "Salary cap, by team" },
       { href: "/free-agents", label: "Free Agents", icon: "search", desc: "Available players" },
+      { href: "/trade-analyzer", label: "Trade Analyzer", icon: "scale", desc: "Contract-adjusted trade values" },
       { href: "/trades", label: "Trades", icon: "swap", desc: "Recent deals & history" },
       { href: "/drafts", label: "Drafts", icon: "list", desc: "Rookie & startup drafts" },
     ],
@@ -74,6 +75,7 @@ const MOBILE_NAV_SECTIONS: MobileNavSectionDef[] = [
     { href: "/contracts", label: "Contracts", icon: "doc", desc: "Player deals" },
     { href: "/cap-hits", label: "Cap Hits", icon: "wallet", desc: "Salary cap" },
     { href: "/free-agents", label: "Free Agents", icon: "search", desc: "Available players" },
+    { href: "/trade-analyzer", label: "Trade Analyzer", icon: "scale", desc: "Trade values" },
     { href: "/trades", label: "Trades", icon: "swap", desc: "Deal history" },
     { href: "/drafts", label: "Drafts", icon: "list", desc: "Draft results" },
   ]},
@@ -149,6 +151,8 @@ function NavIcon({ name, size = 20, color = "currentColor" }: { name: string; si
       return <svg {...p}><path d="M14.5 3.5l4 4-2 2-4-4 2-2z"/><path d="M9.5 8.5l4 4-2 2-4-4 2-2z"/><path d="M3 20l5-5"/><path d="M5 22h14"/></svg>;
     case "football":
       return <svg {...p}><ellipse cx="12" cy="12" rx="9" ry="6" transform="rotate(-30 12 12)" fill={color} stroke="none"/><path d="M8 12h8M10 10v4M12 9v6M14 10v4" stroke="#0a0a0a" strokeWidth="1.5"/></svg>;
+    case "scale":
+      return <svg {...p}><path d="M12 3v18"/><path d="M7 21h10"/><path d="M5 6h14"/><path d="M5 6l-3 6a3 3 0 0 0 6 0l-3-6z"/><path d="M19 6l-3 6a3 3 0 0 0 6 0l-3-6z"/></svg>;
     default:
       return null;
   }
