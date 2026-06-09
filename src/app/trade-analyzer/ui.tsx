@@ -205,8 +205,8 @@ export function TeamSelect({
                 )}
               >
                 <OwnerAvatar name={t.owner} avatarId={ownerAvatars[t.owner]} division={t.division} />
-                <span className="text-[13px] font-medium truncate">{t.owner}</span>
-                <span className="ml-auto text-[10px] shrink-0 whitespace-nowrap" style={{ color: getDivisionColor(t.division) }}>
+                <span className="text-[13px] font-medium truncate min-w-0">{t.owner}</span>
+                <span className="ml-auto text-[10px] shrink-0 hidden sm:inline" style={{ color: getDivisionColor(t.division) }}>
                   {t.division}
                 </span>
               </button>
