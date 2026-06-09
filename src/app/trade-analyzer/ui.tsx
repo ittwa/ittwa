@@ -257,7 +257,6 @@ export function SearchBar({
     ? sourceTeam.assets
         .filter((a) => !excludeIds.has(a.id) && (!q || a.name.toLowerCase().includes(q)))
         .sort((a, b) => valueOf(b) - valueOf(a))
-        .slice(0, 8)
     : [];
 
   return (
