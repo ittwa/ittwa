@@ -78,7 +78,7 @@ export function TeamPanel({
         <span className="text-[11px] text-muted-foreground font-mono">
           {evaluations.length} asset{evaluations.length === 1 ? "" : "s"} · +${Math.round(incomingSalary)} · +{incomingYears}yr
         </span>
-        <span className="font-mono text-base font-bold tabular-nums" style={{ color: accent }}>
+        <span className="font-mono text-base font-bold tabular-nums" style={{ color: total < 0 ? "#f87171" : accent }}>
           {Math.round(total)}
         </span>
       </div>

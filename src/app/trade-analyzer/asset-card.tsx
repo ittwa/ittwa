@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { AssetEvaluation } from "@/lib/trade-analyzer/engine";
-import { AssetAvatar, PosBadge, ContractChip, DealBadge } from "./ui";
+import { AssetAvatar, PosBadge, ContractChip, DealBadge, LiabilityBadge, valueColor } from "./ui";
 
 export function TradeAssetCard({
   evaluation,
@@ -16,8 +16,7 @@ export function TradeAssetCard({
 }) {
   const { asset, adjusted, badge } = evaluation;
   const isPick = asset.type === "pick";
-  const delta = adjusted - asset.rawValue;
-  const adjColor = delta > 1 ? "#4ade80" : delta < -1 ? "#f87171" : "#e5e7eb";
+  const isLiability = adjusted < 0;
   const shown = valueMode === "adjusted" ? adjusted : asset.rawValue;
 
   const nameEl = isPick ? (
@@ -37,7 +36,11 @@ export function TradeAssetCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           {nameEl}
-          {badge && <DealBadge badge={badge} />}
+          {isLiability ? (
+            <LiabilityBadge salary={asset.salary} years={asset.years} />
+          ) : (
+            badge === "value" && <DealBadge badge={badge} />
+          )}
         </div>
         <div className="flex items-center gap-1.5 mt-0.5">
           <PosBadge pos={asset.position} />
@@ -51,7 +54,10 @@ export function TradeAssetCard({
         </div>
       </div>
       <div className="text-right shrink-0">
-        <div className="font-mono text-sm font-bold tabular-nums" style={{ color: valueMode === "adjusted" ? adjColor : "#e5e7eb" }}>
+        <div
+          className="font-mono text-sm font-bold tabular-nums"
+          style={{ color: valueMode === "adjusted" ? valueColor(adjusted) : "#e5e7eb" }}
+        >
           {Math.round(shown)}
         </div>
         {valueMode === "adjusted" && (

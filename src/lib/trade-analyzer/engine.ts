@@ -161,12 +161,14 @@ export function computeVerdict(
   ownerB: string,
   config: TradeAnalyzerConfig = DEFAULT_CONFIG,
 ): VerdictResult {
-  const total = totalA + totalB;
-  if (total <= 0) {
+  // Scale by total absolute value so the math holds when a side's haul is
+  // net-negative (cap liabilities). Equals totalA+totalB when both positive.
+  const scale = Math.abs(totalA) + Math.abs(totalB);
+  if (scale === 0) {
     return { kind: "empty", favored: null, diff: 0, pct: 0, headline: "Add players to compare" };
   }
   const diff = round1(totalA - totalB);
-  const pct = Math.abs(diff) / total;
+  const pct = Math.abs(diff) / scale;
   const favored = diff > 0 ? "A" : "B";
   const winner = diff > 0 ? ownerA : ownerB;
 

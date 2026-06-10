@@ -50,7 +50,12 @@ export function Balancing({
                 <ContractChip salary={s.asset.salary} years={s.asset.years} isPick={s.asset.type === "pick"} />
               </div>
             </div>
-            <span className="font-mono text-xs font-bold tabular-nums text-muted-foreground">{Math.round(s.adjusted)}</span>
+            <span
+              className="font-mono text-xs font-bold tabular-nums text-muted-foreground"
+              style={s.adjusted < 0 ? { color: "#f87171" } : undefined}
+            >
+              {Math.round(s.adjusted)}
+            </span>
           </button>
         ))}
       </div>
