@@ -41,16 +41,28 @@ function levenshtein(a: string, b: string): number {
   return prev[b.length];
 }
 
+// A matched FantasyCalc entry: its dynasty value plus positional rank (1 = best
+// at the position), which the valuation model uses to pick an expected-salary
+// tier and to decide startability.
+export interface PlayerValue {
+  value: number;
+  rank: number | null;
+}
+
 export interface ValueIndex {
-  bySleeperId: Map<string, number>;
-  byNamePos: Map<string, number>; // key: `${normName}|${pos}`
-  fuzzyCandidates: { name: string; pos: string; value: number }[];
+  bySleeperId: Map<string, PlayerValue>;
+  byNamePos: Map<string, PlayerValue>; // key: `${normName}|${pos}`
+  fuzzyCandidates: { name: string; pos: string; value: PlayerValue }[];
 }
 
 export function buildValueIndex(entries: FantasyCalcEntry[]): ValueIndex {
-  const bySleeperId = new Map<string, number>();
-  const byNamePos = new Map<string, number>();
+  const bySleeperId = new Map<string, PlayerValue>();
+  const byNamePos = new Map<string, PlayerValue>();
   const fuzzyCandidates: ValueIndex["fuzzyCandidates"] = [];
+
+  // FantasyCalc supplies positionRank directly, but fall back to a value-derived
+  // rank within position when it's missing so the model always has a tier signal.
+  const seenByPos = new Map<string, number>();
 
   for (const entry of entries) {
     const p = entry.player;
@@ -58,16 +70,23 @@ export function buildValueIndex(entries: FantasyCalcEntry[]): ValueIndex {
     const pos = (p.position || "").toUpperCase();
     if (pos === "PICK") continue; // picks are matched separately
 
+    const fallbackRank = (seenByPos.get(pos) ?? 0) + 1;
+    seenByPos.set(pos, fallbackRank);
+    const pv: PlayerValue = {
+      value: entry.value,
+      rank: entry.positionRank ?? fallbackRank,
+    };
+
     // Manual overrides win.
     const overrideSleeperId = FANTASYCALC_TO_SLEEPER_OVERRIDES[p.id];
-    if (overrideSleeperId) bySleeperId.set(overrideSleeperId, entry.value);
+    if (overrideSleeperId) bySleeperId.set(overrideSleeperId, pv);
 
-    if (p.sleeperId) bySleeperId.set(String(p.sleeperId), entry.value);
+    if (p.sleeperId) bySleeperId.set(String(p.sleeperId), pv);
 
     const norm = normalizeName(p.name || "");
     if (norm) {
-      byNamePos.set(`${norm}|${pos}`, entry.value);
-      fuzzyCandidates.push({ name: norm, pos, value: entry.value });
+      byNamePos.set(`${norm}|${pos}`, pv);
+      fuzzyCandidates.push({ name: norm, pos, value: pv });
     }
   }
 
@@ -76,6 +95,7 @@ export function buildValueIndex(entries: FantasyCalcEntry[]): ValueIndex {
 
 export interface MatchResult {
   value: number | null;
+  rank: number | null;
   method: "override" | "sleeperId" | "namePos" | "fuzzy" | "none";
 }
 
@@ -86,15 +106,15 @@ export function matchPlayerValue(
   index: ValueIndex,
 ): MatchResult {
   const direct = index.bySleeperId.get(sleeperId);
-  if (direct !== undefined) return { value: direct, method: "sleeperId" };
+  if (direct !== undefined) return { value: direct.value, rank: direct.rank, method: "sleeperId" };
 
   const pos = (position || "").toUpperCase();
   const norm = normalizeName(fullName);
   const exact = index.byNamePos.get(`${norm}|${pos}`);
-  if (exact !== undefined) return { value: exact, method: "namePos" };
+  if (exact !== undefined) return { value: exact.value, rank: exact.rank, method: "namePos" };
 
   // Fuzzy: closest name within the same position, distance <= 2.
-  let best: { value: number; dist: number } | null = null;
+  let best: { value: PlayerValue; dist: number } | null = null;
   for (const cand of index.fuzzyCandidates) {
     if (cand.pos !== pos) continue;
     const dist = levenshtein(norm, cand.name);
@@ -102,7 +122,7 @@ export function matchPlayerValue(
       best = { value: cand.value, dist };
     }
   }
-  if (best) return { value: best.value, method: "fuzzy" };
+  if (best) return { value: best.value.value, rank: best.value.rank, method: "fuzzy" };
 
-  return { value: null, method: "none" };
+  return { value: null, rank: null, method: "none" };
 }

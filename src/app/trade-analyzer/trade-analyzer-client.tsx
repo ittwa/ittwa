@@ -53,10 +53,12 @@ export function TradeAnalyzerClient({
   teams,
   ownerAvatars,
   unmatchedCount,
+  valuePerDollar,
 }: {
   teams: TradeTeam[];
   ownerAvatars: Record<string, string>;
   unmatchedCount: number;
+  valuePerDollar: number;
 }) {
   const [aTeamId, setATeamId] = useState<number | null>(null);
   const [bTeamId, setBTeamId] = useState<number | null>(null);
@@ -96,8 +98,15 @@ export function TradeAnalyzerClient({
   const teamB = useMemo(() => teams.find((t) => t.rosterId === bTeamId) ?? null, [teams, bTeamId]);
 
   const config: TradeAnalyzerConfig = useMemo(
-    () => ({ ...DEFAULT_CONFIG, SURPLUS_PER_DOLLAR: tweaks.surplusPerDollar, FAIR_PCT: tweaks.fairPct }),
-    [tweaks.surplusPerDollar, tweaks.fairPct],
+    () => ({
+      ...DEFAULT_CONFIG,
+      // Use the league-derived exchange rate (falls back to the constant if the
+      // live computation was unavailable, e.g. no contract data this load).
+      LEAGUE_VALUE_PER_DOLLAR: valuePerDollar || DEFAULT_CONFIG.LEAGUE_VALUE_PER_DOLLAR,
+      SURPLUS_PER_DOLLAR: tweaks.surplusPerDollar,
+      FAIR_PCT: tweaks.fairPct,
+    }),
+    [valuePerDollar, tweaks.surplusPerDollar, tweaks.fairPct],
   );
 
   // Resolve received-asset ids to assets, intersected with the source roster so
@@ -299,11 +308,13 @@ export function TradeAnalyzerClient({
 
       <div className="bg-card border border-border rounded-[14px] p-4">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          <strong className="text-foreground">How values work:</strong> Each asset&apos;s value is its contract
-          surplus: what its production would cost at auction (from FantasyCalc) minus its actual salary, amplified by
-          years remaining (good deals gain, bad deals hurt), plus a small scarcity premium for having the production
-          rostered. Value is floored at the cut penalty, and players without an NFL team count as zero production —
-          so bad contracts show negative value. Strategy still tilts picks &amp; youth vs. win-now vets. Tune the
+          <strong className="text-foreground">How values work:</strong> Each player starts from their production
+          (FantasyCalc), then is docked for their contract: how far their salary sits above what a player of their
+          position &amp; rank should cost, scaled by years remaining (short deals are low-risk rentals, bargains gain
+          value with term). That dollar overpay crosses into value via the league&apos;s own exchange rate (production
+          per dollar). Startable players bottom out only slightly negative and young elites hold a floor near a 1st-round
+          pick, while non-starters on real salary — and players without an NFL team — can go clearly negative. Every
+          value is floored at the cut penalty. Strategy still tilts picks &amp; youth vs. win-now vets. Tune the
           weights above if a verdict feels off.
         </p>
       </div>
