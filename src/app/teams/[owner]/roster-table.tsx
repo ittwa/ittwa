@@ -7,6 +7,7 @@ import { PlayerLink } from "@/components/player-link";
 import { getPositionVariant, getPositionColor } from "@/lib/ui-utils";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
+import { Tooltip } from "@/components/ui/tooltip";
 
 export interface RosterPlayer {
   playerId: string;
@@ -19,9 +20,13 @@ export interface RosterPlayer {
   isMidSeasonPickup: boolean;
   hasContract: boolean;
   posRank?: number;
+  value?: number | null; // contract-adjusted value
 }
 
-type SortKey = "name" | "position" | "nflTeam" | "dpOriginalOwner" | "salary" | "years";
+const VALUE_TOOLTIP =
+  "Contract-adjusted value: the player's FantasyCalc dynasty value, adjusted for what their contract costs.";
+
+type SortKey = "name" | "position" | "nflTeam" | "dpOriginalOwner" | "salary" | "years" | "value";
 type SortDir = "asc" | "desc";
 
 const POSITION_ORDER: Record<string, number> = { QB: 0, RB: 1, WR: 2, TE: 3, K: 4, DEF: 5 };
@@ -52,6 +57,11 @@ function comparePlayers(a: RosterPlayer, b: RosterPlayer, key: SortKey, dir: Sor
       const ya = a.years ?? (dir === "asc" ? Infinity : -1);
       const yb = b.years ?? (dir === "asc" ? Infinity : -1);
       return ya !== yb ? m * (ya - yb) : a.name.localeCompare(b.name);
+    }
+    case "value": {
+      const va = a.value ?? (dir === "asc" ? Infinity : -Infinity);
+      const vb = b.value ?? (dir === "asc" ? Infinity : -Infinity);
+      return va !== vb ? m * (va - vb) : a.name.localeCompare(b.name);
     }
   }
 }
@@ -108,12 +118,13 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
     }
   }
 
-  const columns: { key: SortKey; label: string; className: string }[] = [
+  const columns: { key: SortKey; label: string; className: string; tooltip?: string }[] = [
     { key: "name", label: "Player", className: "px-4 py-3 text-left font-medium" },
     { key: "position", label: "Pos", className: "px-4 py-3 text-left font-medium" },
     { key: "nflTeam", label: "Team", className: "px-4 py-3 text-left font-medium hidden sm:table-cell" },
     { key: "dpOriginalOwner", label: "DP Original Owner", className: "px-4 py-3 text-left font-medium hidden md:table-cell" },
     { key: "salary", label: "Salary", className: "px-4 py-3 text-right font-medium" },
+    { key: "value", label: "Value", className: "px-4 py-3 text-right font-medium", tooltip: VALUE_TOOLTIP },
     { key: "years", label: "Years", className: "px-4 py-3 text-center font-medium" },
   ];
 
@@ -130,6 +141,11 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
                   onClick={() => handleSort(col.key)}
                 >
                   {col.label}
+                  {col.tooltip && (
+                    <Tooltip content={col.tooltip} className="font-normal normal-case">
+                      <span className="ml-1 text-gold/70 cursor-help">ⓘ</span>
+                    </Tooltip>
+                  )}
                   <SortIcon active={sortKey === col.key} dir={sortDir} />
                 </th>
               ))}
@@ -138,7 +154,7 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
           <tbody>
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground italic">
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground italic">
                   No players on this roster. Rebuild season, apparently.
                 </td>
               </tr>
@@ -182,6 +198,15 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
                           />
                         </div>
                       </div>
+                    ) : (
+                      <span className="text-muted-foreground">{"—"}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">
+                    {p.value !== null && p.value !== undefined ? (
+                      <span style={{ color: p.value > 0 ? "#4ade80" : p.value < 0 ? "#f87171" : undefined }}>
+                        {Math.round(p.value)}
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">{"—"}</span>
                     )}

@@ -11,6 +11,7 @@ import {
   getLeagueUsers,
 } from "@/lib/data";
 import { getCachedNflPosRanks } from "@/lib/cached-stats";
+import { getPlayerValueMap } from "@/lib/trade-analyzer/player-values";
 import { resolveOwnerName } from "@/lib/contracts";
 import { getDisplayName } from "@/lib/sleeper";
 import { SEASON_LEAGUE_IDS } from "@/lib/config";
@@ -21,11 +22,12 @@ import type { ContractWithValue } from "@/types/contracts";
 
 export default async function ContractsPage() {
   await connection();
-  const [nflPlayers, rawContracts, nflState, users] = await Promise.all([
+  const [nflPlayers, rawContracts, nflState, users, playerValues] = await Promise.all([
     getNFLPlayers(),
     getContracts(),
     getNFLState(),
     getLeagueUsers(),
+    getPlayerValueMap(),
   ]);
 
   const season = nflState.season;
@@ -104,6 +106,10 @@ export default async function ContractsPage() {
 
         const rankMap = seasonRanks.get(yr);
         const posRank = rankMap?.[pid] ?? undefined;
+        // Contract-adjusted value only applies to the current season (it's built
+        // from live FantasyCalc values + the current contract); historical rows
+        // leave it undefined and render "—".
+        const value = isCurrentSeason ? playerValues.valueByPlayerId.get(pid) ?? null : null;
 
         if (contract) {
           allContracts.push({
@@ -114,6 +120,7 @@ export default async function ContractsPage() {
             owner: resolveOwnerName(contract.owner),
             rosterSeason: yr,
             posRank,
+            value,
           });
         } else {
           allContracts.push({
@@ -136,6 +143,7 @@ export default async function ContractsPage() {
             isMidSeasonPickup: true,
             rosterSeason: yr,
             posRank,
+            value,
           });
         }
       }
