@@ -142,7 +142,7 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
                 >
                   {col.label}
                   {col.tooltip && (
-                    <Tooltip content={col.tooltip} className="font-normal normal-case">
+                    <Tooltip content={col.tooltip} side="bottom" className="font-normal normal-case">
                       <span className="ml-1 text-gold/70 cursor-help">ⓘ</span>
                     </Tooltip>
                   )}
