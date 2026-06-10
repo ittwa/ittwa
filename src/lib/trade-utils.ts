@@ -62,6 +62,7 @@ export function enrichTrades(
           round: pick.round,
           pickSeason: pick.season,
           originalOwner: origOwner,
+          originalRosterId: pick.roster_id,
         };
         sideMap.get(pick.owner_id)?.push(item);
       }
