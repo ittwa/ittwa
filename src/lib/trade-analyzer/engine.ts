@@ -1,15 +1,25 @@
 // The contract-adjusted trade valuation engine — pure functions, no React.
 //
-// Per asset:
-//   expectedSalary = SAL_COEF * (rawValue/1000) ^ SAL_EXP
-//   surplus$       = expectedSalary - actualSalary        (positive = good deal)
-//   surplusPoints  = surplus$ * SURPLUS_PER_DOLLAR * yearsFactor(years)
-//   deadCap        = risk penalty for expensive + long + aging contracts
-//   preStrategy    = rawValue + surplusPoints - deadCap
-//   adjusted       = preStrategy * strategyMultiplier
+// Surplus-value model: a player's trade value is what their production would
+// cost at auction MINUS what their contract actually costs, in dollars:
 //
-// A trade compares the total adjusted value each side RECEIVES, evaluated under
-// the receiving side's strategy.
+//   marketPrice($) = SAL_COEF * (rawValue/1000) ^ SAL_EXP
+//   surplus$       = marketPrice - salary            (negative = bad contract)
+//   scarcity$      = SCARCITY_PCT * marketPrice      (rostered production keeps
+//                                                     some value at a fair price)
+//   value$         = surplus$ * yearsFactor(years) + scarcity$
+//   value$         = max(strategy(value$), -(0.5 * salary * years))
+//   adjusted       = value$ * SURPLUS_PER_DOLLAR     (display points)
+//
+// Years amplify both directions: a good contract locked up longer is more
+// valuable, a bad contract locked up longer is more painful. The floor mirrors
+// the league cut penalty (50% of the remaining salary commitment) — the worst
+// case for an owner is cutting the player, so trade value bottoms out there.
+// Players with no NFL team (free agents / retired) carry no expected
+// production, so their value is just the negative of their contract burden.
+//
+// A trade compares the total adjusted value each side RECEIVES, evaluated
+// under the receiving side's strategy.
 
 import { SALARY_CAP, YEARS_CAP } from "@/lib/config";
 import { DEFAULT_CONFIG, type Strategy, type TradeAnalyzerConfig } from "./config";
@@ -19,13 +29,12 @@ export type { Strategy } from "./config";
 
 export interface AssetEvaluation {
   asset: TradeAsset;
-  expectedSalary: number;
-  surplusDollars: number;
-  surplusPoints: number;
-  deadCap: number;
-  preStrategy: number;
+  marketPrice: number; // $ the production would cost at auction
+  surplusDollars: number; // marketPrice - salary
+  scarcityDollars: number; // residual value of rostered production
+  valueDollars: number; // final surplus value in $ (post-strategy, post-floor)
   multiplier: number;
-  adjusted: number;
+  adjusted: number; // valueDollars scaled to display points
   badge: "value" | "overpay" | null;
 }
 
@@ -60,24 +69,6 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 function yearsFactor(years: number, config: TradeAnalyzerConfig): number {
   if (years <= 0) return config.YEARS_FACTOR[0] ?? 0;
   return config.YEARS_FACTOR[years] ?? config.YEARS_FACTOR[5];
-}
-
-export function deadCapPenalty(
-  salary: number,
-  years: number,
-  age: number | null,
-  config: TradeAnalyzerConfig = DEFAULT_CONFIG,
-): number {
-  if (age === null) return 0;
-  if (salary < config.DEADCAP_SALARY_FLOOR || age < config.DEADCAP_AGE_FLOOR) return 0;
-  const overSalary = salary - config.DEADCAP_SALARY_FLOOR;
-  const overAge = age - config.DEADCAP_AGE_FLOOR;
-  const yearsRemaining = Math.max(years, 1);
-  // Risk grows with how far over each floor the contract is, and how many years
-  // remain locked in. Scaled into value points by DEADCAP_SCALE.
-  const risk =
-    (overSalary * config.DEADCAP_SALARY_W + overAge * config.DEADCAP_AGE_W) * yearsRemaining;
-  return round1(risk * config.DEADCAP_SCALE);
 }
 
 export function strategyMultiplier(
@@ -115,27 +106,38 @@ export function evaluateAsset(
   strategy: Strategy,
   config: TradeAnalyzerConfig = DEFAULT_CONFIG,
 ): AssetEvaluation {
-  const expectedSalary = config.SAL_COEF * Math.pow(Math.max(asset.rawValue, 0) / 1000, config.SAL_EXP);
-  const surplusDollars = expectedSalary - asset.salary;
-  const surplusPoints =
-    surplusDollars * config.SURPLUS_PER_DOLLAR * yearsFactor(asset.years, config);
-  const deadCap = deadCapPenalty(asset.salary, asset.years, asset.age, config);
-  const preStrategy = asset.rawValue + surplusPoints - deadCap;
-  const multiplier = strategyMultiplier(asset, strategy, config);
-  const adjusted = preStrategy * multiplier;
+  // No NFL team = no expected production (cut/retired vets still under
+  // contract). Picks are exempt — they have no team by nature.
+  const effectiveValue =
+    asset.type === "player" && !asset.nflTeam ? 0 : Math.max(asset.rawValue, 0);
 
-  const delta = adjusted - asset.rawValue;
+  const marketPrice = config.SAL_COEF * Math.pow(effectiveValue / 1000, config.SAL_EXP);
+  const surplusDollars = marketPrice - asset.salary;
+  const scarcityDollars = config.SCARCITY_PCT * marketPrice;
+  const rawDollars = surplusDollars * yearsFactor(asset.years, config) + scarcityDollars;
+
+  const multiplier = strategyMultiplier(asset, strategy, config);
+  // Negative values divide instead of multiply, so a strategy that likes this
+  // asset type finds its bad contract less painful — not more.
+  const strategic = rawDollars >= 0 ? rawDollars * multiplier : rawDollars / multiplier;
+
+  // Cut-penalty floor: 50% of the remaining salary commitment (the league cut
+  // penalty). The worst case is cutting the player, so value can't sink lower.
+  const cutPenalty = 0.5 * asset.salary * asset.years;
+  const valueDollars = Math.max(strategic, -cutPenalty);
+
+  const adjusted = valueDollars * config.SURPLUS_PER_DOLLAR;
+
   let badge: AssetEvaluation["badge"] = null;
-  if (delta >= config.VALUE_BADGE) badge = "value";
-  else if (delta <= -config.OVERPAY_BADGE) badge = "overpay";
+  if (valueDollars >= config.VALUE_BADGE) badge = "value";
+  else if (valueDollars <= -config.OVERPAY_BADGE) badge = "overpay";
 
   return {
     asset,
-    expectedSalary: round1(expectedSalary),
+    marketPrice: round1(marketPrice),
     surplusDollars: round1(surplusDollars),
-    surplusPoints: round1(surplusPoints),
-    deadCap,
-    preStrategy: round1(preStrategy),
+    scarcityDollars: round1(scarcityDollars),
+    valueDollars: round1(valueDollars),
     multiplier,
     adjusted: round1(adjusted),
     badge,

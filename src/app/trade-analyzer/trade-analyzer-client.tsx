@@ -271,11 +271,12 @@ export function TradeAnalyzerClient({
 
       <div className="bg-card border border-border rounded-[14px] p-4">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          <strong className="text-foreground">How values work:</strong> Each asset starts from its FantasyCalc dynasty
-          value, then is adjusted for contract surplus (how its salary compares to an expected price for that value),
-          dead-cap risk on expensive aging deals, and each team&apos;s strategy (rebuild boosts picks &amp; youth,
-          compete boosts win-now vets). Picks carry their estimated rookie-slot contract for cap math. Tune the weights
-          above if a verdict feels off.
+          <strong className="text-foreground">How values work:</strong> Each asset&apos;s value is its contract
+          surplus: what its production would cost at auction (from FantasyCalc) minus its actual salary, amplified by
+          years remaining (good deals gain, bad deals hurt), plus a small scarcity premium for having the production
+          rostered. Value is floored at the cut penalty, and players without an NFL team count as zero production —
+          so bad contracts show negative value. Strategy still tilts picks &amp; youth vs. win-now vets. Tune the
+          weights above if a verdict feels off.
         </p>
       </div>
     </div>
