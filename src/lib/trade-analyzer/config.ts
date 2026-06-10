@@ -148,7 +148,10 @@ export const DEFAULT_CONFIG: TradeAnalyzerConfig = {
   // "roughly top-12 QB/TE, top-24 RB, top-36 WR by recent production"
   STARTABLE_RANK: { QB: 12, RB: 24, WR: 36, TE: 12 },
   STARTABLE_RANK_DEFAULT: 24,
-  BENCH_PRODUCTION_FACTOR: 0.35,
+  // A rostered non-starter still has real (if hard-to-trade) production, so it is
+  // credited at this fraction. High enough that only genuinely expensive
+  // non-starters go clearly negative (Hockenson/Najee), not cheap depth.
+  BENCH_PRODUCTION_FACTOR: 0.55,
 
   SOFT_FLOOR_POINTS: -250,
   ELITE_RANK: 3,
