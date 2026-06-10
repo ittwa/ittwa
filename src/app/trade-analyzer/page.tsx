@@ -26,6 +26,11 @@ export default async function TradeAnalyzerPage() {
   );
 
   return (
-    <TradeAnalyzerClient teams={teams} ownerAvatars={ownerAvatars} unmatchedCount={data.unmatchedCount} />
+    <TradeAnalyzerClient
+      teams={teams}
+      ownerAvatars={ownerAvatars}
+      unmatchedCount={data.unmatchedCount}
+      valuePerDollar={data.valuePerDollar}
+    />
   );
 }

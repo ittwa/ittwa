@@ -17,6 +17,7 @@ import {
 } from "@/lib/config";
 import type { ContractWithValue } from "@/types/contracts";
 import { buildValueIndex, matchPlayerValue } from "./player-matching";
+import { DEFAULT_CONFIG } from "./config";
 import type { TradeAnalyzerData, TradeAsset, TradeTeam } from "./types";
 
 // How many future draft seasons to expose as tradeable picks, and how many
@@ -167,6 +168,7 @@ export async function getTradeAnalyzerData(): Promise<TradeAnalyzerData> {
         nflTeam: sp?.team ?? null,
         age: sp?.age ?? null,
         rawValue: match.value ?? 0,
+        productionRank: match.rank,
         salary,
         years,
       });
@@ -219,6 +221,7 @@ export async function getTradeAnalyzerData(): Promise<TradeAnalyzerData> {
           nflTeam: null,
           age: null,
           rawValue: pickValue(pickIndex, season, round),
+          productionRank: null,
           salary: contract?.salary ?? 0,
           years: contract?.years ?? 4,
           pickRound: round,
@@ -234,5 +237,29 @@ export async function getTradeAnalyzerData(): Promise<TradeAnalyzerData> {
     console.warn(`[trade-analyzer] ${unmatchedCount} player(s) had no FantasyCalc value match`);
   }
 
-  return { teams, generatedAt: Date.now(), unmatchedCount };
+  // Derive the league's exchange rate from live data: what one league dollar
+  // actually buys in production at market = Σ(rostered production) / Σ(rostered
+  // salaries). This is the ONLY place production points and dollars touch in the
+  // valuation model. Only count matched, salaried players so the ratio reflects
+  // real spend (skip $0 mid-season pickups and unmatched players).
+  let prodSum = 0;
+  let salarySum = 0;
+  for (const team of teams) {
+    for (const a of team.assets) {
+      if (a.type !== "player" || a.salary <= 0 || a.rawValue <= 0) continue;
+      prodSum += a.rawValue;
+      salarySum += a.salary;
+    }
+  }
+  const valuePerDollar =
+    salarySum > 0
+      ? Math.round((prodSum / salarySum) * 10) / 10
+      : DEFAULT_CONFIG.LEAGUE_VALUE_PER_DOLLAR;
+  console.log(
+    `[trade-analyzer] LEAGUE_VALUE_PER_DOLLAR = ${valuePerDollar} ` +
+      `(Σproduction ${Math.round(prodSum)} / Σsalary ${Math.round(salarySum)}; ` +
+      `fallback ${DEFAULT_CONFIG.LEAGUE_VALUE_PER_DOLLAR})`,
+  );
+
+  return { teams, generatedAt: Date.now(), unmatchedCount, valuePerDollar };
 }

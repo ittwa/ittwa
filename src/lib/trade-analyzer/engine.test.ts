@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { evaluateAsset, computeVerdict } from "./engine";
+import { DEFAULT_CONFIG } from "./config";
 import type { TradeAsset } from "./types";
+
+const RATE = DEFAULT_CONFIG.LEAGUE_VALUE_PER_DOLLAR;
 
 function player(over: Partial<TradeAsset>): TradeAsset {
   return {
@@ -11,55 +14,96 @@ function player(over: Partial<TradeAsset>): TradeAsset {
     nflTeam: "DAL",
     age: 25,
     rawValue: 0,
+    productionRank: 10, // startable by default
     salary: 0,
     years: 1,
     ...over,
   };
 }
 
-describe("surplus-value model", () => {
-  it("values a bad contract negative, floored at the cut penalty (Hockenson case)", () => {
-    // ~1200 production is worth ~$3.4 at auction but costs $24 → deep negative,
-    // floored at the cut penalty: -(0.5 × 24 × 1) = -$12.
-    const e = evaluateAsset(player({ rawValue: 1200, salary: 24, years: 1, age: 28 }), "neutral");
-    expect(e.valueDollars).toBe(-12);
+describe("contract-adjusted valuation model", () => {
+  it("values an expensive non-starter negative (Hockenson case)", () => {
+    // TE ranked outside the top 12 → not a weekly starter, so its production is
+    // bench-discounted and the contract cost dominates.
+    const e = evaluateAsset(
+      player({ rawValue: 1800, salary: 26, years: 2, age: 29, position: "TE", productionRank: 16 }),
+      "neutral",
+    );
+    expect(e.valueDollars).toBeLessThan(0);
     expect(e.adjusted).toBeLessThan(0);
     expect(e.badge).toBe("overpay");
   });
 
   it("treats players with no NFL team as zero production (Najee case)", () => {
-    // FantasyCalc may still list residual value, but no team = no production.
-    // -(9 × 1.25) = -$11.25, floored at -(0.5 × 9 × 2) = -$9.
-    const e = evaluateAsset(player({ rawValue: 800, nflTeam: null, salary: 9, years: 2 }), "neutral");
-    expect(e.valueDollars).toBe(-9);
+    // No team = no production, so value is just the (negative) contract burden.
+    const e = evaluateAsset(
+      player({ rawValue: 800, nflTeam: null, salary: 18, years: 2, position: "RB", productionRank: 30 }),
+      "neutral",
+    );
+    expect(e.production).toBe(0);
+    expect(e.valueDollars).toBeLessThan(0);
   });
 
-  it("never values below -(0.5 × salary × years)", () => {
-    // Near-zero production at $40/1yr: raw surplus ≈ -$40, floor binds at -$20.
-    const e = evaluateAsset(player({ rawValue: 100, salary: 40, years: 1 }), "neutral");
-    expect(e.valueDollars).toBe(-20);
+  it("never values below the hard floor −(0.5 × salary × years × rate)", () => {
+    const cases: Partial<TradeAsset>[] = [
+      { rawValue: 200, salary: 30, years: 1, age: 30, position: "RB", productionRank: 40 },
+      { rawValue: 0, nflTeam: null, salary: 50, years: 3, position: "WR", productionRank: null },
+      { rawValue: 1800, salary: 26, years: 2, age: 29, position: "TE", productionRank: 16 },
+    ];
+    for (const c of cases) {
+      for (const strat of ["neutral", "rebuilding", "competing"] as const) {
+        const a = player(c);
+        const e = evaluateAsset(a, strat);
+        const hardFloor = -(0.5 * a.salary * a.years * RATE);
+        expect(e.valueDollars).toBeGreaterThanOrEqual(hardFloor - 0.05);
+      }
+    }
   });
 
-  it("boosts productive players on cheap long deals", () => {
-    // market(9000) ≈ $68.9 at $8 salary × 3yr factor + scarcity ≈ +$96.
-    const e = evaluateAsset(player({ rawValue: 9000, salary: 8, years: 3, age: 23 }), "neutral");
-    expect(e.valueDollars).toBeGreaterThan(60);
+  it("boosts a productive startable player on a cheap long deal", () => {
+    const e = evaluateAsset(
+      player({ rawValue: 9000, salary: 8, years: 3, age: 23, position: "WR", productionRank: 1 }),
+      "neutral",
+    );
+    expect(e.valueDollars).toBeGreaterThan(9000); // a bargain ADDS to production value
     expect(e.badge).toBe("value");
   });
 
-  it("gives fairly-priced production a small positive value (scarcity premium)", () => {
-    // market(3000) ≈ $13.3 vs $14 salary: surplus ≈ -$0.9, scarcity ≈ +$1.6.
-    const e = evaluateAsset(player({ rawValue: 3000, salary: 14, years: 2 }), "neutral");
+  it("keeps a fairly-priced startable player solidly positive (production dominates)", () => {
+    const e = evaluateAsset(
+      player({ rawValue: 3000, salary: 30, years: 2, position: "WR", productionRank: 18 }),
+      "neutral",
+    );
     expect(e.valueDollars).toBeGreaterThan(0);
-    expect(e.valueDollars).toBeLessThan(5);
+  });
+
+  it("soft-floors a startable player at worst slightly negative", () => {
+    // A startable WR with a brutal contract still has buyers → bottoms at the soft floor.
+    const e = evaluateAsset(
+      player({ rawValue: 1500, salary: 80, years: 3, age: 29, position: "WR", productionRank: 20 }),
+      "neutral",
+    );
+    expect(e.valueDollars).toBe(DEFAULT_CONFIG.SOFT_FLOOR_POINTS);
+  });
+
+  it("holds a young elite player at the elite-asset floor regardless of contract", () => {
+    // Top-3 WR under 26 on a monster contract — never below a mid-1st pick.
+    const e = evaluateAsset(
+      player({ rawValue: 500, salary: 90, years: 3, age: 24, position: "WR", productionRank: 2 }),
+      "neutral",
+    );
+    expect(e.valueDollars).toBe(DEFAULT_CONFIG.ELITE_FLOOR_POINTS);
   });
 
   it("never values a $0 expiring pickup negative", () => {
-    const e = evaluateAsset(player({ rawValue: 500, salary: 0, years: 0 }), "neutral");
+    const e = evaluateAsset(
+      player({ rawValue: 500, salary: 0, years: 0, position: "WR", productionRank: 40 }),
+      "neutral",
+    );
     expect(e.valueDollars).toBeGreaterThanOrEqual(0);
   });
 
-  it("does not zero pick value despite null nflTeam", () => {
+  it("values a pick at its production, unaffected by contract floors", () => {
     const pick: TradeAsset = {
       id: "2027-1-3",
       type: "pick",
@@ -68,15 +112,16 @@ describe("surplus-value model", () => {
       nflTeam: null,
       age: null,
       rawValue: 4000,
+      productionRank: null,
       salary: 11,
       years: 4,
     };
     const e = evaluateAsset(pick, "neutral");
-    expect(e.valueDollars).toBeGreaterThan(0);
+    expect(e.valueDollars).toBe(4000);
   });
 
   it("makes a bad contract less painful (not more) for a strategy that likes the asset", () => {
-    const bad = player({ rawValue: 1000, salary: 20, years: 2, age: 22 });
+    const bad = player({ rawValue: 1000, salary: 20, years: 2, age: 22, position: "WR", productionRank: 50 });
     const neutral = evaluateAsset(bad, "neutral");
     const rebuild = evaluateAsset(bad, "rebuilding"); // rebuild likes young players
     expect(neutral.valueDollars).toBeLessThan(0);

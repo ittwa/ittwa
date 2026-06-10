@@ -1,40 +1,43 @@
 // The contract-adjusted trade valuation engine — pure functions, no React.
 //
-// Surplus-value model: a player's trade value is what their production would
-// cost at auction MINUS what their contract actually costs, in dollars:
+// Surplus-value model, kept in DOLLAR-SPACE until the last possible step:
 //
-//   marketPrice($) = SAL_COEF * (rawValue/1000) ^ SAL_EXP
-//   surplus$       = marketPrice - salary            (negative = bad contract)
-//   scarcity$      = SCARCITY_PCT * marketPrice      (rostered production keeps
-//                                                     some value at a fair price)
-//   value$         = surplus$ * yearsFactor(years) + scarcity$
-//   value$         = max(strategy(value$), -(0.5 * salary * years))
-//   adjusted       = value$ * SURPLUS_PER_DOLLAR     (display points)
+//   1. production  = FantasyCalc value (the player's market production).
+//                    Bench (non-starter) production is discounted, and a player
+//                    with no NFL team carries none.
+//   2. expectedSalary($) = what a player of this position + production rank
+//                          SHOULD cost, from the league's salary distribution.
+//   3. overpay($)   = actualSalary - expectedSalary   (negative = bargain)
+//   4. adjustedOverpay($) = overpay × termMultiplier  (short rentals hurt less;
+//                          bargains gain value with term)
+//   5. value(points) = production - adjustedOverpay × LEAGUE_VALUE_PER_DOLLAR
+//                      └─ the ONLY place the two scales touch ─┘
+//   6. floors (in points), in order: soft floor for startable players,
+//      elite-asset floor, then the absolute hard floor at the cut penalty
+//      −(0.5 × salary × years × LEAGUE_VALUE_PER_DOLLAR): trading a player away
+//      can never be worth more than what cutting him would cost.
 //
-// Years amplify both directions: a good contract locked up longer is more
-// valuable, a bad contract locked up longer is more painful. The floor mirrors
-// the league cut penalty (50% of the remaining salary commitment) — the worst
-// case for an owner is cutting the player, so trade value bottoms out there.
-// Players with no NFL team (free agents / retired) carry no expected
-// production, so their value is just the negative of their contract burden.
+// `adjusted` (display) = value × SURPLUS_PER_DOLLAR / SURPLUS_PER_DOLLAR_BASE,
+// so by default it equals the points value and the Tweaks slider just scales it.
 //
-// A trade compares the total adjusted value each side RECEIVES, evaluated
-// under the receiving side's strategy.
+// A trade compares the total adjusted value each side RECEIVES, evaluated under
+// the receiving side's strategy.
 
 import { SALARY_CAP, YEARS_CAP } from "@/lib/config";
-import { DEFAULT_CONFIG, type Strategy, type TradeAnalyzerConfig } from "./config";
+import { DEFAULT_CONFIG, type SalaryTier, type Strategy, type TradeAnalyzerConfig } from "./config";
 import type { TradeAsset, TradeTeam } from "./types";
 
 export type { Strategy } from "./config";
 
 export interface AssetEvaluation {
   asset: TradeAsset;
-  marketPrice: number; // $ the production would cost at auction
-  surplusDollars: number; // marketPrice - salary
-  scarcityDollars: number; // residual value of rostered production
-  valueDollars: number; // final surplus value in $ (post-strategy, post-floor)
-  multiplier: number;
-  adjusted: number; // valueDollars scaled to display points
+  production: number; // effective production points (bench-discounted, 0 if no team)
+  expectedSalary: number; // $ a player of this rank/position should cost
+  overpayDollars: number; // actualSalary - expectedSalary (negative = bargain)
+  adjustedOverpayDollars: number; // overpay after the term-risk multiplier
+  valueDollars: number; // canonical value in production-value points (post-floor)
+  multiplier: number; // strategy multiplier applied
+  adjusted: number; // value scaled to display points
   badge: "value" | "overpay" | null;
 }
 
@@ -66,9 +69,32 @@ export interface BalancingSuggestion {
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-function yearsFactor(years: number, config: TradeAnalyzerConfig): number {
-  if (years <= 0) return config.YEARS_FACTOR[0] ?? 0;
-  return config.YEARS_FACTOR[years] ?? config.YEARS_FACTOR[5];
+// Term multiplier on an overpay (≥0) or a discount (<0). Overpays on short
+// deals hurt less (cheap to escape); discounts gain value the longer they run.
+function termMultiplier(overpay: number, years: number, config: TradeAnalyzerConfig): number {
+  const table = overpay >= 0 ? config.TERM_RISK_OVERPAY : config.TERM_DISCOUNT;
+  if (years <= 0) return table[0] ?? table[1] ?? 1;
+  return table[years] ?? table[5] ?? 1;
+}
+
+// Walk the position's expected-salary tiers (ordered by ascending maxRank) and
+// return the dollar figure for a player at `rank`. A null rank (unmatched / no
+// FantasyCalc rank) is treated as deep bench → the last (cheapest) tier.
+function expectedSalary(
+  position: string,
+  rank: number | null,
+  config: TradeAnalyzerConfig,
+): number {
+  const tiers: SalaryTier[] = config.EXPECTED_SALARY[position] ?? config.EXPECTED_SALARY_DEFAULT;
+  const effectiveRank = rank ?? Infinity;
+  for (const tier of tiers) {
+    if (effectiveRank <= tier.maxRank) return tier.dollars;
+  }
+  return tiers[tiers.length - 1]?.dollars ?? 0;
+}
+
+function startableThreshold(position: string, config: TradeAnalyzerConfig): number {
+  return config.STARTABLE_RANK[position] ?? config.STARTABLE_RANK_DEFAULT;
 }
 
 export function strategyMultiplier(
@@ -106,40 +132,93 @@ export function evaluateAsset(
   strategy: Strategy,
   config: TradeAnalyzerConfig = DEFAULT_CONFIG,
 ): AssetEvaluation {
-  // No NFL team = no expected production (cut/retired vets still under
-  // contract). Picks are exempt — they have no team by nature.
-  const effectiveValue =
-    asset.type === "player" && !asset.nflTeam ? 0 : Math.max(asset.rawValue, 0);
+  const rate = config.LEAGUE_VALUE_PER_DOLLAR;
+  const toDisplay = (points: number) =>
+    points * (config.SURPLUS_PER_DOLLAR / config.SURPLUS_PER_DOLLAR_BASE);
 
-  const marketPrice = config.SAL_COEF * Math.pow(effectiveValue / 1000, config.SAL_EXP);
-  const surplusDollars = marketPrice - asset.salary;
-  const scarcityDollars = config.SCARCITY_PCT * marketPrice;
-  const rawDollars = surplusDollars * yearsFactor(asset.years, config) + scarcityDollars;
+  // ── Picks: no contract overpay (rookie deals are league-standard cheap), so
+  // a pick's value is simply its production, tilted by strategy. Pick valuation
+  // is intentionally left as-is in this pass. ───────────────────────────────
+  if (asset.type === "pick") {
+    const multiplier = strategyMultiplier(asset, strategy, config);
+    const valueDollars = round1(Math.max(asset.rawValue, 0) * multiplier);
+    return {
+      asset,
+      production: round1(Math.max(asset.rawValue, 0)),
+      expectedSalary: 0,
+      overpayDollars: 0,
+      adjustedOverpayDollars: 0,
+      valueDollars,
+      multiplier,
+      adjusted: round1(toDisplay(valueDollars)),
+      badge: null,
+    };
+  }
 
-  const multiplier = strategyMultiplier(asset, strategy, config);
+  // ── 1. Production ──────────────────────────────────────────────────────────
+  // No NFL team = no production (cut/retired vets still under contract). A
+  // rostered non-starter's production is hard to trade for full value, so it is
+  // credited at BENCH_PRODUCTION_FACTOR — this lets an expensive non-starter's
+  // contract dominate and land negative (the Hockenson/Najee case).
+  const rawValue = Math.max(asset.rawValue, 0);
+  const startable =
+    !!asset.nflTeam &&
+    asset.productionRank != null &&
+    asset.productionRank <= startableThreshold(asset.position, config);
+  const production = !asset.nflTeam
+    ? 0
+    : startable
+      ? rawValue
+      : rawValue * config.BENCH_PRODUCTION_FACTOR;
+
+  // ── 2-4. Contract cost, all in DOLLAR-SPACE ─────────────────────────────────
+  const expSalary = expectedSalary(asset.position, asset.productionRank ?? null, config);
+  const overpayDollars = asset.salary - expSalary; // negative = bargain
+  const adjustedOverpayDollars = overpayDollars * termMultiplier(overpayDollars, asset.years, config);
+
+  // ── 5. The only cross-scale step: dollars → production-value points ─────────
+  let value = production - adjustedOverpayDollars * rate;
+
+  // Strategy tilt (applied before floors so floors stay absolute guarantees).
   // Negative values divide instead of multiply, so a strategy that likes this
-  // asset type finds its bad contract less painful — not more.
-  const strategic = rawDollars >= 0 ? rawDollars * multiplier : rawDollars / multiplier;
+  // asset finds its bad contract less painful — not more.
+  const multiplier = strategyMultiplier(asset, strategy, config);
+  value = value >= 0 ? value * multiplier : value / multiplier;
 
-  // Cut-penalty floor: 50% of the remaining salary commitment (the league cut
-  // penalty). The worst case is cutting the player, so value can't sink lower.
-  const cutPenalty = 0.5 * asset.salary * asset.years;
-  const valueDollars = Math.max(strategic, -cutPenalty);
+  // ── 6. Floors, in order ─────────────────────────────────────────────────────
+  // Soft floor: a projected weekly starter always has buyers, so it bottoms out
+  // only slightly negative — clearly negative values are reserved for
+  // non-starters carrying real salary.
+  if (startable) value = Math.max(value, config.SOFT_FLOOR_POINTS);
 
-  const adjusted = valueDollars * config.SURPLUS_PER_DOLLAR;
+  // Elite-asset floor: a young top-of-position player is a premium dynasty asset
+  // regardless of contract — never below a mid-1st-round rookie pick.
+  const elite =
+    !!asset.nflTeam &&
+    asset.productionRank != null &&
+    asset.productionRank <= config.ELITE_RANK &&
+    asset.age != null &&
+    asset.age <= config.ELITE_MAX_AGE;
+  if (elite) value = Math.max(value, config.ELITE_FLOOR_POINTS);
+
+  // Hard floor (absolute): the league cut penalty is 50% of the remaining
+  // contract, so trading a player away can never be worth more than cutting him.
+  const hardFloor = -(0.5 * asset.salary * asset.years * rate);
+  value = Math.max(value, hardFloor);
 
   let badge: AssetEvaluation["badge"] = null;
-  if (valueDollars >= config.VALUE_BADGE) badge = "value";
-  else if (valueDollars <= -config.OVERPAY_BADGE) badge = "overpay";
+  if (overpayDollars <= -config.VALUE_BADGE) badge = "value";
+  else if (overpayDollars >= config.OVERPAY_BADGE) badge = "overpay";
 
   return {
     asset,
-    marketPrice: round1(marketPrice),
-    surplusDollars: round1(surplusDollars),
-    scarcityDollars: round1(scarcityDollars),
-    valueDollars: round1(valueDollars),
+    production: round1(production),
+    expectedSalary: round1(expSalary),
+    overpayDollars: round1(overpayDollars),
+    adjustedOverpayDollars: round1(adjustedOverpayDollars),
+    valueDollars: round1(value),
     multiplier,
-    adjusted: round1(adjusted),
+    adjusted: round1(toDisplay(value)),
     badge,
   };
 }
