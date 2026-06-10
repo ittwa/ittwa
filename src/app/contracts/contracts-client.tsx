@@ -7,13 +7,18 @@ import { getPositionColors } from "@/lib/ui-utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 import { PlayerLink } from "@/components/player-link";
+import { Tooltip } from "@/components/ui/tooltip";
 
 export interface ContractEntry extends ContractWithValue {
   rosterSeason: string;
   posRank?: number;
+  value?: number | null; // contract-adjusted value (current season only)
 }
 
-type SortKey = "rosterSeason" | "player" | "position" | "owner" | "salary" | "years" | "contractStartYear";
+const VALUE_TOOLTIP =
+  "Contract-adjusted value: the player's FantasyCalc dynasty value, adjusted for what their contract costs.";
+
+type SortKey = "rosterSeason" | "player" | "position" | "owner" | "salary" | "years" | "contractStartYear" | "value";
 type SortDir = "asc" | "desc";
 
 interface ContractsClientProps {
@@ -121,6 +126,18 @@ function SalaryCell({ salary, maxSalary }: { salary: number; maxSalary: number }
         <div className="h-full rounded-sm" style={{ width: `${pct * 100}%`, background: barColor }} />
       </div>
     </div>
+  );
+}
+
+function ValueCell({ value }: { value?: number | null }) {
+  if (value === null || value === undefined) {
+    return <span className="text-muted-foreground text-xs">—</span>;
+  }
+  const color = value > 0 ? "#4ade80" : value < 0 ? "#f87171" : "var(--muted-foreground)";
+  return (
+    <span className="font-mono text-[13px] font-semibold tabular-nums" style={{ color }}>
+      {Math.round(value)}
+    </span>
   );
 }
 
@@ -317,13 +334,14 @@ function CheckFilter({ label, checked, onChange }: { label: string; checked: boo
   );
 }
 
-function SortTh({ label, field, sortKey, sortDir, onSort, align = "left" }: {
+function SortTh({ label, field, sortKey, sortDir, onSort, align = "left", tooltip }: {
   label: string;
   field: SortKey;
   sortKey: SortKey;
   sortDir: SortDir;
   onSort: (f: SortKey) => void;
   align?: "left" | "right" | "center";
+  tooltip?: string;
 }) {
   const active = sortKey === field;
   return (
@@ -333,6 +351,11 @@ function SortTh({ label, field, sortKey, sortDir, onSort, align = "left" }: {
       style={{ color: active ? "#E8B84B" : "var(--muted-foreground)", textAlign: align }}
     >
       {label}
+      {tooltip && (
+        <Tooltip content={tooltip} className="normal-case tracking-normal font-normal">
+          <span className="ml-1 text-[#E8B84B]/70 cursor-help">ⓘ</span>
+        </Tooltip>
+      )}
       {active && <span className="ml-1 opacity-80">{sortDir === "asc" ? "↑" : "↓"}</span>}
     </th>
   );
@@ -379,6 +402,7 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
         case "position": cmp = a.position.localeCompare(b.position) || (a.posRank ?? 9999) - (b.posRank ?? 9999); break;
         case "owner": cmp = a.owner.localeCompare(b.owner); break;
         case "salary": cmp = a.salary - b.salary; break;
+        case "value": cmp = (a.value ?? -Infinity) - (b.value ?? -Infinity); break;
         case "years": cmp = a.years - b.years; break;
         case "contractStartYear": cmp = a.contractStartYear.localeCompare(b.contractStartYear); break;
       }
@@ -457,6 +481,7 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
                 <SortTh label="Pos" field="position" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <SortTh label="Owner" field="owner" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <SortTh label="Salary" field="salary" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
+                <SortTh label="Value" field="value" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" tooltip={VALUE_TOOLTIP} />
                 <SortTh label="Yrs" field="years" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="center" />
                 <SortTh label="Signed" field="contractStartYear" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="center" />
                 <th className="px-3 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground text-center border-b border-border bg-secondary whitespace-nowrap">Tags</th>
@@ -465,7 +490,7 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-muted-foreground italic text-sm">
+                  <td colSpan={9} className="px-5 py-12 text-center text-muted-foreground italic text-sm">
                     No contracts match your filters.
                   </td>
                 </tr>
@@ -493,6 +518,9 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
                       ) : (
                         <SalaryCell salary={c.salary} maxSalary={maxSalary} />
                       )}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <ValueCell value={c.value} />
                     </td>
                     <td className="px-3 py-2 text-center">
                       <YearBadge years={c.years} />
