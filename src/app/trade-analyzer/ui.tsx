@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { SleeperAvatarImage } from "@/components/owner-avatar";
 import { PlayerAvatar } from "@/components/player-avatar";
+import { Tooltip } from "@/components/ui/tooltip";
 import { getPositionColors, getDivisionColor, getDivisionColorAlpha, GOLD } from "@/lib/ui-utils";
 import type { Strategy } from "@/lib/trade-analyzer/config";
 import type { TradeAsset, TradeTeam } from "@/lib/trade-analyzer/types";
@@ -111,6 +112,28 @@ export function DealBadge({ badge }: { badge: "value" | "overpay" }) {
       OVERPAY
     </span>
   );
+}
+
+// Badge for net-negative assets: the contract costs more than the production
+// is worth. Tooltip explains the cut-penalty math behind the floor.
+export function LiabilityBadge({ salary, years }: { salary: number; years: number }) {
+  const penalty = Math.round(0.5 * salary * years * 10) / 10;
+  return (
+    <Tooltip
+      content={`Salary $${salary} × ${years}yr — cut penalty $${penalty}. Production doesn't justify the contract.`}
+    >
+      <span className="text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded bg-rose-400/15 text-rose-400 border border-rose-400/30 whitespace-nowrap cursor-help">
+        CAP LIABILITY
+      </span>
+    </Tooltip>
+  );
+}
+
+// Sign-aware color for surplus values: red liability, green surplus, neutral zero.
+export function valueColor(v: number): string {
+  if (v < 0) return "#f87171";
+  if (v > 0) return "#4ade80";
+  return "#e5e7eb";
 }
 
 const STRATEGIES: { key: Strategy; label: string }[] = [
@@ -274,7 +297,10 @@ export function SearchBar({
               <PosBadge pos={a.position} />
               <span className="text-[13px] font-medium truncate">{a.name}</span>
               <ContractChip salary={a.salary} years={a.years} isPick={a.type === "pick"} />
-              <span className="ml-auto font-mono text-xs text-muted-foreground tabular-nums">
+              <span
+                className="ml-auto font-mono text-xs text-muted-foreground tabular-nums"
+                style={valueOf(a) < 0 ? { color: "#f87171" } : undefined}
+              >
                 {Math.round(valueOf(a))}
               </span>
               <span className="text-ittwa text-sm font-bold">+</span>

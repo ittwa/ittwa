@@ -18,6 +18,7 @@ export function VerdictBar({
   teamB,
   ownerAvatars,
   fairPct,
+  liabilityNotes = [],
 }: {
   verdict: VerdictResult;
   totalA: number;
@@ -26,9 +27,15 @@ export function VerdictBar({
   teamB: TradeTeam | null;
   ownerAvatars: Record<string, string>;
   fairPct: number;
+  liabilityNotes?: string[];
 }) {
-  const total = totalA + totalB;
-  const pctA = total > 0 ? (totalA / total) * 100 : 50;
+  // Bar splits the POSITIVE value mass only: a side whose haul is net-negative
+  // (cap liabilities) renders at 0 width — all visible value flows one way.
+  const posA = Math.max(totalA, 0);
+  const posB = Math.max(totalB, 0);
+  const posTotal = posA + posB;
+  const pctA = posTotal > 0 ? (posA / posTotal) * 100 : 50;
+  const hasValue = Math.abs(totalA) + Math.abs(totalB) > 0;
 
   const sameDivision = teamA && teamB && teamA.division === teamB.division;
   const colorA = sameDivision ? SAME_DIV_A : (teamA ? getDivisionColor(teamA.division) : "#60a5fa");
@@ -57,7 +64,7 @@ export function VerdictBar({
         <div className="h-full transition-all" style={{ width: `${pctA}%`, background: colorA }} />
         <div className="h-full transition-all flex-1" style={{ background: colorB }} />
         <div className="absolute left-1/2 top-0 w-px h-full bg-white/30" />
-        {total > 0 && (
+        {hasValue && (
           <>
             <div className="absolute top-0 h-full w-px bg-emerald-400/40" style={{ left: `${fairLeft}%` }} />
             <div className="absolute top-0 h-full w-px bg-emerald-400/40" style={{ left: `${fairRight}%` }} />
@@ -73,10 +80,16 @@ export function VerdictBar({
           <Link href={teamA ? `/teams/${encodeURIComponent(teamA.owner)}` : "#"} className="hover:underline underline-offset-2">
             {teamA ? teamA.owner : "Team A"}
           </Link>
-          <span> · {Math.round(totalA)}</span>
+          <span>
+            {" · "}
+            <span style={totalA < 0 ? { color: "#f87171" } : undefined}>{Math.round(totalA)}</span>
+          </span>
         </span>
         <span className="flex items-center gap-1.5 font-bold tabular-nums" style={{ color: colorB }}>
-          <span>{Math.round(totalB)} · </span>
+          <span>
+            <span style={totalB < 0 ? { color: "#f87171" } : undefined}>{Math.round(totalB)}</span>
+            {" · "}
+          </span>
           <Link href={teamB ? `/teams/${encodeURIComponent(teamB.owner)}` : "#"} className="hover:underline underline-offset-2">
             {teamB ? teamB.owner : "Team B"}
           </Link>
@@ -85,6 +98,16 @@ export function VerdictBar({
           )}
         </span>
       </div>
+
+      {liabilityNotes.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-border text-center space-y-0.5">
+          {liabilityNotes.map((note) => (
+            <p key={note} className="text-[11px] text-rose-300/90">
+              {note}
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

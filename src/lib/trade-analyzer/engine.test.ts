@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { evaluateAsset } from "./engine";
+import { evaluateAsset, computeVerdict } from "./engine";
 import type { TradeAsset } from "./types";
 
 function player(over: Partial<TradeAsset>): TradeAsset {
@@ -81,5 +81,38 @@ describe("surplus-value model", () => {
     const rebuild = evaluateAsset(bad, "rebuilding"); // rebuild likes young players
     expect(neutral.valueDollars).toBeLessThan(0);
     expect(rebuild.valueDollars).toBeGreaterThanOrEqual(neutral.valueDollars);
+  });
+});
+
+describe("verdict with negative side totals", () => {
+  it("favors the side receiving real value when the other receives a liability", () => {
+    const v = computeVerdict(-400, 800, "A", "B", undefined);
+    expect(v.kind).not.toBe("empty");
+    expect(v.favored).toBe("B");
+    expect(v.pct).toBeGreaterThan(0);
+    expect(v.pct).toBeLessThanOrEqual(1);
+  });
+
+  it("handles both sides receiving net-negative hauls", () => {
+    const v = computeVerdict(-300, -100, "A", "B", undefined);
+    expect(v.kind).not.toBe("empty");
+    // B receives the less-negative haul, so the trade favors B.
+    expect(v.favored).toBe("B");
+    expect(Number.isFinite(v.pct)).toBe(true);
+  });
+
+  it("is empty only when both sides have zero value", () => {
+    const v = computeVerdict(0, 0, "A", "B", undefined);
+    expect(v.kind).toBe("empty");
+  });
+
+  it("matches the old math when both totals are positive", () => {
+    const close = computeVerdict(1000, 900, "A", "B", undefined);
+    expect(close.pct).toBeCloseTo(100 / 1900, 5);
+    expect(close.kind).toBe("fair"); // 5.3% gap is within the 6% fair threshold
+
+    const wide = computeVerdict(1000, 600, "A", "B", undefined);
+    expect(wide.pct).toBeCloseTo(400 / 1600, 5);
+    expect(wide.favored).toBe("A");
   });
 });

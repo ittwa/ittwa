@@ -124,6 +124,22 @@ export function TradeAnalyzerClient({
   const capA = useMemo(() => (teamA ? computeCapImpact(teamA, aAssets, bAssets) : null), [teamA, aAssets, bAssets]);
   const capB = useMemo(() => (teamB ? computeCapImpact(teamB, bAssets, aAssets) : null), [teamB, bAssets, aAssets]);
 
+  // One-line explainer per direction when a side takes on net-negative assets:
+  // the sender is effectively paying the receiver to absorb the contract.
+  const liabilityNotes = useMemo(() => {
+    if (!teamA || !teamB) return [];
+    const names = (evals: typeof sideA.evals) =>
+      evals.filter((e) => e.adjusted < 0).map((e) => e.asset.name);
+    const phrase = (sender: string, receiver: string, players: string[]) =>
+      `${sender} is paying ${receiver} to take on ${players.join(" & ")}'s contract${players.length > 1 ? "s" : ""}`;
+    const notes: string[] = [];
+    const aLiabilities = names(sideA.evals); // received by A, sent by B
+    const bLiabilities = names(sideB.evals); // received by B, sent by A
+    if (aLiabilities.length) notes.push(phrase(teamB.owner, teamA.owner, aLiabilities));
+    if (bLiabilities.length) notes.push(phrase(teamA.owner, teamB.owner, bLiabilities));
+    return notes;
+  }, [teamA, teamB, sideA.evals, sideB.evals]);
+
   const suggestions = useMemo(() => {
     if (verdict.kind === "empty" || verdict.kind === "fair" || !verdict.favored) return [];
     const favoredTeam = verdict.favored === "A" ? teamA : teamB;
@@ -251,7 +267,16 @@ export function TradeAnalyzerClient({
         />
       </div>
 
-      <VerdictBar verdict={verdict} totalA={sideA.total} totalB={sideB.total} teamA={teamA} teamB={teamB} ownerAvatars={ownerAvatars} fairPct={tweaks.fairPct} />
+      <VerdictBar
+        verdict={verdict}
+        totalA={sideA.total}
+        totalB={sideB.total}
+        teamA={teamA}
+        teamB={teamB}
+        ownerAvatars={ownerAvatars}
+        fairPct={tweaks.fairPct}
+        liabilityNotes={liabilityNotes}
+      />
 
       {suggestions.length > 0 && teamA && teamB && (
         <Balancing
