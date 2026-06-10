@@ -89,6 +89,15 @@ export interface TradeAnalyzerConfig {
   COMPETE_PICK: number;
   COMPETE_YOUNG: number;
   COMPETE_AGING_SHORT: number;
+
+  // ── Retroactive trade grading thresholds ──────────────────────────────────
+  // Verdict bands: |diff| / totalAbsValue
+  GRADE_EVEN_PCT: number;   // ≤ this → "even"
+  GRADE_EDGE_PCT: number;   // ≤ this → "edge"
+  GRADE_WIN_PCT: number;    // ≤ this → "win", above → "heist"
+  // Confidence bands: fraction of trade assets with a resolved current value
+  GRADE_HIGH_CONF: number;  // ≥ this → "high"
+  GRADE_MED_CONF: number;   // ≥ this → "medium", below → "low"
 }
 
 export const DEFAULT_CONFIG: TradeAnalyzerConfig = {
@@ -177,4 +186,10 @@ export const DEFAULT_CONFIG: TradeAnalyzerConfig = {
   COMPETE_PICK: 0.8,
   COMPETE_YOUNG: 0.94,
   COMPETE_AGING_SHORT: 1.1,
+
+  GRADE_EVEN_PCT: 0.06,
+  GRADE_EDGE_PCT: 0.20,
+  GRADE_WIN_PCT: 0.38,
+  GRADE_HIGH_CONF: 0.75,
+  GRADE_MED_CONF: 0.40,
 };

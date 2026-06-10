@@ -23,6 +23,36 @@ export interface TradePickItem {
   round: number;
   pickSeason: string;
   originalOwner: string;
+  // The pick's season-origin roster_id (matches slot_to_roster_id in completed drafts)
+  originalRosterId?: number;
+}
+
+// ── Retroactive trade grading types ──────────────────────────────────────────
+
+export type GradeVerdict = "even" | "edge" | "win" | "heist";
+export type GradeConfidence = "high" | "medium" | "low";
+
+export interface AssetGrade {
+  currentValue: number | null;
+  // Set when a pick was conveyed and the drafted player is known
+  resolvedPlayerId?: string;
+  resolvedPlayerName?: string;
+  resolvedPlayerPos?: string;
+}
+
+export interface SideGrade {
+  totalValue: number;
+  resolvedCount: number;
+  assetGrades: AssetGrade[]; // parallel to side.received
+}
+
+export interface TradeGrade {
+  sides: SideGrade[]; // parallel to trade.sides
+  verdict: GradeVerdict;
+  favoredSideIndex: number | null; // index into trade.sides; null = even
+  confidence: GradeConfidence;
+  diff: number; // sides[0].totalValue - sides[1].totalValue
+  pct: number; // |diff| / totalAbsValue
 }
 
 export type TradeItem = TradePlayerItem | TradePickItem;
@@ -39,6 +69,71 @@ export interface EnrichedTrade {
   week: number;
   season: string;
   sides: TradeSideData[];
+  grade?: TradeGrade;
+}
+
+// ── Grade UI components ───────────────────────────────────────────────────────
+
+const VERDICT_STYLE: Record<GradeVerdict, { label: string; bg: string; border: string; color: string }> = {
+  even:  { label: "Even",      bg: "rgba(100,116,139,0.10)", border: "rgba(100,116,139,0.25)", color: "#94a3b8" },
+  edge:  { label: "Edge",      bg: "rgba(232,184,75,0.10)",  border: "rgba(232,184,75,0.30)",  color: "#E8B84B" },
+  win:   { label: "Win",       bg: "rgba(74,222,128,0.10)",  border: "rgba(74,222,128,0.30)",  color: "#4ade80" },
+  heist: { label: "Heist",     bg: "rgba(253,74,72,0.10)",   border: "rgba(253,74,72,0.30)",   color: "#FD4A48" },
+};
+
+const CONF_DOT: Record<GradeConfidence, string> = {
+  high:   "●",
+  medium: "◑",
+  low:    "○",
+};
+
+function VerdictChip({ grade, favoredOwner }: { grade: TradeGrade; favoredOwner: string | null }) {
+  const s = VERDICT_STYLE[grade.verdict];
+  const label = favoredOwner && grade.verdict !== "even"
+    ? `${favoredOwner} ${s.label}`
+    : s.label;
+  return (
+    <span
+      className="text-[10px] font-bold tracking-[0.04em] px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1"
+      style={{ background: s.bg, border: `1px solid ${s.border}`, color: s.color }}
+    >
+      {label}
+      <span className="opacity-60 text-[8px]" title={`${grade.confidence} confidence`}>{CONF_DOT[grade.confidence]}</span>
+    </span>
+  );
+}
+
+function TugOfWarBar({ grade, sides }: { grade: TradeGrade; sides: TradeSideData[] }) {
+  const [sideA, sideB] = [grade.sides[0], grade.sides[1]];
+  if (!sideA || !sideB) return null;
+  const absA = Math.max(sideA.totalValue, 0);
+  const absB = Math.max(sideB.totalValue, 0);
+  const total = absA + absB;
+  if (total === 0) return null;
+  const pctA = (absA / total) * 100;
+  const pctB = (absB / total) * 100;
+
+  const vs = VERDICT_STYLE[grade.verdict];
+  const colorA = grade.favoredSideIndex === 0 ? vs.color : "#475569";
+  const colorB = grade.favoredSideIndex === 1 ? vs.color : "#475569";
+
+  return (
+    <div className="mt-3 mb-1">
+      <div className="flex items-center justify-between text-[9px] text-muted-foreground mb-1 font-semibold">
+        <span>{sides[0]?.owner}</span>
+        <span style={{ color: vs.color }} className="tracking-[0.04em] font-bold">{VERDICT_STYLE[grade.verdict].label.toUpperCase()}</span>
+        <span>{sides[1]?.owner}</span>
+      </div>
+      <div className="flex h-2 rounded-full overflow-hidden bg-secondary gap-px">
+        <div className="rounded-l-full transition-all" style={{ width: `${pctA}%`, backgroundColor: colorA }} />
+        <div className="rounded-r-full transition-all" style={{ width: `${pctB}%`, backgroundColor: colorB }} />
+      </div>
+      <div className="flex items-center justify-between text-[9px] font-mono mt-0.5">
+        <span style={{ color: colorA }}>{sideA.totalValue > 0 ? "+" : ""}{Math.round(sideA.totalValue)}</span>
+        <span style={{ color: colorB }}>{sideB.totalValue > 0 ? "+" : ""}{Math.round(sideB.totalValue)}</span>
+      </div>
+    </div>
+  );
 }
 
 function PosBadge({ pos }: { pos: string }) {
@@ -85,7 +180,20 @@ function PlayerHeadshot({ sleeperId, name, pos, size = 44 }: { sleeperId: string
   );
 }
 
-function PlayerCard({ item }: { item: TradeItem }) {
+function ValueTag({ value }: { value: number | null }) {
+  if (value === null) return null;
+  const color = value > 0 ? "#4ade80" : value < 0 ? "#f87171" : "#94a3b8";
+  return (
+    <span
+      className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+      style={{ color, background: `${color}15`, border: `1px solid ${color}30` }}
+    >
+      {value > 0 ? "+" : ""}{Math.round(value)}
+    </span>
+  );
+}
+
+function PlayerCard({ item, grade }: { item: TradeItem; grade?: AssetGrade }) {
   if (item.type === "pick") {
     const roundColor = item.round === 1 ? "#E8B84B" : item.round === 2 ? "#94a3b8" : "#fb923c";
     return (
@@ -100,10 +208,18 @@ function PlayerCard({ item }: { item: TradeItem }) {
           <span className="font-heading text-lg font-black leading-none" style={{ color: roundColor }}>R{item.round}</span>
           <span className="text-[9px] font-semibold text-muted-foreground">{item.pickSeason}</span>
         </div>
-        <div className="min-w-0">
+        <div className="flex-1 min-w-0">
           <div className="text-[13px] font-semibold text-foreground leading-tight">{item.name}</div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">Draft Pick · via {item.originalOwner}</div>
+          {grade?.resolvedPlayerName ? (
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              → <span className="text-foreground/80">{grade.resolvedPlayerName}</span>
+              {grade.resolvedPlayerPos && <span className="ml-1 opacity-60">{grade.resolvedPlayerPos}</span>}
+            </div>
+          ) : (
+            <div className="text-[11px] text-muted-foreground mt-0.5">Draft Pick · via {item.originalOwner}</div>
+          )}
         </div>
+        {grade && <ValueTag value={grade.currentValue} />}
       </div>
     );
   }
@@ -121,12 +237,15 @@ function PlayerCard({ item }: { item: TradeItem }) {
         </div>
         <PlayerLink playerId={item.sleeperId} className="text-[13px] font-semibold text-foreground leading-tight truncate hover:underline underline-offset-2">{item.name}</PlayerLink>
       </div>
-      {item.salary > 0 && (
-        <div className="text-right flex-shrink-0">
-          <div className="font-mono text-xs font-bold" style={salaryColor ? { color: salaryColor } : undefined}>${item.salary.toFixed(1)}</div>
-          <div className="text-[10px] text-muted-foreground mt-0.5">{item.years}yr{item.years !== 1 ? "s" : ""}</div>
-        </div>
-      )}
+      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+        {grade && <ValueTag value={grade.currentValue} />}
+        {item.salary > 0 && (
+          <div className="text-right">
+            <div className="font-mono text-xs font-bold" style={salaryColor ? { color: salaryColor } : undefined}>${item.salary.toFixed(1)}</div>
+            <div className="text-[10px] text-muted-foreground">{item.years}yr{item.years !== 1 ? "s" : ""}</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -148,7 +267,7 @@ function OwnerAvatar({ name, size = 32 }: { name: string; size?: number }) {
   );
 }
 
-function TradeSide({ side, isLeft }: { side: TradeSideData; isLeft: boolean }) {
+function TradeSide({ side, sideGrade, isLeft }: { side: TradeSideData; sideGrade?: SideGrade; isLeft: boolean }) {
   return (
     <div className="flex-1 min-w-0">
       <div className={`flex items-center gap-2.5 mb-2.5 justify-start ${!isLeft ? "sm:justify-end" : ""}`}>
@@ -164,7 +283,7 @@ function TradeSide({ side, isLeft }: { side: TradeSideData; isLeft: boolean }) {
       </div>
       <div className="flex flex-col gap-2">
         {side.received.map((item, i) => (
-          <PlayerCard key={i} item={item} />
+          <PlayerCard key={i} item={item} grade={sideGrade?.assetGrades[i]} />
         ))}
       </div>
     </div>
@@ -224,7 +343,7 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
               </Fragment>
             ))}
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 flex-wrap">
             {playerCount > 0 && (
               <span
                 className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
@@ -240,6 +359,12 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
               >
                 {pickCount} pick{pickCount !== 1 ? "s" : ""}
               </span>
+            )}
+            {trade.grade && (
+              <VerdictChip
+                grade={trade.grade}
+                favoredOwner={trade.grade.favoredSideIndex != null ? (trade.sides[trade.grade.favoredSideIndex]?.owner ?? null) : null}
+              />
             )}
           </div>
         </div>
@@ -258,10 +383,14 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
       {expanded && (
         <div className="px-4 sm:px-5 py-4">
           <div className="flex flex-col sm:flex-row gap-3 sm:items-start">
-            <TradeSide side={trade.sides[0]} isLeft={true} />
+            <TradeSide side={trade.sides[0]} sideGrade={trade.grade?.sides[0]} isLeft={true} />
             <TradeArrows />
-            {trade.sides[1] && <TradeSide side={trade.sides[1]} isLeft={false} />}
+            {trade.sides[1] && <TradeSide side={trade.sides[1]} sideGrade={trade.grade?.sides[1]} isLeft={false} />}
           </div>
+
+          {trade.grade && (
+            <TugOfWarBar grade={trade.grade} sides={trade.sides} />
+          )}
 
           <div className="mt-3.5 pt-3 border-t border-border flex items-center justify-between gap-3">
             <div className="flex flex-col sm:flex-row gap-2 flex-1">
