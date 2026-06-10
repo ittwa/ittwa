@@ -20,10 +20,8 @@ export default async function TradeAnalyzerPage() {
     if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
   }
 
-  // Stable order: by division then owner, so the team selector reads sensibly.
-  const teams = [...data.teams].sort(
-    (a, b) => a.division.localeCompare(b.division) || a.owner.localeCompare(b.owner),
-  );
+  // Owner dropdowns read alphabetically by owner name.
+  const teams = [...data.teams].sort((a, b) => a.owner.localeCompare(b.owner));
 
   return (
     <TradeAnalyzerClient

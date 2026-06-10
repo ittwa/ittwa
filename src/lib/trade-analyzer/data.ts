@@ -2,6 +2,7 @@ import {
   getRosters,
   getNFLPlayers,
   getTradedPicks,
+  getDrafts,
   buildRosterOwnerMap,
 } from "@/lib/sleeper";
 import { getContracts } from "@/lib/sheets";
@@ -83,13 +84,14 @@ function pickValue(index: Map<string, PickTiers>, season: string, round: number)
 // ---- Main loader -------------------------------------------------------------
 
 export async function getTradeAnalyzerData(): Promise<TradeAnalyzerData> {
-  const [rosters, nflPlayers, contracts, fcValues, tradedPicks, rosterOwnerMap] =
+  const [rosters, nflPlayers, contracts, fcValues, tradedPicks, drafts, rosterOwnerMap] =
     await Promise.all([
       getRosters(LEAGUE_ID),
       getNFLPlayers(),
       getContracts(),
       getFantasyCalcValues(),
       getTradedPicks(LEAGUE_ID),
+      getDrafts(LEAGUE_ID),
       buildRosterOwnerMap(LEAGUE_ID),
     ]);
 
@@ -111,15 +113,24 @@ export async function getTradeAnalyzerData(): Promise<TradeAnalyzerData> {
   const divisionForRoster = (r: (typeof rosters)[number], owner: string): string =>
     DIVISION_NUMBER_MAP[r.settings.division ?? 0] || OWNER_DIVISION[owner] || "";
 
+  // Seasons whose rookie draft has already happened: those picks are spent and
+  // are now rostered players, so they must NOT also appear as tradeable picks.
+  // FantasyCalc keeps publishing a season's pick values until it rolls over, so
+  // it can't be trusted to drop them — Sleeper's draft status is authoritative.
+  const completedDraftSeasons = new Set(
+    drafts.filter((d) => d.status === "complete").map((d) => d.season),
+  );
+
   // Determine current draft-season window from the FantasyCalc pick names
-  // (e.g. earliest "20xx" pick) so the window tracks reality without hardcoding.
+  // (e.g. earliest "20xx" pick) so the window tracks reality without hardcoding,
+  // then drop any season whose draft is already complete.
   const pickSeasons = [...pickIndex.keys()]
     .map((k) => parseInt(k.split("-")[0], 10))
     .filter((n) => !Number.isNaN(n));
   const baseSeason = pickSeasons.length ? Math.min(...pickSeasons) : new Date().getFullYear();
   const seasonWindow = Array.from({ length: PICK_SEASONS_AHEAD }, (_, i) =>
     String(baseSeason + i),
-  );
+  ).filter((season) => !completedDraftSeasons.has(season));
 
   // Build player assets per roster.
   const teams: TradeTeam[] = rosters.map((roster) => {
