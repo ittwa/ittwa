@@ -211,6 +211,8 @@ export function TradeAnalyzerClient({
         </div>
       </div>
 
+      <TweaksPanel tweaks={tweaks} onChange={setTweaks} onReset={() => setTweaks(DEFAULT_TWEAKS)} />
+
       {/* Two-panel builder */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <TeamPanel
@@ -249,25 +251,26 @@ export function TradeAnalyzerClient({
         />
       </div>
 
-      <VerdictBar verdict={verdict} totalA={sideA.total} totalB={sideB.total} teamA={teamA} teamB={teamB} />
+      <VerdictBar verdict={verdict} totalA={sideA.total} totalB={sideB.total} teamA={teamA} teamB={teamB} ownerAvatars={ownerAvatars} fairPct={tweaks.fairPct} />
 
       {suggestions.length > 0 && teamA && teamB && (
         <Balancing
           suggestions={suggestions}
           favoredOwner={verdict.favored === "A" ? teamA.owner : teamB.owner}
           unfavoredOwner={verdict.favored === "A" ? teamB.owner : teamA.owner}
+          favoredDivision={verdict.favored === "A" ? teamA.division : teamB.division}
+          unfavoredDivision={verdict.favored === "A" ? teamB.division : teamA.division}
+          ownerAvatars={ownerAvatars}
           onAdd={addToSuggestionSide}
         />
       )}
 
       {capA && capB && teamA && teamB && (sideA.evals.length > 0 || sideB.evals.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <CapImpactCard impact={capA} team={teamA} />
-          <CapImpactCard impact={capB} team={teamB} />
+          <CapImpactCard impact={capA} team={teamA} ownerAvatars={ownerAvatars} />
+          <CapImpactCard impact={capB} team={teamB} ownerAvatars={ownerAvatars} />
         </div>
       )}
-
-      <TweaksPanel tweaks={tweaks} onChange={setTweaks} onReset={() => setTweaks(DEFAULT_TWEAKS)} />
 
       <div className="bg-card border border-border rounded-[14px] p-4">
         <p className="text-xs text-muted-foreground leading-relaxed">

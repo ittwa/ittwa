@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { AssetEvaluation } from "@/lib/trade-analyzer/engine";
 import { AssetAvatar, PosBadge, ContractChip, DealBadge } from "./ui";
@@ -19,12 +20,23 @@ export function TradeAssetCard({
   const adjColor = delta > 1 ? "#4ade80" : delta < -1 ? "#f87171" : "#e5e7eb";
   const shown = valueMode === "adjusted" ? adjusted : asset.rawValue;
 
+  const nameEl = isPick ? (
+    <span className="text-[13px] font-semibold truncate">{asset.name}</span>
+  ) : (
+    <Link
+      href={`/players/${encodeURIComponent(asset.id)}`}
+      className="text-[13px] font-semibold truncate hover:underline underline-offset-2"
+    >
+      {asset.name}
+    </Link>
+  );
+
   return (
     <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-secondary/60 border border-border hover:border-ittwa/30 transition-colors">
-      <AssetAvatar name={asset.name} position={asset.position} />
+      <AssetAvatar id={asset.id} name={asset.name} position={asset.position} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[13px] font-semibold truncate">{asset.name}</span>
+          {nameEl}
           {badge && <DealBadge badge={badge} />}
         </div>
         <div className="flex items-center gap-1.5 mt-0.5">
