@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { SleeperAvatarImage } from "@/components/owner-avatar";
 import { PlayerAvatar } from "@/components/player-avatar";
@@ -20,19 +19,17 @@ export function OwnerAvatar({
   avatarId,
   division,
   size = 26,
-  linked = false,
 }: {
   name: string;
   avatarId?: string;
   division?: string;
   size?: number;
-  linked?: boolean;
 }) {
   const initials = name.slice(0, 2).toUpperCase();
   const color = division ? getDivisionColor(division) : "#888";
   const bg = division ? getDivisionColorAlpha(division, 0.12) : "rgba(136,136,136,0.12)";
   const border = division ? getDivisionColorAlpha(division, 0.25) : "rgba(136,136,136,0.25)";
-  const avatar = (
+  return (
     <div
       className="rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
       style={{ width: size, height: size, background: bg, border: `1px solid ${border}` }}
@@ -48,8 +45,6 @@ export function OwnerAvatar({
       />
     </div>
   );
-  if (!linked) return avatar;
-  return <Link href={`/teams/${encodeURIComponent(name)}`}>{avatar}</Link>;
 }
 
 export function AssetAvatar({ id, name, position, size = 32 }: { id: string; name: string; position: string; size?: number }) {
@@ -180,13 +175,7 @@ export function TeamSelect({
           <>
             <OwnerAvatar name={selected.owner} avatarId={ownerAvatars[selected.owner]} division={selected.division} />
             <div className="text-left min-w-0">
-              <Link
-                href={`/teams/${encodeURIComponent(selected.owner)}`}
-                onClick={(e) => e.stopPropagation()}
-                className="text-[13px] font-semibold truncate hover:underline underline-offset-2 block"
-              >
-                {selected.owner}
-              </Link>
+              <div className="text-[13px] font-semibold truncate">{selected.owner}</div>
               <div className="text-[10px] uppercase tracking-wide" style={{ color: getDivisionColor(selected.division) }}>
                 {selected.division}
               </div>
@@ -216,8 +205,8 @@ export function TeamSelect({
                 )}
               >
                 <OwnerAvatar name={t.owner} avatarId={ownerAvatars[t.owner]} division={t.division} />
-                <span className="text-[13px] font-medium">{t.owner}</span>
-                <span className="ml-auto text-[10px]" style={{ color: getDivisionColor(t.division) }}>
+                <span className="text-[13px] font-medium truncate min-w-0">{t.owner}</span>
+                <span className="ml-auto text-[10px] shrink-0 hidden sm:inline" style={{ color: getDivisionColor(t.division) }}>
                   {t.division}
                 </span>
               </button>
@@ -257,7 +246,6 @@ export function SearchBar({
     ? sourceTeam.assets
         .filter((a) => !excludeIds.has(a.id) && (!q || a.name.toLowerCase().includes(q)))
         .sort((a, b) => valueOf(b) - valueOf(a))
-        .slice(0, 8)
     : [];
 
   return (

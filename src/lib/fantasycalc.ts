@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 
-// FantasyCalc dynasty values. Configured for ITTWA: Superflex (numQbs=2),
+// FantasyCalc dynasty values. Configured for ITTWA: single QB (numQbs=1),
 // half-PPR (ppr=0.5), 12 teams. Picks come back as entries with
 // position "PICK" and no sleeperId (name like "2027 Mid 1st").
 //
@@ -8,7 +8,7 @@ import { unstable_cache } from "next/cache";
 // want to hammer it on every page render.
 
 const FANTASYCALC_URL =
-  "https://api.fantasycalc.com/values/current?isDynasty=true&numQbs=2&numTeams=12&ppr=0.5";
+  "https://api.fantasycalc.com/values/current?isDynasty=true&numQbs=1&numTeams=12&ppr=0.5";
 
 export interface FantasyCalcPlayer {
   id: number;
@@ -42,6 +42,6 @@ async function fetchFantasyCalcValues(): Promise<FantasyCalcEntry[]> {
 // across renders for a full day.
 export const getFantasyCalcValues = unstable_cache(
   fetchFantasyCalcValues,
-  ["fantasycalc-values-sf-half-12"],
+  ["fantasycalc-values-1qb-half-12"],
   { revalidate: 86400 },
 );
