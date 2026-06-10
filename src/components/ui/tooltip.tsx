@@ -11,9 +11,14 @@ interface TooltipProps {
   // "bottom" when the trigger sits at the top edge of an `overflow` container
   // (e.g. a table header), where an upward tooltip would be clipped.
   side?: "top" | "bottom";
+  // "center" (default) centers the tooltip on the trigger; "end" anchors its
+  // right edge to the trigger and extends leftward — use for triggers near the
+  // right edge of an `overflow-x` container, where a centered tooltip would be
+  // clipped on the right.
+  align?: "center" | "end";
 }
 
-export function Tooltip({ content, children, className, side = "top" }: TooltipProps) {
+export function Tooltip({ content, children, className, side = "top", align = "center" }: TooltipProps) {
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -38,18 +43,21 @@ export function Tooltip({ content, children, className, side = "top" }: TooltipP
       {visible && (
         <div
           className={cn(
-            "absolute left-1/2 z-50 -translate-x-1/2 rounded-lg border border-border bg-popover px-3 py-2 text-sm text-popover-foreground shadow-lg",
-            "min-w-[200px] max-w-[300px] text-center",
+            "absolute z-50 rounded-lg border border-border bg-popover px-3 py-2 text-sm text-popover-foreground shadow-lg",
+            "min-w-[200px] max-w-[300px]",
+            align === "end" ? "right-0 text-left" : "left-1/2 -translate-x-1/2 text-center",
             side === "bottom" ? "top-full mt-2" : "bottom-full mb-2",
             className
           )}
         >
           {content}
-          {side === "bottom" ? (
-            <div className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-border" />
-          ) : (
-            <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-border" />
-          )}
+          <div
+            className={cn(
+              "absolute border-4 border-transparent",
+              align === "end" ? "right-2" : "left-1/2 -translate-x-1/2",
+              side === "bottom" ? "bottom-full border-b-border" : "top-full border-t-border"
+            )}
+          />
         </div>
       )}
     </div>
