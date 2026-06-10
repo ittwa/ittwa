@@ -352,7 +352,7 @@ function SortTh({ label, field, sortKey, sortDir, onSort, align = "left", toolti
     >
       {label}
       {tooltip && (
-        <Tooltip content={tooltip} side="bottom" className="normal-case tracking-normal font-normal">
+        <Tooltip content={tooltip} side="bottom" align="end" className="normal-case tracking-normal font-normal">
           <span className="ml-1 text-[#E8B84B]/70 cursor-help">ⓘ</span>
         </Tooltip>
       )}
