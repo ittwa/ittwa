@@ -24,7 +24,13 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ITTWA",
+  // `default` is used on the homepage and any route without its own title;
+  // `template` wraps a page's own title, so `title: "Standings"` renders as
+  // "Standings · ITTWA".
+  title: {
+    default: "ITTWA",
+    template: "%s · ITTWA",
+  },
   description:
     "Contract dynasty fantasy football league, founded 2014. 12 teams, too many opinions.",
   icons: {

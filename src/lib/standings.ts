@@ -102,6 +102,64 @@ export function getStandingsByDivision(
   return byDivision;
 }
 
+// Has at least one game been played? A game counts the moment any team has a
+// win, loss, or tie on the books. Used to gate preseason-only UI (playoff
+// seeds, the playoff cutoff line, and stat-leader summary cards) so we don't
+// show arbitrary rankings when every team is 0-0.
+export function hasSeasonStarted(
+  standings: { wins: number; losses: number; ties: number }[],
+): boolean {
+  return standings.some((t) => t.wins > 0 || t.losses > 0 || t.ties > 0);
+}
+
+export type PlayoffSlotType = "division" | "wildcard";
+export interface PlayoffSlot {
+  rosterId: number;
+  seed: number;
+  type: PlayoffSlotType;
+}
+
+// ITTWA playoff field: the 4 division winners qualify, plus the 2 best
+// non-division-winners as wildcards. Division winners are seeded 1-4 (ordered
+// by overall standing), wildcards take seeds 5-6.
+//
+// `standings` MUST be passed in overall-rank order (best→worst), as produced by
+// calculateStandings — the first team seen in each division is that division's
+// leader, and the first remaining teams are the wildcards.
+export function computePlayoffPicture(
+  standings: StandingsEntry[],
+  divisionWinnerCount = 4,
+  wildcardCount = 2,
+): Map<number, PlayoffSlot> {
+  const seenDivisions = new Set<string>();
+  const divisionWinners: StandingsEntry[] = [];
+  const rest: StandingsEntry[] = [];
+
+  for (const entry of standings) {
+    const div = entry.division || "Unknown";
+    if (!seenDivisions.has(div)) {
+      seenDivisions.add(div);
+      divisionWinners.push(entry);
+    } else {
+      rest.push(entry);
+    }
+  }
+
+  const slots = new Map<number, PlayoffSlot>();
+  divisionWinners.slice(0, divisionWinnerCount).forEach((entry, i) => {
+    slots.set(entry.rosterId, { rosterId: entry.rosterId, seed: i + 1, type: "division" });
+  });
+  rest.slice(0, wildcardCount).forEach((entry, i) => {
+    slots.set(entry.rosterId, {
+      rosterId: entry.rosterId,
+      seed: divisionWinnerCount + i + 1,
+      type: "wildcard",
+    });
+  });
+
+  return slots;
+}
+
 // Calculate win/loss streak
 export function calculateStreak(
   rosterId: number,

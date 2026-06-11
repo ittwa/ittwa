@@ -1,5 +1,7 @@
 import { connection } from "next/server";
 
+export const metadata = { title: "Rule Changes" };
+
 import { getLeagueUsers, getDisplayName } from "@/lib/sleeper";
 import { RuleChangesClient } from "./rule-changes-client";
 

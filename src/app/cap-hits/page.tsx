@@ -1,5 +1,7 @@
 import { connection } from "next/server";
 
+export const metadata = { title: "Cap Hits" };
+
 import { getCapHits, getLeagueUsers, getNFLPlayers } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
 import { OWNER_DIVISION, ALL_OWNERS, SEASON_LEAGUE_IDS } from "@/lib/config";

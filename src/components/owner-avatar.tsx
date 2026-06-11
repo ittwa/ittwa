@@ -23,10 +23,15 @@ export function SleeperAvatarImage({
   avatarId,
   name,
   fallback,
+  // These avatars render small (~14-44px). Without `sizes`, a `fill` image is
+  // optimized at w=3840. 64px is a safe upper bound for avatar use; override
+  // for larger renders.
+  sizes = "64px",
 }: {
   avatarId: string | undefined;
   name: string;
   fallback: React.ReactNode;
+  sizes?: string;
 }) {
   const [failed, setFailed] = useState(false);
   if (!avatarId || failed) return <>{fallback}</>;
@@ -36,6 +41,7 @@ export function SleeperAvatarImage({
         src={`https://sleepercdn.com/avatars/${avatarId}`}
         alt={name}
         fill
+        sizes={sizes}
         className="object-cover"
         onError={() => setFailed(true)}
       />

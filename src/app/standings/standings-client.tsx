@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, Fragment } from "react";
-import { StandingsEntry } from "@/lib/standings";
+import { StandingsEntry, hasSeasonStarted, computePlayoffPicture } from "@/lib/standings";
 import { DIVISIONS } from "@/lib/config";
 import { getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
@@ -100,7 +100,7 @@ function WinBar({ wins, total }: { wins: number; total: number }) {
   );
 }
 
-function StatSummary({ standings }: { standings: StandingsEntry[] }) {
+function StatSummary({ standings, seasonStarted }: { standings: StandingsEntry[]; seasonStarted: boolean }) {
   const topScorer = [...standings].sort((a, b) => b.pointsFor - a.pointsFor)[0];
   const topWins = standings[0];
   const hotStreak = [...standings]
@@ -109,12 +109,21 @@ function StatSummary({ standings }: { standings: StandingsEntry[] }) {
   const tightest = [...standings]
     .sort((a, b) => Math.abs(a.pointsFor - a.pointsAgainst) - Math.abs(b.pointsFor - b.pointsAgainst))[0];
 
-  const stats = [
-    { label: "Points Leader", owner: topScorer?.displayName, sub: `${topScorer?.pointsFor.toFixed(1)} PF`, color: "#E8B84B" },
-    { label: "Most Wins", owner: topWins?.displayName, sub: `${topWins?.wins}-${topWins?.losses} record`, color: "#4ade80" },
-    { label: "Hot Streak", owner: hotStreak?.displayName, sub: hotStreak?.streak || "—", color: "#FD4A48" },
-    { label: "Most Balanced", owner: tightest?.displayName, sub: `±${Math.abs((tightest?.pointsFor || 0) - (tightest?.pointsAgainst || 0)).toFixed(1)}`, color: "#60a5fa" },
-  ];
+  // Before any games are played, every team is 0-0 / 0.0 PF, so these "leaders"
+  // are arbitrary. Show the card shells with em-dashes until the season starts.
+  const stats = seasonStarted
+    ? [
+        { label: "Points Leader", owner: topScorer?.displayName, sub: `${topScorer?.pointsFor.toFixed(1)} PF`, color: "#E8B84B" },
+        { label: "Most Wins", owner: topWins?.displayName, sub: `${topWins?.wins}-${topWins?.losses} record`, color: "#4ade80" },
+        { label: "Hot Streak", owner: hotStreak?.displayName, sub: hotStreak?.streak || "—", color: "#FD4A48" },
+        { label: "Most Balanced", owner: tightest?.displayName, sub: `±${Math.abs((tightest?.pointsFor || 0) - (tightest?.pointsAgainst || 0)).toFixed(1)}`, color: "#60a5fa" },
+      ]
+    : [
+        { label: "Points Leader", owner: undefined, sub: "—", color: "#E8B84B" },
+        { label: "Most Wins", owner: undefined, sub: "—", color: "#4ade80" },
+        { label: "Hot Streak", owner: undefined, sub: "—", color: "#FD4A48" },
+        { label: "Most Balanced", owner: undefined, sub: "—", color: "#60a5fa" },
+      ];
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -163,6 +172,12 @@ export function StandingsClient({
     });
   }, [standings, sortCol, sortDir]);
 
+  // Preseason gating + playoff seeding (4 division winners + 2 wildcards).
+  // Seeding is computed from the canonical rank-ordered `standings` prop, so it
+  // stays correct even when the user re-sorts the table by PF/PA.
+  const seasonStarted = hasSeasonStarted(standings);
+  const seeding = useMemo(() => computePlayoffPicture(standings), [standings]);
+
   function handleSort(col: SortKey) {
     if (sortCol === col) setSortDir(d => d * -1);
     else { setSortCol(col); setSortDir(-1); }
@@ -196,7 +211,7 @@ export function StandingsClient({
       </div>
 
       {/* Stat summary */}
-      <StatSummary standings={standings} />
+      <StatSummary standings={standings} seasonStarted={seasonStarted} />
 
       {/* Tab bar */}
       <div className="flex gap-1 mb-4">
@@ -261,8 +276,15 @@ export function StandingsClient({
                 {sorted.map((entry, i) => {
                   const rank = i + 1;
                   const total = entry.wins + entry.losses;
-                  const isPlayoff = rank <= PLAYOFF_SPOTS;
-                  const isPlayoffLine = rank === PLAYOFF_SPOTS;
+                  // Playoff status comes from the canonical seeding map (keyed by
+                  // rosterId), and only once the season has started — never during
+                  // preseason when every team is 0-0.
+                  const slot = seasonStarted ? seeding.get(entry.rosterId) : undefined;
+                  const isPlayoff = !!slot;
+                  const isDivLeader = slot?.type === "division";
+                  // Cutoff divider after the last playoff seed, in the default
+                  // wins sort (where display order matches standings rank).
+                  const isPlayoffLine = isPlayoff && slot!.seed === PLAYOFF_SPOTS && sortCol === "wins";
                   return (
                     <Fragment key={entry.rosterId}>
                       <tr className="border-b border-border/50 hover:bg-accent/50 transition-colors">
@@ -270,15 +292,32 @@ export function StandingsClient({
                           <div className="flex justify-center"><RankBadge rank={rank} /></div>
                         </td>
                         <td className="px-1 w-[6px]">
-                          {isPlayoff && <div className="w-0.5 h-7 bg-ittwa rounded-sm opacity-70" />}
+                          {isPlayoff && (
+                            <div
+                              className="w-0.5 h-7 rounded-sm"
+                              style={{ background: isDivLeader ? "#E8B84B" : "#94a3b8", opacity: 0.75 }}
+                            />
+                          )}
                         </td>
                         <td className="px-4 py-3 pl-2">
                           <OwnerLink name={entry.displayName} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
                             <OwnerAvatar name={entry.displayName} division={entry.division} />
                             <div>
-                              <div className="text-[13px] font-semibold">{entry.displayName}</div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[13px] font-semibold">{entry.displayName}</span>
+                                {isDivLeader && (
+                                  <span
+                                    className="text-[8px] font-bold tracking-[0.06em] uppercase px-1 py-0.5 rounded"
+                                    style={{ background: "rgba(232,184,75,0.15)", color: "#E8B84B", border: "1px solid rgba(232,184,75,0.3)" }}
+                                  >
+                                    Div Leader
+                                  </span>
+                                )}
+                              </div>
                               {isPlayoff && (
-                                <div className="text-[10px] font-bold text-ittwa mt-0.5">Playoff Seed #{rank}</div>
+                                <div className="text-[10px] font-bold mt-0.5" style={{ color: isDivLeader ? "#E8B84B" : "#94a3b8" }}>
+                                  {isDivLeader ? `Seed #${slot!.seed}` : `Wildcard · Seed #${slot!.seed}`}
+                                </div>
                               )}
                               <div className="md:hidden mt-0.5">
                                 <DivisionBadge division={entry.division} />
@@ -327,9 +366,21 @@ export function StandingsClient({
             </table>
           </div>
 
-          <div className="px-4 py-2.5 border-t border-border flex items-center gap-2">
+          <div className="px-4 py-2.5 border-t border-border flex items-center gap-2 flex-wrap">
             <div className="w-0.5 h-3 bg-ittwa rounded-sm" />
-            <span className="text-[11px] text-muted-foreground">Top {PLAYOFF_SPOTS} teams qualify for playoffs</span>
+            <span className="text-[11px] text-muted-foreground">
+              Playoffs: the 4 division winners qualify, plus the 2 best non-division-winners as wildcards.
+            </span>
+            {seasonStarted && (
+              <span className="text-[11px] text-muted-foreground flex items-center gap-2.5 ml-1">
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-sm" style={{ background: "#E8B84B" }} /> Div Leader
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-sm" style={{ background: "#94a3b8" }} /> Wildcard
+                </span>
+              </span>
+            )}
           </div>
         </div>
       )}

@@ -486,6 +486,20 @@ function TxIcon({ type }: { type: string }) {
   );
 }
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ playerId: string }>;
+}) {
+  const { playerId } = await params;
+  const nflPlayers = await getNFLPlayers();
+  const player = nflPlayers[playerId];
+  const name = player
+    ? player.full_name || `${player.first_name} ${player.last_name}`
+    : "Player";
+  return { title: name };
+}
+
 export default async function PlayerProfilePage({
   params,
 }: {

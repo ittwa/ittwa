@@ -1,5 +1,7 @@
 import { connection } from "next/server";
 
+export const metadata = { title: "Drafts" };
+
 import { getDrafts, buildRosterOwnerMap, getLeagueUsers } from "@/lib/data";
 import { getDraftPicks, getTradedPicks, getDisplayName, getNFLState } from "@/lib/sleeper";
 import { DraftsClient } from "./drafts-client";

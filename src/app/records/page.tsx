@@ -1,5 +1,7 @@
 import { connection } from "next/server";
 
+export const metadata = { title: "Records" };
+
 import { getTeamsData, buildRosterOwnerMap, getLeagueUsers } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
 import { getScores, getFinances } from "@/lib/sheets";

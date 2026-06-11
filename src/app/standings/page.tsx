@@ -1,5 +1,7 @@
 import { connection } from "next/server";
 
+export const metadata = { title: "Standings" };
+
 import { getTeamsData, calculateStandings, getLeagueUsers } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
 import { getStandingsByDivision } from "@/lib/standings";
