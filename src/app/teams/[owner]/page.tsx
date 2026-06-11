@@ -179,6 +179,12 @@ async function OwnerTradeHistory({
   );
 }
 
+export async function generateMetadata({ params }: { params: Promise<{ owner: string }> }) {
+  const { owner } = await params;
+  // The route segment IS the owner's display name (e.g. "Clancy") — no fetch needed.
+  return { title: decodeURIComponent(owner) };
+}
+
 export default async function TeamDetailPage({ params }: { params: Promise<{ owner: string }> }) {
   const { owner: rawOwner } = await params;
   const ownerName = decodeURIComponent(rawOwner);
@@ -313,6 +319,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
               src={`https://sleepercdn.com/avatars/${ownerAvatars[team.displayName]}`}
               alt=""
               fill
+              sizes="220px"
               className="object-cover rounded-full"
               style={{ filter: `drop-shadow(0 0 40px ${divisionColor})` }}
             />

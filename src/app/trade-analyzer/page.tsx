@@ -6,7 +6,7 @@ import { getTradeAnalyzerData } from "@/lib/trade-analyzer/data";
 import { TradeAnalyzerClient } from "./trade-analyzer-client";
 
 export const metadata = {
-  title: "Trade Analyzer · ITTWA",
+  title: "Trade Analyzer",
   description: "Contract-adjusted dynasty trade analyzer for the ITTWA league.",
 };
 

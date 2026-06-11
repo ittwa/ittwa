@@ -51,6 +51,7 @@ function PlayerAvatar({ playerId, name, pos, size = 32 }: { playerId: string; na
         src={`https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`}
         alt={name}
         fill
+        sizes="64px"
         className="object-cover object-top"
         onError={() => setErr(true)}
       />

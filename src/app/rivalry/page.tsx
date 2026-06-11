@@ -1,5 +1,7 @@
 import { connection } from "next/server";
 
+export const metadata = { title: "Rivalry" };
+
 
 import { getMatchups, buildRosterOwnerMap, getLeagueUsers, getDisplayName } from "@/lib/sleeper";
 import { SEASON_LEAGUE_IDS } from "@/lib/config";

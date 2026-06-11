@@ -173,6 +173,7 @@ function PlayerHeadshot({ sleeperId, name, pos, size = 44 }: { sleeperId: string
         src={`https://sleepercdn.com/content/nfl/players/thumb/${sleeperId}.jpg`}
         alt={name}
         fill
+        sizes="64px"
         className="object-cover object-top"
         onError={() => setErr(true)}
       />
@@ -317,7 +318,10 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
     day: "numeric",
     year: "numeric",
   });
-  const weekLabel = trade.week < 1 ? "Off-Season" : `Week ${trade.week}`;
+  // Guard against missing/undefined week too: `undefined < 1` is false, which
+  // would otherwise fall through to the literal "Week undefined". Offseason
+  // trades carry week -1 (or no week at all) → show "Offseason".
+  const weekLabel = !trade.week || trade.week < 1 ? "Offseason" : `Week ${trade.week}`;
 
   return (
     <div id={trade.id} className="bg-card border border-border rounded-xl overflow-hidden scroll-mt-20">

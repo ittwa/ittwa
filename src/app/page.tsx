@@ -416,6 +416,7 @@ function TransactionsSection({
                           src={`https://sleepercdn.com/content/nfl/players/thumb/${singlePlayerId}.jpg`}
                           alt={playerName || ""}
                           fill
+                          sizes="28px"
                           className="object-cover"
                         />
                       </div>
@@ -550,7 +551,10 @@ export default async function HomePage() {
           <PowerRankingsSection rankings={powerRankings} ownerAvatars={ownerAvatars} />
         </div>
         <div className="space-y-6">
-          <StandingsSection standings={standings} ownerAvatars={ownerAvatars} />
+          {/* Compact preview: top 6 by standings rank (the size of the playoff
+              field). Full ordering + division-leader/wildcard detail lives on
+              the standings page via the "Full Standings →" link. */}
+          <StandingsSection standings={standings.slice(0, 6)} ownerAvatars={ownerAvatars} />
           <TransactionsSection transactions={transactions} rosterOwnerMap={rosterOwnerMap} nflPlayers={nflPlayers} season={season} ownerAvatars={ownerAvatars} />
         </div>
       </div>

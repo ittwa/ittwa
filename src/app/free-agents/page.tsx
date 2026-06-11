@@ -1,5 +1,7 @@
 import { connection } from "next/server";
 
+export const metadata = { title: "Free Agents" };
+
 import {
   getContracts,
   getRosters,
