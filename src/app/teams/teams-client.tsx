@@ -32,6 +32,10 @@ export interface TeamDirectoryEntry {
   roster: number;
   pos: Record<string, number>;
   expiringContracts: number;
+  // Contract-adjusted value totals (trade-analyzer engine, neutral strategy).
+  // Undefined when the valuation source was unavailable at render time.
+  value?: number;
+  pickValue?: number;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -629,17 +633,84 @@ function YearsChart({ teams, hovered, onHover }: { teams: TeamDirectoryEntry[]; 
   );
 }
 
+const fmtK = (n: number) => (Math.abs(n) >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Math.round(n)));
+
+function ValueRow({ team, max, isHover, onHover }: {
+  team: TeamDirectoryEntry; max: number; isHover: boolean;
+  onHover: (n: string | null) => void;
+}) {
+  const player = Math.max(team.value ?? 0, 0);
+  const picks = Math.max(team.pickValue ?? 0, 0);
+  const total = (team.value ?? 0) + (team.pickValue ?? 0);
+  const pctPlayer = player / max;
+  const pctPicks = picks / max;
+
+  return (
+    <div
+      onMouseEnter={() => onHover(team.owner)}
+      onMouseLeave={() => onHover(null)}
+      style={{
+        display: "grid", gridTemplateColumns: `${LBL_W}px 1fr 40px`, gap: 8, alignItems: "center",
+        padding: "3px 4px", borderRadius: 4,
+        background: isHover ? SURFACE : "transparent", transition: "background 0.12s",
+      }}
+    >
+      <OwnerLink name={team.owner} className="" style={{ fontSize: 11, fontWeight: 600, color: isHover ? TEXT : TEXT_DIM, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.owner}</OwnerLink>
+      <div style={{ position: "relative", height: 16, background: "var(--secondary)", borderRadius: 3, overflow: "hidden", border: `1px solid ${CARD_BORDER}`, display: "flex" }}>
+        <div className="font-code" style={{ width: `${pctPlayer * 100}%`, background: GOLD, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#3a2c08" }}>
+          {pctPlayer > 0.14 && fmtK(player)}
+        </div>
+        <div className="font-code" style={{ width: `${pctPicks * 100}%`, background: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#1e252e" }}>
+          {pctPicks > 0.08 && fmtK(picks)}
+        </div>
+      </div>
+      <span className="font-code" style={{ fontSize: 10, color: isHover ? TEXT : MUTED, textAlign: "right", fontWeight: 700 }}>{fmtK(total)}</span>
+    </div>
+  );
+}
+
+function ValueChart({ teams, hovered, onHover }: { teams: TeamDirectoryEntry[]; hovered: string | null; onHover: (n: string | null) => void }) {
+  const { sorted, max } = useMemo(() => {
+    const total = (t: TeamDirectoryEntry) => (t.value ?? 0) + (t.pickValue ?? 0);
+    const s = [...teams].sort((a, b) => total(b) - total(a));
+    return { sorted: s, max: Math.max(1, ...s.map((t) => Math.max(t.value ?? 0, 0) + Math.max(t.pickValue ?? 0, 0))) };
+  }, [teams]);
+  return (
+    <ChartFrame
+      title="Roster Value"
+      color={GOLD}
+      subtitle="Contract-adjusted value · players + owned picks"
+      footer={
+        <InsightLegend
+          items={[
+            { label: "Players", color: GOLD },
+            { label: "Picks", color: "#94a3b8" },
+          ]}
+          right="Trade-analyzer values"
+        />
+      }
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        {sorted.map((t) => (
+          <ValueRow key={t.owner} team={t} max={max} isHover={hovered === t.owner} onHover={onHover} />
+        ))}
+      </div>
+    </ChartFrame>
+  );
+}
+
 function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
   const [hovered, setHovered] = useState<string | null>(null);
   const overCap = useMemo(() => teams.filter((t) => t.yearsRem < 0), [teams]);
   const tightOnSpace = useMemo(() => teams.filter((t) => t.capRem < 30), [teams]);
   const flush = useMemo(() => teams.filter((t) => t.capRem > 80).sort((a, b) => b.capRem - a.capRem).slice(0, 3), [teams]);
+  const hasValues = teams.some((t) => t.value !== undefined);
 
   return (
     <section style={{ marginBottom: 32 }}>
       <SectionLabel
         label="League Insights"
-        count="Cap · Roster · Years"
+        count={hasValues ? "Value · Cap · Roster · Years" : "Cap · Roster · Years"}
         color={GOLD}
         right={
           <span className="hidden md:inline font-code" style={{ fontSize: 10, color: MUTED, letterSpacing: "0.04em" }}>
@@ -686,7 +757,8 @@ function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className={hasValues ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3" : "grid grid-cols-1 md:grid-cols-3 gap-3"}>
+        {hasValues && <ValueChart teams={teams} hovered={hovered} onHover={setHovered} />}
         <CapChart teams={teams} hovered={hovered} onHover={setHovered} />
         <RosterChart teams={teams} hovered={hovered} onHover={setHovered} />
         <YearsChart teams={teams} hovered={hovered} onHover={setHovered} />
@@ -699,11 +771,17 @@ function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
 
 function LeagueRibbon({ teams }: { teams: TeamDirectoryEntry[] }) {
   const items = useMemo(() => {
+    const totalValue = (t: TeamDirectoryEntry) => (t.value ?? 0) + (t.pickValue ?? 0);
+    const hasValues = teams.some((t) => t.value !== undefined);
+    const mostValuable = hasValues ? [...teams].sort((a, b) => totalValue(b) - totalValue(a))[0] : null;
     const mostCap = [...teams].sort((a, b) => b.capRem - a.capRem)[0];
     const mostPicks = [...teams].sort((a, b) => b.picks - a.picks)[0];
     const mostYears = [...teams].sort((a, b) => b.yearsUsed - a.yearsUsed)[0];
     const mostExpiring = [...teams].sort((a, b) => b.expiringContracts - a.expiringContracts)[0];
     return [
+      ...(mostValuable
+        ? [{ label: "Most Valuable", value: mostValuable.owner, sub: `${fmtK(totalValue(mostValuable))} asset value`, color: GOLD }]
+        : []),
       { label: "Most Cap Space", value: mostCap?.owner || "—", sub: mostCap ? `$${mostCap.capRem.toFixed(0)} remaining` : "", color: EMERALD },
       { label: "Most Draft Picks", value: mostPicks?.owner || "—", sub: mostPicks ? `${mostPicks.picks} picks` : "", color: GOLD },
       { label: "Most Years Used", value: mostYears?.owner || "—", sub: mostYears ? `${mostYears.yearsUsed} of ${YEARS_CAP}` : "", color: ACCENT },
@@ -712,7 +790,7 @@ function LeagueRibbon({ teams }: { teams: TeamDirectoryEntry[] }) {
   }, [teams]);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
+    <div className={`grid grid-cols-2 gap-3 mb-7 ${items.length === 5 ? "md:grid-cols-3 xl:grid-cols-5" : "md:grid-cols-4"}`}>
       {items.map((s) => (
         <div key={s.label} style={{ background: CARD, border: `1px solid ${CARD_BORDER}`, borderRadius: 10, padding: "12px 14px" }}>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: MUTED, marginBottom: 4 }}>{s.label}</div>

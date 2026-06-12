@@ -31,3 +31,35 @@ export async function getPlayerValueMap(): Promise<PlayerValueMap> {
 
   return { valueByPlayerId, valuePerDollar: config.LEAGUE_VALUE_PER_DOLLAR };
 }
+
+// Per-team totals of contract-adjusted value (neutral strategy), split into
+// rostered players vs owned future picks, keyed by owner display name. Used by
+// the Teams page "Roster Value" insight chart.
+export interface TeamValueSums {
+  playerValue: number;
+  pickValue: number;
+}
+
+export async function getTeamValueSums(): Promise<Map<string, TeamValueSums>> {
+  const data = await getTradeAnalyzerData();
+  const config = {
+    ...DEFAULT_CONFIG,
+    LEAGUE_VALUE_PER_DOLLAR: data.valuePerDollar || DEFAULT_CONFIG.LEAGUE_VALUE_PER_DOLLAR,
+  };
+
+  const sums = new Map<string, TeamValueSums>();
+  for (const team of data.teams) {
+    let playerValue = 0;
+    let pickValue = 0;
+    for (const asset of team.assets) {
+      const v = evaluateAsset(asset, "neutral", config).adjusted;
+      if (asset.type === "player") playerValue += v;
+      else pickValue += v;
+    }
+    sums.set(team.owner, {
+      playerValue: Math.round(playerValue),
+      pickValue: Math.round(pickValue),
+    });
+  }
+  return sums;
+}

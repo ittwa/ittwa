@@ -13,6 +13,7 @@ import {
   getLeague,
 } from "@/lib/data";
 import { getNFLPlayers, getDisplayName } from "@/lib/sleeper";
+import { getTeamValueSums, type TeamValueSums } from "@/lib/trade-analyzer/player-values";
 import { OWNER_LAST_NAME_MAP, SALARY_CAP, YEARS_CAP } from "@/lib/config";
 import { TeamsClient, type TeamDirectoryEntry } from "./teams-client";
 
@@ -25,13 +26,19 @@ function getOwnerLastName(displayName: string): string {
 
 export default async function TeamsPage() {
   await connection();
-  const [teamsData, contracts, capHits, nflPlayers, league, users] = await Promise.all([
+  const [teamsData, contracts, capHits, nflPlayers, league, users, valueSums] = await Promise.all([
     getTeamsData(),
     getContracts(),
     getCapHits(),
     getNFLPlayers(),
     getLeague(),
     getLeagueUsers(),
+    // Value sums depend on FantasyCalc; if that source is down, render the
+    // page without the Roster Value chart rather than failing entirely.
+    getTeamValueSums().catch((err): Map<string, TeamValueSums> | null => {
+      console.error("[teams] value sums unavailable:", err);
+      return null;
+    }),
   ]);
 
   const { teams, season, allMatchups } = teamsData;
@@ -145,6 +152,8 @@ export default async function TeamsPage() {
       roster: team.players.length,
       pos,
       expiringContracts,
+      value: valueSums?.get(team.displayName)?.playerValue,
+      pickValue: valueSums?.get(team.displayName)?.pickValue,
     };
   });
 
