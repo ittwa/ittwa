@@ -3,6 +3,7 @@
 import { useState, useMemo, Fragment } from "react";
 import Image from "next/image";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { playerHeadshotUrls } from "@/lib/player-images";
 import { OwnerLink } from "@/components/owner-link";
 import { PlayerLink } from "@/components/player-link";
 import { getDivColors } from "@/lib/ui-utils";
@@ -92,12 +93,13 @@ function OwnerAvatar({ name, division, size = 32, dim = false }: { name: string;
 }
 
 function PlayerAvatar({ playerId, name, pos, size = 28 }: { playerId?: string; name: string; pos: string; size?: number }) {
-  const [err, setErr] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const pc = posColor(pos);
   const ini = name.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("");
   const validId = playerId && playerId !== "#N/A" && playerId !== "N/A" && playerId !== "";
+  const urls = validId ? playerHeadshotUrls(playerId) : [];
 
-  if (!validId || err || pos === "TAX") {
+  if (!validId || attempt >= urls.length || pos === "TAX") {
     return (
       <div
         className="flex-shrink-0 flex items-center justify-center"
@@ -122,12 +124,13 @@ function PlayerAvatar({ playerId, name, pos, size = 28 }: { playerId?: string; n
       }}
     >
       <Image
-        src={`https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`}
+        key={urls[attempt]}
+        src={urls[attempt]}
         alt={name}
         fill
         sizes="64px"
         className="object-cover object-top"
-        onError={() => setErr(true)}
+        onError={() => setAttempt((a) => a + 1)}
       />
     </div>
   );

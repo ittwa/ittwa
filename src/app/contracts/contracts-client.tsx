@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import Image from "next/image";
 import { ContractWithValue } from "@/types/contracts";
 import { getPositionColors } from "@/lib/ui-utils";
+import { playerHeadshotUrls } from "@/lib/player-images";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 import { PlayerLink } from "@/components/player-link";
@@ -37,12 +38,13 @@ const YEAR_COLORS: Record<number, { text: string; bg: string; border: string }> 
 function yearColor(y: number) { return YEAR_COLORS[Math.min(y, 4)] || YEAR_COLORS[4]; }
 
 function PlayerAvatar({ playerId, name, pos }: { playerId: string; name: string; pos: string }) {
-  const [err, setErr] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const pc = getPositionColors(pos);
   const init = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   const validId = playerId && playerId !== "#N/A" && playerId !== "N/A" && playerId !== "";
+  const urls = validId ? playerHeadshotUrls(playerId) : [];
 
-  if (!validId || err) {
+  if (!validId || attempt >= urls.length) {
     return (
       <div
         className="rounded-lg flex-shrink-0 flex items-center justify-center"
@@ -59,12 +61,13 @@ function PlayerAvatar({ playerId, name, pos }: { playerId: string; name: string;
       style={{ width: 32, height: 32, background: pc.bg, border: `1px solid ${pc.border}` }}
     >
       <Image
-        src={`https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`}
+        key={urls[attempt]}
+        src={urls[attempt]}
         alt={name}
         fill
         sizes="32px"
         className="object-cover object-top"
-        onError={() => setErr(true)}
+        onError={() => setAttempt((a) => a + 1)}
       />
     </div>
   );

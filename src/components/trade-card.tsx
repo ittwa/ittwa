@@ -3,6 +3,7 @@
 import { useState, Fragment } from "react";
 import Image from "next/image";
 import { getPositionColors } from "@/lib/ui-utils";
+import { playerHeadshotUrls } from "@/lib/player-images";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { OwnerLink } from "@/components/owner-link";
 import { PlayerLink } from "@/components/player-link";
@@ -149,11 +150,12 @@ function PosBadge({ pos }: { pos: string }) {
 }
 
 function PlayerHeadshot({ sleeperId, name, pos, size = 44 }: { sleeperId: string; name: string; pos: string; size?: number }) {
-  const [err, setErr] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const urls = sleeperId ? playerHeadshotUrls(sleeperId) : [];
   const pc = getPositionColors(pos);
   const initials = name.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("");
 
-  if (err || !sleeperId) {
+  if (!sleeperId || attempt >= urls.length) {
     return (
       <div
         className="rounded-lg flex-shrink-0 flex items-center justify-center"
@@ -170,12 +172,13 @@ function PlayerHeadshot({ sleeperId, name, pos, size = 44 }: { sleeperId: string
       style={{ width: size, height: size }}
     >
       <Image
-        src={`https://sleepercdn.com/content/nfl/players/thumb/${sleeperId}.jpg`}
+        key={urls[attempt]}
+        src={urls[attempt]}
         alt={name}
         fill
         sizes="64px"
         className="object-cover object-top"
-        onError={() => setErr(true)}
+        onError={() => setAttempt((a) => a + 1)}
       />
     </div>
   );
