@@ -3,8 +3,10 @@ import {
   getNFLPlayers,
   getTradedPicks,
   getDrafts,
+  getNFLState,
   buildRosterOwnerMap,
 } from "@/lib/sleeper";
+import { getCachedNflPosRanks } from "@/lib/cached-stats";
 import { getContracts } from "@/lib/sheets";
 import { getLatestActiveContracts } from "@/lib/contracts";
 import { getFantasyCalcValues } from "@/lib/fantasycalc";
@@ -84,7 +86,7 @@ function pickValue(index: Map<string, PickTiers>, season: string, round: number)
 // ---- Main loader -------------------------------------------------------------
 
 export async function getTradeAnalyzerData(): Promise<TradeAnalyzerData> {
-  const [rosters, nflPlayers, contracts, fcValues, tradedPicks, drafts, rosterOwnerMap] =
+  const [rosters, nflPlayers, contracts, fcValues, tradedPicks, drafts, nflState, rosterOwnerMap] =
     await Promise.all([
       getRosters(LEAGUE_ID),
       getNFLPlayers(),
@@ -92,8 +94,21 @@ export async function getTradeAnalyzerData(): Promise<TradeAnalyzerData> {
       getFantasyCalcValues(),
       getTradedPicks(LEAGUE_ID),
       getDrafts(LEAGUE_ID),
+      getNFLState(),
       buildRosterOwnerMap(LEAGUE_ID),
     ]);
+
+  // Real fantasy-scoring positional ranks: current season if it has stats,
+  // otherwise the last completed season (same convention as the contracts
+  // page). FantasyCalc's positional rank is a DYNASTY rank that blends in age,
+  // which buries aging elite producers — McCaffrey sits ~RB15+ there while
+  // being RB1 in actual scoring — making their expected salary, and therefore
+  // their whole contract, look far worse than the market they play in.
+  const currentSeasonRanks = await getCachedNflPosRanks(nflState.season, nflPlayers, true);
+  const scoringRanks =
+    Object.keys(currentSeasonRanks).length > 0
+      ? currentSeasonRanks
+      : await getCachedNflPosRanks(String(parseInt(nflState.season, 10) - 1), nflPlayers, false);
 
   const activeContracts = getLatestActiveContracts(contracts);
   const contractByPlayerId = new Map<string, ContractWithValue>();
@@ -171,6 +186,17 @@ export async function getTradeAnalyzerData(): Promise<TradeAnalyzerData> {
         );
       }
 
+      // Rank input for the engine: the BETTER (lower) of FantasyCalc's dynasty
+      // rank and the real scoring rank — i.e. the rosier of the two views,
+      // which is what a buyer actually pays for. An aging RB1 (McCaffrey) gets
+      // credit for production; a young ascender keeps credit from dynasty value.
+      const fcRank = match.rank;
+      const scoringRank = scoringRanks[pid] ?? null;
+      const productionRank =
+        fcRank !== null && scoringRank !== null
+          ? Math.min(fcRank, scoringRank)
+          : fcRank ?? scoringRank;
+
       assets.push({
         id: pid,
         type: "player",
@@ -179,7 +205,7 @@ export async function getTradeAnalyzerData(): Promise<TradeAnalyzerData> {
         nflTeam: sp?.team ?? null,
         age: sp?.age ?? null,
         rawValue: match.value ?? 0,
-        productionRank: match.rank,
+        productionRank,
         salary,
         years,
       });
