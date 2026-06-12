@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { getPositionColors } from "@/lib/ui-utils";
+import { playerHeadshotUrls } from "@/lib/player-images";
 
 interface PlayerAvatarProps {
   playerId: string;
@@ -10,11 +11,13 @@ interface PlayerAvatarProps {
   size?: number;
 }
 
-function getAvatarUrl(playerId: string): string {
+function getAvatarUrls(playerId: string): string[] {
+  // Team-code "players" (DEF) use the team logo; real players get the
+  // headshot candidate chain.
   if (/^[A-Z]{2,4}$/.test(playerId)) {
-    return `https://sleepercdn.com/images/team_logos/nfl/${playerId.toLowerCase()}.jpg`;
+    return [`https://sleepercdn.com/images/team_logos/nfl/${playerId.toLowerCase()}.jpg`];
   }
-  return `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`;
+  return playerHeadshotUrls(playerId);
 }
 
 function initials(name: string): string {
@@ -27,7 +30,9 @@ function initials(name: string): string {
 }
 
 export function PlayerAvatar({ playerId, playerName, position, size = 32 }: PlayerAvatarProps) {
-  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const urls = playerId ? getAvatarUrls(playerId) : [];
+  const failed = attempt >= urls.length;
 
   if (!playerId || playerId === "#N/A" || failed) {
     const colors = getPositionColors(position || "");
@@ -48,13 +53,16 @@ export function PlayerAvatar({ playerId, playerName, position, size = 32 }: Play
   }
 
   return (
+    // key forces a remount when the src changes, so onError reliably fires
+    // again for the next candidate.
     <Image
-      src={getAvatarUrl(playerId)}
+      key={urls[attempt]}
+      src={urls[attempt]}
       alt={playerName}
       width={size}
       height={size}
       className="rounded-full object-cover shrink-0"
-      onError={() => setFailed(true)}
+      onError={() => setAttempt((a) => a + 1)}
     />
   );
 }

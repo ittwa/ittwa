@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Image from "next/image";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { playerHeadshotUrls } from "@/lib/player-images";
 import { PlayerLink } from "@/components/player-link";
 import type { FreeAgentRow } from "./page";
 
@@ -26,12 +27,13 @@ const ALL_POS = ["QB", "RB", "WR", "TE"] as const;
 // ── Sub-components ───────────────────────────────────────────────────────────
 
 function PlayerAvatar({ playerId, name, pos, size = 32 }: { playerId: string; name: string; pos: string; size?: number }) {
-  const [err, setErr] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const pc = posColor(pos);
   const ini = name.split(" ").map((w) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
   const validId = playerId && playerId !== "#N/A" && playerId !== "N/A" && playerId !== "";
+  const urls = validId ? playerHeadshotUrls(playerId) : [];
 
-  if (!validId || err) {
+  if (!validId || attempt >= urls.length) {
     return (
       <div
         className="flex-shrink-0 flex items-center justify-center"
@@ -48,12 +50,13 @@ function PlayerAvatar({ playerId, name, pos, size = 32 }: { playerId: string; na
       style={{ position: "relative", width: size, height: size, borderRadius: 8, background: pc.bg, border: `1px solid ${pc.border}` }}
     >
       <Image
-        src={`https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`}
+        key={urls[attempt]}
+        src={urls[attempt]}
         alt={name}
         fill
         sizes="64px"
         className="object-cover object-top"
-        onError={() => setErr(true)}
+        onError={() => setAttempt((a) => a + 1)}
       />
     </div>
   );

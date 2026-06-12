@@ -2,7 +2,7 @@ import { connection } from "next/server";
 
 import { Fragment } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -411,15 +411,15 @@ function TransactionsSection({
                   </span>
                   {isSinglePlayer && singlePlayerId ? (
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full overflow-hidden bg-card border border-border shrink-0 relative">
-                        <Image
-                          src={`https://sleepercdn.com/content/nfl/players/thumb/${singlePlayerId}.jpg`}
-                          alt={playerName || ""}
-                          fill
-                          sizes="28px"
-                          className="object-cover"
-                        />
-                      </div>
+                      {/* Shared client avatar: tries headshot URL candidates and
+                          falls back to initials (this is a server component, so
+                          an inline onError handler isn't possible here). */}
+                      <PlayerAvatar
+                        playerId={singlePlayerId}
+                        playerName={playerName || ""}
+                        position={singlePlayer?.position}
+                        size={28}
+                      />
                       <div className="flex flex-col min-w-0">
                         {singlePlayerId ? (
                           <PlayerLink playerId={singlePlayerId} className="text-sm font-medium truncate hover:underline underline-offset-2">{playerName}</PlayerLink>
