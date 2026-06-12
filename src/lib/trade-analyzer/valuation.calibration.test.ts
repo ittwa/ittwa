@@ -8,9 +8,12 @@ import type { TradeAsset } from "./types";
 // dynasty); market data drifts, so these tests assert SIGN and rough TIER, not
 // exact numbers. Contracts are the league's real salary/years.
 //
-// NOTE: production rank here uses FantasyCalc's positional value rank, which
-// blends recent production with age. For older players (e.g. Adams) the value
-// rank sits below their pure scoring rank; the directional targets still hold.
+// NOTE: productionRank here models the DATA LAYER's blended rank — the better
+// of FantasyCalc's dynasty rank and the real fantasy-scoring rank (data.ts).
+// This matters for aging elite producers: live FantasyCalc buried McCaffrey at
+// ~RB15+ (dynasty view), which dropped his expected salary to the $10 tier and
+// pinned the best-scoring RB in football at the soft floor (-250). The blend
+// feeds the engine his scoring rank (RB1) instead.
 interface Fixture {
   name: string;
   position: string;
@@ -24,7 +27,9 @@ interface Fixture {
 const FIXTURES: Fixture[] = [
   { name: "Puka Nacua", position: "WR", age: 25, rawValue: 7200, productionRank: 2, salary: 64, years: 3 },
   { name: "CeeDee Lamb", position: "WR", age: 27, rawValue: 5200, productionRank: 6, salary: 95, years: 3 },
-  { name: "Christian McCaffrey", position: "RB", age: 30, rawValue: 3200, productionRank: 6, salary: 69, years: 2 },
+  // Live FC value for a 30yo RB sits lower than the older snapshot assumed;
+  // rank 1 is the blended (scoring) rank — dynasty rank alone was ~RB15+.
+  { name: "Christian McCaffrey", position: "RB", age: 30, rawValue: 2400, productionRank: 1, salary: 69, years: 2 },
   { name: "Jonathan Taylor", position: "RB", age: 27, rawValue: 5200, productionRank: 2, salary: 50, years: 1 },
   { name: "Saquon Barkley", position: "RB", age: 29, rawValue: 4000, productionRank: 5, salary: 42, years: 1 },
   { name: "George Pickens", position: "WR", age: 25, rawValue: 4400, productionRank: 11, salary: 43, years: 1 },
@@ -69,8 +74,18 @@ describe("player valuation calibration (sign + tier, not exact)", () => {
     expect(lamb).toBeLessThan(valueOf("Puka Nacua"));
   });
 
-  it("McCaffrey: positive (RB1-overall worth a 2nd-round pick)", () => {
-    expect(valueOf("Christian McCaffrey")).toBeGreaterThan(0);
+  it("McCaffrey: clearly positive (RB1-overall is a player you pay to get)", () => {
+    const v = valueOf("Christian McCaffrey");
+    expect(v).toBeGreaterThan(500); // meaningfully positive, not hovering near zero
+  });
+
+  it("McCaffrey regression: dynasty rank alone would wrongly pin him at the soft floor", () => {
+    // Same player evaluated with ONLY FantasyCalc's age-blended dynasty rank
+    // (~RB15), the pre-blend input. Documents why data.ts feeds the engine the
+    // better of dynasty and scoring rank.
+    const cmc = FIXTURES.find((f) => f.name === "Christian McCaffrey")!;
+    const dynastyOnly = evaluateAsset(toAsset({ ...cmc, productionRank: 15 }), "neutral");
+    expect(dynastyOnly.valueDollars).toBe(DEFAULT_CONFIG.SOFT_FLOOR_POINTS);
   });
 
   it("Jonathan Taylor: positive (top RB, win-now rental)", () => {

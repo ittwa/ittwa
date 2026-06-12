@@ -14,7 +14,9 @@ export interface TradeAsset {
   nflTeam: string | null;
   age: number | null;
   rawValue: number; // FantasyCalc dynasty value (0 when unmatched)
-  productionRank: number | null; // FantasyCalc positional rank (1 = best); null when unmatched
+  // Positional rank (1 = best): the better of FantasyCalc's dynasty rank and
+  // the real fantasy-scoring rank (see data.ts); null when neither is known.
+  productionRank: number | null;
   salary: number; // contract salary in $; picks use their rookie-slot salary
   years: number; // contract years remaining; rookie picks = 4
   // Pick-only metadata
