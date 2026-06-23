@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { NavServer } from "@/components/nav-server";
+import { DataFreshness } from "@/components/data-freshness";
 import "./globals.css";
 
 const inter = Inter({
@@ -60,9 +61,12 @@ export default function RootLayout({
           <NavServer />
           <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
           <footer className="border-t border-border mt-12">
-            <div className="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-muted-foreground">
-              ITTWA — I Thought This Was America &middot; Est. 2014 &middot; A contract dynasty
-              league that tries its best.
+            <div className="mx-auto max-w-7xl px-4 py-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="text-sm text-muted-foreground">
+                ITTWA — I Thought This Was America &middot; Est. 2014 &middot; A contract dynasty
+                league that tries its best.
+              </div>
+              <DataFreshness />
             </div>
           </footer>
         </ThemeProvider>
