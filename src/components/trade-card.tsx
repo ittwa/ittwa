@@ -320,6 +320,7 @@ export function TradeCard({ trade, defaultExpanded = true }: { trade: EnrichedTr
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "America/New_York",
   });
   // Guard against missing/undefined week too: `undefined < 1` is false, which
   // would otherwise fall through to the literal "Week undefined". Offseason

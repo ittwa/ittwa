@@ -1,12 +1,15 @@
 import { getDataFreshness } from "@/lib/data-freshness";
 
 function fmt(ms: number): string {
+  // All times across the site render in Eastern; timeZoneName shows EST/EDT.
   return new Date(ms).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "America/New_York",
+    timeZoneName: "short",
   });
 }
 
