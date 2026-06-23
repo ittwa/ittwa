@@ -67,6 +67,21 @@ function fixSentence(d: Discrepancy): string {
   }
 }
 
+// Owner surnames a discrepancy involves — drives the owner filter. An
+// owner_mismatch involves both sides, so it surfaces under either owner.
+function ownersOf(d: Discrepancy): string[] {
+  switch (d.type) {
+    case "ghost_on_sleeper":
+      return d.sleeperOwner ? [d.sleeperOwner] : [];
+    case "stale_in_sheet":
+      return d.sheetOwner ? [d.sheetOwner] : [];
+    case "owner_mismatch":
+      return [d.sleeperOwner, d.sheetOwner].filter((o): o is string => !!o);
+    case "id_mismatch":
+      return d.owner ? [d.owner] : [];
+  }
+}
+
 // ── Player headshot with initials fallback ───────────────────────────────────
 function Headshot({ playerId, name, color, bg, border }: { playerId: string; name: string; color: string; bg: string; border: string }) {
   const [attempt, setAttempt] = useState(0);
@@ -224,17 +239,43 @@ type Filter = "all" | DiscrepancyType;
 export function DataCheckClient({ result }: { result: ReconcileResult }) {
   const { totals, discrepancies, aliasMap, season, generatedAt } = result;
   const [filter, setFilter] = useState<Filter>("all");
+  const [ownerFilter, setOwnerFilter] = useState("");
 
   const asOf = useMemo(() => {
     const d = new Date(generatedAt);
     return d.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
   }, [generatedAt]);
 
-  const filtered = useMemo(
-    () => (filter === "all" ? discrepancies : discrepancies.filter((d) => d.type === filter)),
-    [discrepancies, filter],
+  // The 12 sheet surnames, from the derived alias map.
+  const ownerOptions = useMemo(
+    () => [...new Set(aliasMap.map((a) => a.sheetOwner))].sort((a, b) => a.localeCompare(b)),
+    [aliasMap],
   );
 
+  // Apply the owner filter first; the type tiles/counts then reflect that scope.
+  const ownerFiltered = useMemo(
+    () => (ownerFilter ? discrepancies.filter((d) => ownersOf(d).includes(ownerFilter)) : discrepancies),
+    [discrepancies, ownerFilter],
+  );
+
+  const ownerCounts = useMemo(() => {
+    const c: Record<DiscrepancyType, number> = {
+      ghost_on_sleeper: 0,
+      id_mismatch: 0,
+      stale_in_sheet: 0,
+      owner_mismatch: 0,
+    };
+    for (const d of ownerFiltered) c[d.type]++;
+    return c;
+  }, [ownerFiltered]);
+
+  const filtered = useMemo(
+    () => (filter === "all" ? ownerFiltered : ownerFiltered.filter((d) => d.type === filter)),
+    [ownerFiltered, filter],
+  );
+
+  // "All clear" is league-wide; an owner filter yielding zero shows a scoped
+  // empty message instead.
   const clear = totals.total === 0;
 
   return (
@@ -268,9 +309,32 @@ export function DataCheckClient({ result }: { result: ReconcileResult }) {
             background: filter === "all" ? "rgba(232,184,75,0.08)" : "var(--card)",
           }}
         >
-          <span className="font-heading text-2xl font-black tabular-nums" style={{ color: clear ? "#22c55e" : "#e8b84b" }}>{totals.total}</span>
-          <span className="text-[13px] font-semibold text-muted-foreground">total flag{totals.total === 1 ? "" : "s"}</span>
+          <span className="font-heading text-2xl font-black tabular-nums" style={{ color: ownerFiltered.length === 0 ? "#22c55e" : "#e8b84b" }}>{ownerFiltered.length}</span>
+          <span className="text-[13px] font-semibold text-muted-foreground">
+            flag{ownerFiltered.length === 1 ? "" : "s"}{ownerFilter ? ` · ${ownerFilter}` : " total"}
+          </span>
         </button>
+
+        {/* Owner filter */}
+        <div className="relative ml-auto">
+          <select
+            value={ownerFilter}
+            onChange={(e) => setOwnerFilter(e.target.value)}
+            className="appearance-none rounded-[10px] border py-2 pl-3 pr-9 text-[13px] font-semibold cursor-pointer"
+            style={{
+              borderColor: ownerFilter ? "rgba(232,184,75,0.4)" : "var(--border)",
+              background: ownerFilter ? "rgba(232,184,75,0.08)" : "var(--card)",
+              color: ownerFilter ? "#E8B84B" : "var(--muted-foreground)",
+            }}
+            aria-label="Filter by owner"
+          >
+            <option value="">All owners</option>
+            {ownerOptions.map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[10px]" style={{ color: ownerFilter ? "#E8B84B" : "var(--muted-foreground)" }}>▼</span>
+        </div>
       </div>
 
       <div className="flex gap-2.5 mb-6 flex-wrap">
@@ -278,7 +342,7 @@ export function DataCheckClient({ result }: { result: ReconcileResult }) {
           <SummaryTile
             key={type}
             type={type}
-            count={totals[type]}
+            count={ownerCounts[type]}
             active={filter === type}
             onClick={() => setFilter((f) => (f === type ? "all" : type))}
           />
@@ -296,7 +360,14 @@ export function DataCheckClient({ result }: { result: ReconcileResult }) {
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-card border border-border rounded-xl py-12 text-center text-[13px] text-muted-foreground">
-          No <span className="text-foreground font-medium">{TYPE_META[filter as DiscrepancyType]?.label}</span> flags.
+          No{" "}
+          {filter !== "all" && (
+            <span className="text-foreground font-medium">{TYPE_META[filter].label} </span>
+          )}
+          flags
+          {ownerFilter && (
+            <> for <span className="text-foreground font-medium">{ownerFilter}</span></>
+          )}.
         </div>
       ) : (
         <div className="grid gap-3">
