@@ -24,6 +24,13 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  // Base URL used to resolve relative Open Graph / Twitter image paths (e.g. the
+  // generated opengraph-image). Prefer the Vercel-provided production URL.
+  metadataBase: new URL(
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "http://localhost:3000",
+  ),
   // `default` is used on the homepage and any route without its own title;
   // `template` wraps a page's own title, so `title: "Standings"` renders as
   // "Standings · ITTWA".
