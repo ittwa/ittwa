@@ -1,111 +1,34 @@
 import { connection } from "next/server";
-
-import { Fragment } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { PlayerAvatar } from "@/components/player-avatar";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
+
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  getTeamsData,
-  getMatchupPairs,
-  getAllTransactions,
-  calculateStandings,
-  calculatePowerRankings,
-  buildRosterOwnerMap,
-  getNFLState,
-  getNFLPlayers,
-  getLeagueUsers,
-} from "@/lib/data";
-import { getDisplayName } from "@/lib/sleeper";
-import { getDivisionVariant, getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
-import { SleeperAvatarImage } from "@/components/owner-avatar";
-import { PlayerLink } from "@/components/player-link";
 import { OwnerLink } from "@/components/owner-link";
-import { SleeperTransaction, SleeperPlayersMap, MatchupPair } from "@/types/sleeper";
-import { StandingsEntry } from "@/lib/standings";
-import { PowerRankingEntry } from "@/lib/power-rankings";
 import { KeyDatesTicker } from "@/components/key-dates-ticker";
+import { OwnerBadgeAvatar } from "@/components/home/owner-badge-avatar";
+import { HeroCountdown } from "@/components/home/hero-countdown";
+import { WeeklyTape } from "@/components/home/weekly-tape";
+import { RivalryDesk } from "@/components/home/rivalry-desk";
 
-// ─── Data helpers ─────────────────────────────────────────────────────────────
+import { getHomeData, type HomeData, type LeaderCard } from "@/lib/home-data";
+import { AUCTION_DATE } from "@/lib/config";
+import { getDivColors } from "@/lib/ui-utils";
+import type { StandingsEntry } from "@/lib/standings";
+import type { AllPlayRecord } from "@/lib/luck-index";
 
-async function fetchDashboardData(): Promise<{
-  currentWeek: number;
-  season: string;
-  matchupPairs: MatchupPair[];
-  standings: StandingsEntry[];
-  powerRankings: PowerRankingEntry[];
-  transactions: SleeperTransaction[];
-  nflPlayers: SleeperPlayersMap;
-  ownerAvatars: Record<string, string>;
-}> {
-  let currentWeek = 1;
-  let season = new Date().getFullYear().toString();
-  let matchupPairs: MatchupPair[] = [];
-  let standings: StandingsEntry[] = [];
-  let powerRankings: PowerRankingEntry[] = [];
-  let transactions: SleeperTransaction[] = [];
-  let nflPlayers: SleeperPlayersMap = {};
-  const ownerAvatars: Record<string, string> = {};
+export const metadata: Metadata = {
+  description:
+    "The ITTWA front office — weekly recaps, luck index, standings, and all-time rivalries for a contract dynasty league founded in 2014.",
+  openGraph: {
+    title: "ITTWA — Front Office",
+    description:
+      "Weekly recaps, the Luck Index, standings and all-time rivalries for the ITTWA contract dynasty league.",
+    type: "website",
+  },
+};
 
-  try {
-    const [teamsData, , users] = await Promise.all([
-      getTeamsData(),
-      getNFLState(),
-      getLeagueUsers(),
-    ]);
-
-    for (const user of users) {
-      if (user.avatar) ownerAvatars[getDisplayName(user)] = user.avatar;
-    }
-
-    season = teamsData.season;
-    currentWeek = teamsData.currentWeek;
-
-    const rosterInfo = new Map<
-      number,
-      { displayName: string; division: string; wins: number; losses: number }
-    >();
-    for (const team of teamsData.teams) {
-      rosterInfo.set(team.rosterId, {
-        displayName: team.displayName,
-        division: team.division,
-        wins: team.wins,
-        losses: team.losses,
-      });
-    }
-
-    const weekToShow = Math.max(currentWeek - 1, 1);
-    const [pairs, txns, , playersData] = await Promise.all([
-      getMatchupPairs(weekToShow).catch(() => [] as MatchupPair[]),
-      getAllTransactions().catch(() => [] as SleeperTransaction[]),
-      buildRosterOwnerMap().catch(() => ({} as Record<number, string>)),
-      getNFLPlayers().catch(() => ({} as SleeperPlayersMap)),
-    ]);
-
-    matchupPairs = pairs;
-    transactions = txns;
-    nflPlayers = playersData;
-    standings = calculateStandings(teamsData.teams, teamsData.allMatchups);
-    powerRankings = calculatePowerRankings(teamsData.allMatchups, rosterInfo);
-  } catch (err) {
-    console.error("[dashboard] data fetch error:", err);
-  }
-
-  return { currentWeek, season, matchupPairs, standings, powerRankings, transactions, nflPlayers, ownerAvatars };
-}
-
-function formatDate(timestampMs: number): string {
-  return new Date(timestampMs).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function transactionLabel(tx: SleeperTransaction): string {
-  if (tx.type === "trade") return "Trade";
-  if (tx.type === "free_agent") return "FA Pickup";
-  if (tx.type === "waiver") return "Waiver Claim";
-  return tx.type;
-}
-
-// ─── Section header ────────────────────────────────────────────────────────────
+// ── Small shared bits ───────────────────────────────────────────────────────
 
 function SectionTick({ label }: { label: string }) {
   return (
@@ -116,389 +39,34 @@ function SectionTick({ label }: { label: string }) {
   );
 }
 
-function DashboardAvatar({ name, avatarId, division, size = 24 }: { name: string; avatarId?: string; division?: string; size?: number }) {
-  const initials = name.slice(0, 2).toUpperCase();
-  const color = division ? getDivisionColor(division) : "#888";
-  const bg = division ? getDivisionColorAlpha(division, 0.1) : "rgba(136,136,136,0.1)";
-  const border = division ? getDivisionColorAlpha(division, 0.2) : "rgba(136,136,136,0.2)";
-  return (
-    <div
-      className="rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
-      style={{ width: size, height: size, background: bg, border: `1px solid ${border}` }}
-    >
-      <SleeperAvatarImage
-        avatarId={avatarId}
-        name={name}
-        fallback={<span className="font-heading font-extrabold" style={{ color, fontSize: size * 0.38 }}>{initials}</span>}
-      />
-    </div>
-  );
+// The next milestone the countdown points at: the FA auction in the offseason,
+// otherwise the next Thursday-night kickoff.
+function nextMilestone(): { iso: string; label: string } {
+  const now = Date.now();
+  const auction = AUCTION_DATE.getTime();
+  if (now < auction) return { iso: AUCTION_DATE.toISOString(), label: "FA Auction" };
+  const d = new Date();
+  let add = (4 - d.getDay() + 7) % 7; // Thursday = 4
+  if (add === 0) add = 7;
+  d.setDate(d.getDate() + add);
+  d.setHours(20, 20, 0, 0);
+  return { iso: d.toISOString(), label: "Next Kickoff" };
 }
 
-// ─── Section components ────────────────────────────────────────────────────────
+// ── Hero ─────────────────────────────────────────────────────────────────────
 
-function MatchupsSection({ pairs, week, ownerAvatars, divisionMap }: { pairs: MatchupPair[]; week: number; ownerAvatars: Record<string, string>; divisionMap: Record<string, string> }) {
-  if (pairs.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="pb-3"><SectionTick label={week < 1 ? "Preseason" : `Week ${week} Matchups`} /></CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground italic">
-            No matchup data found. The NFL is probably on a bye.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
+function Hero({ data }: { data: HomeData }) {
+  const seasonCount = parseInt(data.season) - 2013;
+  const statusLabel = data.isPreseason
+    ? "Preseason"
+    : data.lastCompletedWeek > 0
+      ? `Week ${data.lastCompletedWeek} complete`
+      : data.status.replace(/_/g, " ");
+  const milestone = nextMilestone();
 
   return (
-    <Card>
-      <CardHeader className="pb-3"><SectionTick label={week < 1 ? "Preseason" : `Week ${week} Matchups`} /></CardHeader>
-      <CardContent className="p-0">
-        <div>
-          {pairs.map((pair, i) => {
-            const t1Winning = pair.team1.points >= pair.team2.points;
-            return (
-              <div
-                key={pair.matchupId}
-                className="grid items-center gap-3 px-5 py-2.5"
-                style={{
-                  gridTemplateColumns: "1fr auto 1fr",
-                  borderTop: i > 0 ? "1px solid var(--border)" : undefined,
-                  background: i % 2 === 1 ? "var(--secondary)" : undefined,
-                }}
-              >
-                <OwnerLink name={pair.team1.displayName} className={`flex items-center justify-end gap-1.5 min-w-0 hover:opacity-80 transition-opacity ${pair.completed && t1Winning ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-                  <span className="text-[13px] truncate">{pair.team1.displayName}</span>
-                  <DashboardAvatar name={pair.team1.displayName} avatarId={ownerAvatars[pair.team1.displayName]} division={divisionMap[pair.team1.displayName]} size={22} />
-                </OwnerLink>
-                <div className="flex items-center gap-2 font-mono text-[13px]">
-                  <span className={pair.completed && t1Winning ? "text-foreground font-bold" : "text-muted-foreground"}>
-                    {pair.team1.points > 0 ? pair.team1.points.toFixed(2) : "—"}
-                  </span>
-                  <span className="text-muted-foreground text-[10px] font-medium">VS</span>
-                  <span className={pair.completed && !t1Winning ? "text-foreground font-bold" : "text-muted-foreground"}>
-                    {pair.team2.points > 0 ? pair.team2.points.toFixed(2) : "—"}
-                  </span>
-                </div>
-                <OwnerLink name={pair.team2.displayName} className={`flex items-center gap-1.5 min-w-0 hover:opacity-80 transition-opacity ${pair.completed && !t1Winning ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-                  <DashboardAvatar name={pair.team2.displayName} avatarId={ownerAvatars[pair.team2.displayName]} division={divisionMap[pair.team2.displayName]} size={22} />
-                  <span className="text-[13px] truncate">{pair.team2.displayName}</span>
-                </OwnerLink>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function StandingsSection({ standings, ownerAvatars }: { standings: StandingsEntry[]; ownerAvatars: Record<string, string> }) {
-  if (standings.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="pb-3 flex flex-row items-center justify-between">
-          <SectionTick label="Standings" />
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground italic">No standings data. Everyone&apos;s tied at 0-0 in their hearts.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <SectionTick label="Standings" />
-        <Link href="/standings" className="text-xs text-gold hover:underline font-semibold">Full Standings →</Link>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                <th className="px-6 py-2 text-left w-8">#</th>
-                <th className="px-2 py-2 text-left">Owner</th>
-                <th className="px-2 py-2 text-center w-16">W-L</th>
-                <th className="px-2 py-2 text-right w-16">PF</th>
-                <th className="px-6 py-2 text-right hidden sm:table-cell">Division</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {standings.map((entry) => (
-                <tr
-                  key={entry.rosterId}
-                  className={entry.rank <= 3 ? "bg-ittwa/5" : ""}
-                >
-                  <td className="px-6 py-2.5">
-                    {entry.rank <= 3 ? (
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-ittwa text-white text-xs font-bold">{entry.rank}</span>
-                    ) : (
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded border border-border text-muted-foreground text-xs font-medium">{entry.rank}</span>
-                    )}
-                  </td>
-                  <td className="px-2 py-2.5 font-medium">
-                    <OwnerLink name={entry.displayName} className="flex items-center gap-2 max-w-[160px] hover:opacity-80 transition-opacity">
-                      <DashboardAvatar name={entry.displayName} avatarId={ownerAvatars[entry.displayName]} division={entry.division} />
-                      <span className="truncate">{entry.displayName}</span>
-                    </OwnerLink>
-                  </td>
-                  <td className="px-2 py-2.5 text-center tabular-nums text-muted-foreground">
-                    {entry.wins}-{entry.losses}
-                  </td>
-                  <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground font-mono text-xs">
-                    {entry.pointsFor.toFixed(1)}
-                  </td>
-                  <td className="px-6 py-2.5 text-right hidden sm:table-cell">
-                    <Badge variant={getDivisionVariant(entry.division)} className="text-xs">
-                      {entry.division}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function PowerRankingsSection({ rankings, ownerAvatars }: { rankings: PowerRankingEntry[]; ownerAvatars: Record<string, string> }) {
-  const top5 = rankings.slice(0, 5);
-
-  if (top5.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="pb-3 flex flex-row items-center justify-between">
-          <SectionTick label="Power Rankings" />
-          <Link href="/power-rankings" className="text-xs text-gold hover:underline font-semibold">Full Rankings →</Link>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground italic">Not enough data yet. Check back after week 1. Or don&apos;t.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <SectionTick label="Power Rankings" />
-        <Link href="/power-rankings" className="text-xs text-gold hover:underline font-semibold">Full Rankings →</Link>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="divide-y divide-border">
-          {top5.map((entry) => {
-            const rankChangeSymbol =
-              entry.rankChange > 0 ? `▲${entry.rankChange}` :
-              entry.rankChange < 0 ? `▼${Math.abs(entry.rankChange)}` : "—";
-            const rankChangeColor =
-              entry.rankChange > 0 ? "text-emerald-400" :
-              entry.rankChange < 0 ? "text-ittwa" : "text-muted-foreground";
-
-            return (
-              <div
-                key={entry.rosterId}
-                className="flex items-center gap-3 px-6 py-3"
-                style={{ background: entry.rank === 1 ? "rgba(253,74,72,0.1)" : undefined }}
-              >
-                {entry.rank <= 3 ? (
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-ittwa text-white text-xs font-bold shrink-0">{entry.rank}</span>
-                ) : (
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded border border-border text-muted-foreground text-xs font-medium shrink-0">{entry.rank}</span>
-                )}
-                <DashboardAvatar name={entry.displayName} avatarId={ownerAvatars[entry.displayName]} division={entry.division} size={28} />
-                <div className="flex-1 min-w-0">
-                  <OwnerLink name={entry.displayName} className="font-medium text-sm truncate block hover:underline underline-offset-2">{entry.displayName}</OwnerLink>
-                  <div>
-                    <Badge variant={getDivisionVariant(entry.division)} className="text-[10px] px-1.5 py-0">
-                      {entry.division}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm tabular-nums font-mono">{(entry.allPlayWinPct * 100).toFixed(1)}%</p>
-                  <p className="text-xs text-muted-foreground">All-Play</p>
-                </div>
-                <span className={`w-8 text-right text-xs font-medium tabular-nums shrink-0 ${rankChangeColor}`}>
-                  {rankChangeSymbol}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function TransactionsSection({
-  transactions,
-  rosterOwnerMap,
-  nflPlayers,
-  season,
-  ownerAvatars,
-}: {
-  transactions: SleeperTransaction[];
-  rosterOwnerMap: Record<number, string>;
-  nflPlayers: SleeperPlayersMap;
-  season: string;
-  ownerAvatars: Record<string, string>;
-}) {
-  const filtered = transactions
-    .filter((tx) => tx.status === "complete" && (tx.type === "trade" || (tx.adds !== null && Object.keys(tx.adds).length > 0)))
-    .sort((a, b) => b.created - a.created)
-    .slice(0, 8);
-
-  const txBadgeClass = (type: string) => {
-    if (type === "trade") return "bg-amber-950/60 text-amber-400 border border-amber-800";
-    if (type === "free_agent") return "bg-emerald-950/60 text-emerald-400 border border-emerald-800";
-    if (type === "waiver") return "bg-red-950/60 text-red-400 border border-red-800";
-    return "bg-secondary text-secondary-foreground border border-border";
-  };
-
-  // Build trade index to generate trade IDs matching the Trades page logic
-  const tradeIndex = new Map<string, string>();
-  const trades = transactions
-    .filter((tx) => tx.type === "trade" && tx.status === "complete")
-    .sort((a, b) => a.created - b.created);
-  trades.forEach((tx, i) => {
-    tradeIndex.set(tx.transaction_id, `${season}${String(i + 1).padStart(2, "0")}`);
-  });
-
-  if (filtered.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="pb-3"><SectionTick label="Recent Transactions" /></CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground italic">No transactions found. Everyone&apos;s standing pat, apparently.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-3"><SectionTick label="Recent Transactions" /></CardHeader>
-      <CardContent className="p-0">
-        <div className="divide-y divide-border">
-          {filtered.map((tx) => {
-            const isTrade = tx.type === "trade";
-            const teams = tx.roster_ids.map((id) => rosterOwnerMap[id] || `Team ${id}`).join(" · ");
-
-            // Single-player transaction info
-            const addedPlayerIds = tx.adds ? Object.keys(tx.adds) : [];
-            const isSinglePlayer = !isTrade && addedPlayerIds.length === 1;
-            const singlePlayer = isSinglePlayer ? nflPlayers[addedPlayerIds[0]] : null;
-            const singlePlayerId = isSinglePlayer ? addedPlayerIds[0] : null;
-            const playerName = singlePlayer
-              ? (singlePlayer.full_name || `${singlePlayer.first_name} ${singlePlayer.last_name}`)
-              : null;
-            const ownerRosterId = isSinglePlayer && tx.adds ? tx.adds[addedPlayerIds[0]] : null;
-            const ownerName = ownerRosterId != null ? (rosterOwnerMap[ownerRosterId] || teams) : teams;
-
-            const tradeId = isTrade ? tradeIndex.get(tx.transaction_id) : null;
-            const tradeHref = tradeId ? `/trades#${tradeId}` : undefined;
-
-            const rowContent = (
-              <div className="flex items-center justify-between gap-3 px-6 py-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium shrink-0 ${txBadgeClass(tx.type)}`}>
-                    {transactionLabel(tx)}
-                  </span>
-                  {isSinglePlayer && singlePlayerId ? (
-                    <div className="flex items-center gap-2 min-w-0">
-                      {/* Shared client avatar: tries headshot URL candidates and
-                          falls back to initials (this is a server component, so
-                          an inline onError handler isn't possible here). */}
-                      <PlayerAvatar
-                        playerId={singlePlayerId}
-                        playerName={playerName || ""}
-                        position={singlePlayer?.position}
-                        size={28}
-                      />
-                      <div className="flex flex-col min-w-0">
-                        {singlePlayerId ? (
-                          <PlayerLink playerId={singlePlayerId} className="text-sm font-medium truncate hover:underline underline-offset-2">{playerName}</PlayerLink>
-                        ) : (
-                          <span className="text-sm font-medium truncate">{playerName}</span>
-                        )}
-                        <div className="flex items-center gap-1 min-w-0">
-                          <DashboardAvatar name={ownerName} avatarId={ownerAvatars[ownerName]} size={14} />
-                          <span className="text-xs text-muted-foreground truncate">{ownerName}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                      {tx.roster_ids.map((id, idx) => {
-                        const name = rosterOwnerMap[id] || `Team ${id}`;
-                        return (
-                          <Fragment key={id}>
-                            {idx > 0 && <span className="text-xs text-muted-foreground">·</span>}
-                            <div className="flex items-center gap-1 min-w-0">
-                              <DashboardAvatar name={name} avatarId={ownerAvatars[name]} size={18} />
-                              <span className="text-sm text-muted-foreground truncate">{name}</span>
-                            </div>
-                          </Fragment>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-                <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{formatDate(tx.created)}</span>
-              </div>
-            );
-
-            if (isTrade && tradeHref) {
-              return (
-                <Link key={tx.transaction_id} href={tradeHref} className="block hover:bg-accent/30 transition-colors">
-                  {rowContent}
-                </Link>
-              );
-            }
-
-            return (
-              <div key={tx.transaction_id}>
-                {rowContent}
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-export default async function HomePage() {
-  await connection();
-  const { currentWeek, season, matchupPairs, standings, powerRankings, transactions, nflPlayers, ownerAvatars } =
-    await fetchDashboardData();
-
-  const rosterOwnerMap: Record<number, string> = {};
-  const divisionMap: Record<string, string> = {};
-  for (const entry of standings) {
-    rosterOwnerMap[entry.rosterId] = entry.displayName;
-    divisionMap[entry.displayName] = entry.division;
-  }
-
-  const weekToShow = Math.max(currentWeek - 1, 1);
-  const tradeCount = transactions.filter((t) => t.type === "trade" && t.status === "complete").length;
-  const txnCount = transactions.filter((t) => t.status === "complete").length;
-  const seasonCount = parseInt(season) - 2013;
-
-  return (
-    <div className="space-y-8">
-      {/* ── Key Dates Ticker ──────────────────────────────────────────────── */}
-      <KeyDatesTicker />
-
-      {/* ── Hero ────────────────────────────────────────────────────────────── */}
-      <section className="pb-6 mb-7 border-b border-border">
+    <section className="space-y-5">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4">
           <div
             className="w-[60px] h-[60px] rounded-lg shrink-0 flex items-center justify-center"
@@ -506,58 +74,225 @@ export default async function HomePage() {
           >
             <span className="font-heading font-black text-xl text-gold">IW</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2.5 mb-1">
-              <h1 className="font-heading text-4xl font-black uppercase tracking-wider leading-none">
-                ITTWA
-              </h1>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5 mb-1 flex-wrap">
+              <h1 className="font-heading text-4xl font-black uppercase tracking-wider leading-none">ITTWA</h1>
               <span className="text-[11px] font-bold tracking-widest px-2 py-0.5 bg-ittwa text-white rounded-sm">
-                {season}
+                {data.season}
               </span>
-              {weekToShow >= 1 && currentWeek > 1 && (
-                <span className="text-[11px] font-semibold text-muted-foreground">
-                  · WEEK {weekToShow}
-                </span>
-              )}
-              {currentWeek <= 1 && (
-                <span className="text-[11px] font-semibold text-muted-foreground">
-                  · PRESEASON
-                </span>
-              )}
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                · {statusLabel}
+              </span>
             </div>
             <p className="text-[13px] text-muted-foreground">
-              Contract dynasty league · Founded 2014 · 12 owners
+              {data.leagueName} · Est. 2014 · Season {seasonCount}
             </p>
-          </div>
-          <div className="hidden sm:flex gap-6 shrink-0">
-            {[
-              [String(tradeCount), "Trades"],
-              [String(txnCount), "FA Moves"],
-              [String(seasonCount), "Seasons"],
-            ].map(([val, lbl]) => (
-              <div key={lbl} className="text-center">
-                <p className="font-heading text-[28px] font-extrabold text-gold leading-none">{val}</p>
-                <p className="text-[10px] text-muted-foreground font-semibold tracking-widest uppercase mt-0.5">{lbl}</p>
-              </div>
-            ))}
+            <p className="text-[12px] text-muted-foreground/80 mt-0.5">{data.capSummary}</p>
           </div>
         </div>
-      </section>
 
-      {/* ── Main grid ───────────────────────────────────────────────────────── */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-6">
-          <MatchupsSection pairs={matchupPairs} week={weekToShow} ownerAvatars={ownerAvatars} divisionMap={divisionMap} />
-          <PowerRankingsSection rankings={powerRankings} ownerAvatars={ownerAvatars} />
+        <HeroCountdown targetIso={milestone.iso} label={milestone.label} />
+      </div>
+
+      {/* Defending champion banner */}
+      {data.defendingChampion && (
+        <div
+          className="flex items-center gap-3 rounded-xl border px-4 py-3"
+          style={{ borderColor: "rgba(232,184,75,0.35)", background: "rgba(232,184,75,0.07)" }}
+        >
+          <span className="text-2xl" aria-hidden>🏆</span>
+          <OwnerBadgeAvatar owner={data.defendingChampion.owner} avatarId={data.ownerAvatars[data.defendingChampion.owner]} size={36} />
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gold">
+              {data.defendingChampion.year} Champion — Defending the crown
+            </p>
+            <OwnerLink
+              name={data.defendingChampion.owner}
+              className="font-heading text-xl font-black leading-tight hover:underline block truncate"
+            >
+              {data.defendingChampion.owner}
+            </OwnerLink>
+          </div>
         </div>
+      )}
+    </section>
+  );
+}
+
+// ── Leaderboard cards ────────────────────────────────────────────────────────
+
+function LeaderboardCards({ data }: { data: HomeData }) {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <SectionTick label="Leaderboard" />
+        {data.isPreseason && (
+          <Badge variant="warning" className="text-[10px] uppercase tracking-wider">
+            showing {data.dataSeasonYear} finals
+          </Badge>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {data.leaders.map((leader) => (
+          <LeaderCardView key={leader.label} leader={leader} avatarId={data.ownerAvatars[leader.owner]} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function LeaderCardView({ leader, avatarId }: { leader: LeaderCard; avatarId?: string }) {
+  const dc = leader.division ? getDivColors(leader.division) : null;
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{leader.label}</p>
+        <div className="mt-2 flex items-center gap-2.5">
+          <OwnerBadgeAvatar owner={leader.owner} avatarId={avatarId} size={32} />
+          <div className="min-w-0">
+            <OwnerLink
+              name={leader.owner}
+              className="font-heading text-base font-extrabold leading-tight truncate block hover:underline"
+              style={dc ? { color: dc.text } : undefined}
+            >
+              {leader.owner}
+            </OwnerLink>
+          </div>
+        </div>
+        <p className="mt-2 font-code text-xl font-bold tabular-nums">{leader.value}</p>
+        <p className="text-[10px] text-muted-foreground">{leader.sub}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Standings strip (top 6) ─────────────────────────────────────────────────
+
+// Diverging luck bar: center = neutral. Green grows right when lucky, red grows
+// left when unlucky. Scaled so ±0.5 (a half-game swing) fills its side.
+function LuckBar({ luck }: { luck: number }) {
+  const MAX = 0.5;
+  const pct = Math.min(Math.abs(luck) / MAX, 1) * 50;
+  return (
+    <div className="relative h-2 w-full rounded-full bg-secondary overflow-hidden" title={`Luck ${luck > 0 ? "+" : ""}${(luck * 100).toFixed(0)}%`}>
+      <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-border" />
+      {luck >= 0 ? (
+        <span className="absolute top-0 h-full rounded-full" style={{ left: "50%", width: `${pct}%`, background: "#4ade80", opacity: 0.85 }} />
+      ) : (
+        <span className="absolute top-0 h-full rounded-full" style={{ right: "50%", width: `${pct}%`, background: "#fd4a48", opacity: 0.85 }} />
+      )}
+    </div>
+  );
+}
+
+function StandingsStrip({
+  standings,
+  luckByRoster,
+  ownerAvatars,
+}: {
+  standings: StandingsEntry[];
+  luckByRoster: Record<number, AllPlayRecord>;
+  ownerAvatars: Record<string, string>;
+}) {
+  const top = standings.slice(0, 6);
+  return (
+    <Card>
+      <CardContent className="p-5 sm:p-6 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <SectionTick label="Standings" />
+          <Link href="/standings" className="text-xs text-gold hover:underline font-semibold">
+            Full Standings →
+          </Link>
+        </div>
+        <div className="space-y-2">
+          {top.map((entry) => {
+            const luck = luckByRoster[entry.rosterId]?.luck ?? 0;
+            const dc = getDivColors(entry.division);
+            return (
+              <div
+                key={entry.rosterId}
+                className="flex items-center gap-3 rounded-lg border border-border bg-secondary/30 px-3 py-2.5"
+              >
+                <span
+                  className={`font-heading inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs font-bold ${
+                    entry.rank <= 3 ? "bg-ittwa text-white" : "border border-border text-muted-foreground"
+                  }`}
+                >
+                  {entry.rank}
+                </span>
+                <OwnerBadgeAvatar owner={entry.displayName} avatarId={ownerAvatars[entry.displayName]} size={30} />
+                <div className="min-w-0 flex-1">
+                  <OwnerLink
+                    name={entry.displayName}
+                    className="text-sm font-semibold truncate block hover:underline"
+                    style={{ color: dc.text }}
+                  >
+                    {entry.displayName}
+                  </OwnerLink>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="font-code text-[11px] text-muted-foreground tabular-nums">
+                      {entry.wins}-{entry.losses}{entry.ties ? `-${entry.ties}` : ""}
+                    </span>
+                    <LuckBar luck={luck} />
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-code text-xs font-semibold tabular-nums">{entry.pointsFor.toFixed(1)}</p>
+                  <p className="text-[10px] text-muted-foreground tabular-nums">{entry.pointsAgainst.toFixed(1)} PA</p>
+                </div>
+              </div>
+            );
+          })}
+          {top.length === 0 && (
+            <p className="text-sm text-muted-foreground italic">No standings yet — everyone&apos;s 0-0 in their hearts.</p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+
+export default async function HomePage() {
+  await connection();
+  const data = await getHomeData();
+
+  const updated = new Date(data.updatedAt).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  return (
+    <div className="space-y-8">
+      <KeyDatesTicker />
+
+      <Hero data={data} />
+
+      <LeaderboardCards data={data} />
+
+      <div className="grid gap-6 lg:grid-cols-2 items-start">
+        <WeeklyTape
+          recaps={data.recaps}
+          ownerAvatars={data.ownerAvatars}
+          isPreseason={data.isPreseason}
+          dataSeasonYear={data.dataSeasonYear}
+        />
         <div className="space-y-6">
-          {/* Compact preview: top 6 by standings rank (the size of the playoff
-              field). Full ordering + division-leader/wildcard detail lives on
-              the standings page via the "Full Standings →" link. */}
-          <StandingsSection standings={standings.slice(0, 6)} ownerAvatars={ownerAvatars} />
-          <TransactionsSection transactions={transactions} rosterOwnerMap={rosterOwnerMap} nflPlayers={nflPlayers} season={season} ownerAvatars={ownerAvatars} />
+          <StandingsStrip
+            standings={data.standings}
+            luckByRoster={data.luckByRoster}
+            ownerAvatars={data.ownerAvatars}
+          />
+          <RivalryDesk owners={data.owners} h2h={data.h2h} ownerAvatars={data.ownerAvatars} />
         </div>
       </div>
+
+      <p className="text-center text-[11px] text-muted-foreground">
+        Data updated {updated} · Sleeper API
+      </p>
     </div>
   );
 }
