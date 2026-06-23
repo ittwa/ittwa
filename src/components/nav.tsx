@@ -36,6 +36,7 @@ const NAV_STRUCTURE: NavGroup[] = [
       { href: "/cap-hits", label: "Cap Hits", icon: "wallet", desc: "Salary cap, by team" },
       { href: "/free-agents", label: "Free Agents", icon: "search", desc: "Available players" },
       { href: "/trade-analyzer", label: "Trade Analyzer", icon: "scale", desc: "Contract-adjusted trade values" },
+      { href: "/data-check", label: "Data Check", icon: "shield", desc: "Sheet vs. Sleeper reconciliation" },
     ],
   },
   {
@@ -77,6 +78,7 @@ const MOBILE_NAV_SECTIONS: MobileNavSectionDef[] = [
     { href: "/cap-hits", label: "Cap Hits", icon: "wallet", desc: "Salary cap" },
     { href: "/free-agents", label: "Free Agents", icon: "search", desc: "Available players" },
     { href: "/trade-analyzer", label: "Trade Analyzer", icon: "scale", desc: "Trade values" },
+    { href: "/data-check", label: "Data Check", icon: "shield", desc: "Sheet vs. Sleeper" },
   ]},
   { label: "History", items: [
     { href: "/records", label: "Records", icon: "medal", desc: "All-time records" },
@@ -151,6 +153,8 @@ function NavIcon({ name, size = 20, color = "currentColor" }: { name: string; si
       return <svg {...p}><ellipse cx="12" cy="12" rx="9" ry="6" transform="rotate(-30 12 12)" fill={color} stroke="none"/><path d="M8 12h8M10 10v4M12 9v6M14 10v4" stroke="#0a0a0a" strokeWidth="1.5"/></svg>;
     case "scale":
       return <svg {...p}><path d="M12 3v18"/><path d="M7 21h10"/><path d="M5 6h14"/><path d="M5 6l-3 6a3 3 0 0 0 6 0l-3-6z"/><path d="M19 6l-3 6a3 3 0 0 0 6 0l-3-6z"/></svg>;
+    case "shield":
+      return <svg {...p}><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>;
     default:
       return null;
   }
