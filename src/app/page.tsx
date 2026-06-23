@@ -258,13 +258,6 @@ export default async function HomePage() {
   await connection();
   const data = await getHomeData();
 
-  const updated = new Date(data.updatedAt).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-
   return (
     <div className="space-y-8">
       <KeyDatesTicker />
@@ -289,10 +282,6 @@ export default async function HomePage() {
           <RivalryDesk owners={data.owners} h2h={data.h2h} ownerAvatars={data.ownerAvatars} />
         </div>
       </div>
-
-      <p className="text-center text-[11px] text-muted-foreground">
-        Data updated {updated} · Sleeper API
-      </p>
     </div>
   );
 }
