@@ -12,6 +12,7 @@ import { SleeperAvatarImage } from "./owner-avatar";
 type NavLink = { href: string; label: string; icon?: string; desc?: string };
 type NavGroup =
   | { type: "link"; href: string; label: string }
+  | { type: "teams"; href: string; label: string }
   | { type: "dropdown"; label: string; panelLabel: string; panelCaption?: string; items: NavLink[] };
 
 const NAV_STRUCTURE: NavGroup[] = [
@@ -25,9 +26,9 @@ const NAV_STRUCTURE: NavGroup[] = [
       { href: "/schedule", label: "Schedule", icon: "calendar", desc: "All 14 weeks + playoffs" },
     ],
   },
-  // Promoted to a top-level link: the header navigates straight to the All Teams
-  // index, which is the jumping-off point to each franchise and its players.
-  { type: "link", href: "/teams", label: "Teams" },
+  // Hybrid item: the header navigates straight to the All Teams index, while
+  // hovering opens a dropdown to each individual franchise.
+  { type: "teams", href: "/teams", label: "Teams" },
   {
     type: "dropdown", label: "Contracts", panelLabel: "Contracts",
     items: [
@@ -346,6 +347,128 @@ function DesktopDropdownItem({
   );
 }
 
+// Dropdown panel for the Teams item: an "All Teams" overview row plus a
+// two-column grid of every franchise (avatar + owner), each linking to its page.
+function DesktopTeamsPanel({
+  pathname, onNavigate, ownerAvatars,
+}: {
+  pathname: string;
+  onNavigate: () => void;
+  ownerAvatars: Record<string, string>;
+}) {
+  const owners = [...ALL_OWNERS].sort((a, b) => a.localeCompare(b));
+  const overviewActive = pathname === "/teams";
+  return (
+    <div
+      className="absolute top-full left-0 z-50 w-[320px] bg-popover border border-border rounded-[14px]"
+      style={{ marginTop: 12, boxShadow: "0 20px 48px rgba(20,16,8,0.14), 0 4px 12px rgba(20,16,8,0.06)" }}
+    >
+      <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5">
+        <div className="flex items-center gap-2">
+          <span className="w-[3px] h-3.5 rounded-sm bg-[#E8B84B]" />
+          <span className="font-heading text-[13px] font-extrabold tracking-[0.14em] uppercase text-muted-foreground">
+            Teams
+          </span>
+        </div>
+        <span className="text-[11px] text-muted-foreground font-mono">12 owners</span>
+      </div>
+      <div className="px-3 pb-3">
+        <Link
+          href="/teams"
+          onClick={onNavigate}
+          className="flex items-center gap-3 no-underline rounded-[10px] transition-colors hover:bg-accent/50 mb-1.5"
+          style={{
+            padding: "10px 11px",
+            background: overviewActive ? "rgba(253,74,72,0.08)" : "var(--secondary)",
+            border: `1px solid ${overviewActive ? "rgba(253,74,72,0.28)" : "var(--border)"}`,
+          }}
+        >
+          <div
+            className="flex items-center justify-center shrink-0 rounded-[9px]"
+            style={{ width: 32, height: 32, background: "var(--card)", border: "1px solid var(--border)" }}
+          >
+            <NavIcon name="users" size={16} color={overviewActive ? "#FD4A48" : "var(--muted-foreground)"} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className={cn("text-sm", overviewActive ? "font-semibold text-ittwa" : "font-medium text-foreground")}>
+              All Teams
+            </div>
+            <div className="text-xs mt-0.5 truncate text-muted-foreground">Owner profiles & rosters</div>
+          </div>
+        </Link>
+        <div className="grid grid-cols-2 gap-1">
+          {owners.map((owner) => {
+            const active = pathname === `/teams/${encodeURIComponent(owner)}`;
+            return (
+              <Link
+                key={owner}
+                href={`/teams/${encodeURIComponent(owner)}`}
+                onClick={onNavigate}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-md no-underline transition-colors hover:bg-accent/50"
+                style={{ background: active ? "rgba(253,74,72,0.08)" : undefined }}
+              >
+                <div className="w-6 h-6 rounded-full overflow-hidden bg-secondary shrink-0 flex items-center justify-center text-[10px] font-bold">
+                  <SleeperAvatarImage
+                    avatarId={ownerAvatars[owner]}
+                    name={owner}
+                    fallback={<span>{owner.charAt(0)}</span>}
+                  />
+                </div>
+                <span className={cn("text-sm truncate", active ? "font-semibold text-ittwa" : "font-medium text-foreground")}>
+                  {owner}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Top-level Teams item: a navigable header (→ /teams) that also reveals the
+// per-team dropdown on hover.
+function DesktopTeamsItem({
+  pathname, isOpen, onHoverOpen, onHoverClose, onNavigate, ownerAvatars,
+}: {
+  pathname: string;
+  isOpen: boolean;
+  onHoverOpen: () => void;
+  onHoverClose: () => void;
+  onNavigate: () => void;
+  ownerAvatars: Record<string, string>;
+}) {
+  const isActive = pathname === "/teams" || pathname.startsWith("/teams/");
+  return (
+    <div className="relative" onMouseEnter={onHoverOpen} onMouseLeave={onHoverClose}>
+      <Link
+        href="/teams"
+        onClick={onNavigate}
+        className={cn(
+          "flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-sm font-semibold transition-all duration-150 cursor-pointer hover:scale-105",
+          isActive
+            ? "bg-ittwa/[0.08] text-ittwa"
+            : isOpen
+              ? "bg-secondary text-foreground"
+              : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
+        )}
+      >
+        Teams
+        <svg
+          className={cn("opacity-50 transition-transform duration-100", isOpen && "rotate-180")}
+          width={11} height={11} viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+        >
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </Link>
+      {isOpen && (
+        <DesktopTeamsPanel pathname={pathname} onNavigate={onNavigate} ownerAvatars={ownerAvatars} />
+      )}
+    </div>
+  );
+}
+
 export function Nav({ ownerAvatars = {} }: { ownerAvatars?: Record<string, string> } = {}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -399,6 +522,19 @@ export function Nav({ ownerAvatars = {} }: { ownerAvatars?: Record<string, strin
                   <DesktopDropdownItem
                     key={group.label}
                     group={group}
+                    pathname={pathname}
+                    isOpen={openPanel === group.label}
+                    onHoverOpen={() => handleHoverOpen(group.label)}
+                    onHoverClose={handleHoverClose}
+                    onNavigate={() => setOpenPanel(null)}
+                    ownerAvatars={ownerAvatars}
+                  />
+                );
+              }
+              if (group.type === "teams") {
+                return (
+                  <DesktopTeamsItem
+                    key={group.label}
                     pathname={pathname}
                     isOpen={openPanel === group.label}
                     onHoverOpen={() => handleHoverOpen(group.label)}
