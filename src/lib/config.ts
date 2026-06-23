@@ -143,7 +143,7 @@ export const SLEEPER_API_BASE = "https://api.sleeper.app/v1";
 // Revalidation intervals (seconds)
 export const REVALIDATE = {
   players: 86400,      // 24 hours
-  roster: 3600,        // 1 hour
+  roster: 600,         // 10 minutes — keep roster moves (adds/drops/trades) fresh
   matchups: 300,       // 5 minutes
   sheets: 60,          // 1 minute
 } as const;
