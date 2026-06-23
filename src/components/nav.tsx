@@ -17,23 +17,24 @@ type NavGroup =
 const NAV_STRUCTURE: NavGroup[] = [
   { type: "link", href: "/", label: "Home" },
   {
-    type: "dropdown", label: "Season", panelLabel: "Season", panelCaption: "2026",
+    type: "dropdown", label: "Standings", panelLabel: "Standings", panelCaption: "2026",
     items: [
       { href: "/standings", label: "Standings", icon: "trophy", desc: "League table & playoff line" },
-      { href: "/schedule", label: "Schedule", icon: "calendar", desc: "All 14 weeks + playoffs" },
-      { href: "/matchups", label: "Matchups", icon: "swords", desc: "Head-to-head, this week" },
       { href: "/power-rankings", label: "Power Rankings", icon: "bolt", desc: "Weekly tiers & movement" },
+      { href: "/matchups", label: "Matchups", icon: "swords", desc: "Head-to-head, this week" },
+      { href: "/schedule", label: "Schedule", icon: "calendar", desc: "All 14 weeks + playoffs" },
     ],
   },
+  // Promoted to a top-level link: the header navigates straight to the All Teams
+  // index, which is the jumping-off point to each franchise and its players.
+  { type: "link", href: "/teams", label: "Teams" },
   {
-    type: "dropdown", label: "Roster Management", panelLabel: "Roster Management",
+    type: "dropdown", label: "Contracts", panelLabel: "Contracts",
     items: [
       { href: "/contracts", label: "Contracts", icon: "doc", desc: "Player deals & extensions" },
       { href: "/cap-hits", label: "Cap Hits", icon: "wallet", desc: "Salary cap, by team" },
       { href: "/free-agents", label: "Free Agents", icon: "search", desc: "Available players" },
       { href: "/trade-analyzer", label: "Trade Analyzer", icon: "scale", desc: "Contract-adjusted trade values" },
-      { href: "/trades", label: "Trades", icon: "swap", desc: "Recent deals & history" },
-      { href: "/drafts", label: "Drafts", icon: "list", desc: "Rookie & startup drafts" },
     ],
   },
   {
@@ -41,16 +42,12 @@ const NAV_STRUCTURE: NavGroup[] = [
     items: [
       { href: "/records", label: "Records", icon: "medal", desc: "All-time leaderboards" },
       { href: "/rivalry", label: "Rivalry", icon: "flame", desc: "Head-to-head over time" },
+      { href: "/drafts", label: "Drafts", icon: "list", desc: "Rookie & startup drafts" },
+      { href: "/trades", label: "Trades", icon: "swap", desc: "Recent deals & history" },
     ],
   },
   {
-    type: "dropdown", label: "League", panelLabel: "League", panelCaption: "12 owners",
-    items: [
-      { href: "/teams", label: "All Teams", icon: "users", desc: "Owner profiles & rosters" },
-    ],
-  },
-  {
-    type: "dropdown", label: "Constitution", panelLabel: "Constitution", panelCaption: "Est. 2014",
+    type: "dropdown", label: "Rules", panelLabel: "Rules", panelCaption: "Est. 2014",
     items: [
       { href: "/constitution", label: "Constitution", icon: "scroll", desc: "League bylaws & rules" },
       { href: "/rule-changes", label: "Rule Changes", icon: "gavel", desc: "Proposal history & votes" },
@@ -65,28 +62,28 @@ const MOBILE_NAV_SECTIONS: MobileNavSectionDef[] = [
   { label: null, items: [
     { href: "/", label: "Home", icon: "home", desc: "League dashboard" },
   ]},
-  { label: "Season", items: [
+  { label: "Standings", items: [
     { href: "/standings", label: "Standings", icon: "trophy", desc: "League table" },
-    { href: "/schedule", label: "Schedule", icon: "calendar", desc: "Weekly games" },
-    { href: "/matchups", label: "Matchups", icon: "swords", desc: "Head-to-head" },
     { href: "/power-rankings", label: "Power Rankings", icon: "bolt", desc: "Weekly tiers" },
+    { href: "/matchups", label: "Matchups", icon: "swords", desc: "Head-to-head" },
+    { href: "/schedule", label: "Schedule", icon: "calendar", desc: "Weekly games" },
   ]},
-  { label: "Roster Management", items: [
+  { label: "Teams", items: [
+    { href: "/teams", label: "Teams", icon: "users", desc: "The 12 franchises" },
+  ]},
+  { label: "Contracts", items: [
     { href: "/contracts", label: "Contracts", icon: "doc", desc: "Player deals" },
     { href: "/cap-hits", label: "Cap Hits", icon: "wallet", desc: "Salary cap" },
     { href: "/free-agents", label: "Free Agents", icon: "search", desc: "Available players" },
     { href: "/trade-analyzer", label: "Trade Analyzer", icon: "scale", desc: "Trade values" },
-    { href: "/trades", label: "Trades", icon: "swap", desc: "Deal history" },
-    { href: "/drafts", label: "Drafts", icon: "list", desc: "Draft results" },
   ]},
   { label: "History", items: [
     { href: "/records", label: "Records", icon: "medal", desc: "All-time records" },
     { href: "/rivalry", label: "Rivalry", icon: "flame", desc: "Head-to-head history" },
+    { href: "/drafts", label: "Drafts", icon: "list", desc: "Draft results" },
+    { href: "/trades", label: "Trades", icon: "swap", desc: "Deal history" },
   ]},
-  { label: "League", items: [
-    { href: "/teams", label: "Teams", icon: "users", desc: "Owner profiles" },
-  ]},
-  { label: "Constitution", items: [
+  { label: "Rules", items: [
     { href: "/constitution", label: "Constitution", icon: "scroll", desc: "League bylaws" },
     { href: "/rule-changes", label: "Rule Changes", icon: "gavel", desc: "Proposals & votes" },
   ]},
