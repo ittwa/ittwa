@@ -6,16 +6,18 @@ interface Remaining {
   days: number;
   hours: number;
   minutes: number;
+  seconds: number;
   past: boolean;
 }
 
 function diff(targetMs: number): Remaining {
   const ms = targetMs - Date.now();
-  if (ms <= 0) return { days: 0, hours: 0, minutes: 0, past: true };
+  if (ms <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, past: true };
   return {
     days: Math.floor(ms / 86400000),
     hours: Math.floor((ms % 86400000) / 3600000),
     minutes: Math.floor((ms % 3600000) / 60000),
+    seconds: Math.floor((ms % 60000) / 1000),
     past: false,
   };
 }
@@ -41,7 +43,7 @@ export function HeroCountdown({ targetIso, label }: { targetIso: string; label: 
   useEffect(() => {
     const tick = () => setRem(diff(targetMs));
     const raf = requestAnimationFrame(tick); // first paint, off the effect body
-    const id = setInterval(tick, 30000);
+    const id = setInterval(tick, 1000);
     return () => {
       cancelAnimationFrame(raf);
       clearInterval(id);
@@ -57,6 +59,7 @@ export function HeroCountdown({ targetIso, label }: { targetIso: string; label: 
         <Unit value={rem?.days ?? 0} label="Days" />
         <Unit value={rem?.hours ?? 0} label="Hrs" />
         <Unit value={rem?.minutes ?? 0} label="Min" />
+        <Unit value={rem?.seconds ?? 0} label="Sec" />
       </div>
     </div>
   );
