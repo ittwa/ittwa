@@ -12,7 +12,7 @@ import { WeeklyTape } from "@/components/home/weekly-tape";
 import { RivalryDesk } from "@/components/home/rivalry-desk";
 
 import { getHomeData, type HomeData, type LeaderCard } from "@/lib/home-data";
-import { getKeyDates } from "@/lib/key-dates";
+import { getKeyDates, type KeyDate } from "@/lib/key-dates";
 import { AUCTION_DATE } from "@/lib/config";
 import { getDivColors } from "@/lib/ui-utils";
 import type { StandingsEntry } from "@/lib/standings";
@@ -40,10 +40,19 @@ function SectionTick({ label }: { label: string }) {
   );
 }
 
-// The next milestone the countdown points at: the FA auction in the offseason,
-// otherwise the next Thursday-night kickoff.
-function nextMilestone(): { iso: string; label: string } {
+// The next milestone the countdown points at. Prefer the next upcoming event
+// straight from the Dates sheet so the countdown always tracks the real next
+// thing (e.g. Rosters Lock before the FA Auction) and rolls forward on its own
+// as events pass. Falls back to the auction / next Thursday-night kickoff only
+// when the sheet is empty or unreadable (e.g. a preview build without the key).
+function nextMilestone(keyDates: KeyDate[]): { iso: string; label: string } {
   const now = Date.now();
+
+  const upcoming = keyDates
+    .filter((e) => new Date(e.date).getTime() > now)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+  if (upcoming) return { iso: upcoming.date, label: upcoming.event };
+
   const auction = AUCTION_DATE.getTime();
   if (now < auction) return { iso: AUCTION_DATE.toISOString(), label: "FA Auction" };
   const d = new Date();
@@ -56,14 +65,13 @@ function nextMilestone(): { iso: string; label: string } {
 
 // ── Hero ─────────────────────────────────────────────────────────────────────
 
-function Hero({ data }: { data: HomeData }) {
+function Hero({ data, milestone }: { data: HomeData; milestone: { iso: string; label: string } }) {
   const seasonCount = parseInt(data.season) - 2013;
   const statusLabel = data.isPreseason
     ? "Preseason"
     : data.lastCompletedWeek > 0
       ? `Week ${data.lastCompletedWeek} complete`
       : data.status.replace(/_/g, " ");
-  const milestone = nextMilestone();
 
   return (
     <section className="space-y-5">
@@ -259,12 +267,13 @@ export default async function HomePage() {
   await connection();
   const data = await getHomeData();
   const keyDates = await getKeyDates(data.season);
+  const milestone = nextMilestone(keyDates);
 
   return (
     <div className="space-y-8">
       <KeyDatesTicker events={keyDates} />
 
-      <Hero data={data} />
+      <Hero data={data} milestone={milestone} />
 
       <LeaderboardCards data={data} />
 
