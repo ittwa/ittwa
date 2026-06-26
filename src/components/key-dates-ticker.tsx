@@ -1,16 +1,28 @@
 "use client";
 
-const EVENTS = [
-  { date: "2026-04-27T12:00:00", name: "Rookie Draft", short: "Rookie Draft", note: "" },
-  { date: "2026-05-14T12:00:00", name: "5th-Year Tag Deadline", short: "5th-Year Tag", note: "" },
-  { date: "2026-06-19T12:00:00", name: "Franchise Tag Deadline", short: "Franchise Tag", note: "" },
-  { date: "2026-08-13T12:00:00", name: "Rosters Lock", short: "Rosters Lock", note: "Pre-auction" },
-  { date: "2026-08-20T19:00:00", name: "FA Auction", short: "FA Auction", note: "7:00 PM" },
-  { date: "2026-11-12T12:00:00", name: "Trade Deadline", short: "Trade Deadline", note: "Wk 10" },
-  { date: "2026-12-10T12:00:00", name: "Rosters Lock", short: "Rosters Lock", note: "Wk 15" },
+import type { KeyDate } from "@/lib/key-dates";
+
+// Fallback only — used when the Dates sheet can't be read (e.g. missing API key
+// in a preview build). The live banner is driven by the `events` prop sourced
+// from the Google Sheet so edits there show up here.
+const FALLBACK_EVENTS: KeyDate[] = [
+  { season: "2026", week: -1, date: "2026-04-27T12:00:00", event: "Rookie Draft", note: "" },
+  { season: "2026", week: -1, date: "2026-05-14T12:00:00", event: "5th Year Tag Deadline", note: "" },
+  { season: "2026", week: -1, date: "2026-06-19T12:00:00", event: "Franchise Tag Deadline", note: "" },
+  { season: "2026", week: -1, date: "2026-08-11T12:00:00", event: "Rosters Lock", note: "Pre-auction" },
+  { season: "2026", week: 0, date: "2026-08-18T19:00:00", event: "FA Auction", note: "7:00 PM" },
+  { season: "2026", week: 10, date: "2026-11-12T12:00:00", event: "Trade Deadline", note: "Wk 10" },
+  { season: "2026", week: 15, date: "2026-12-10T12:00:00", event: "Rosters Lock", note: "Wk 15" },
 ];
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Compact label for the small chips — trims the verbose "Deadline" suffix while
+// keeping names that would otherwise read ambiguously.
+function shortLabel(event: string) {
+  if (event === "Trade Deadline") return event;
+  return event.replace(/\s+Deadline$/i, "");
+}
 
 function daysBetween(a: Date, b: Date) {
   return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
@@ -30,16 +42,17 @@ function fmtDays(target: Date, now: Date) {
   return `in ${Math.round(d / 30)} months`;
 }
 
-function classify(now: Date) {
-  const sorted = [...EVENTS].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+function classify(events: KeyDate[], now: Date) {
+  const sorted = [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const upcoming = sorted.filter((e) => new Date(e.date) >= now);
   const past = sorted.filter((e) => new Date(e.date) < now);
   return { next: upcoming[0] ?? null, others: upcoming.slice(1), past };
 }
 
-export function KeyDatesTicker() {
+export function KeyDatesTicker({ events }: { events?: KeyDate[] }) {
+  const list = events && events.length > 0 ? events : FALLBACK_EVENTS;
   const now = new Date();
-  const { next, others, past } = classify(now);
+  const { next, others, past } = classify(list, now);
 
   return (
     <div className="border-b border-border -mx-4 -mt-10 mb-6" style={{ background: "var(--card)" }}>
@@ -69,7 +82,7 @@ export function KeyDatesTicker() {
                 </span>
               </div>
               <span className="font-heading text-[14px] font-extrabold tracking-[0.08em] uppercase whitespace-nowrap">
-                {next.name}
+                {next.event}
               </span>
               {next.note && (
                 <span className="font-code text-[11px] text-muted-foreground whitespace-nowrap">· {next.note}</span>
@@ -90,7 +103,7 @@ export function KeyDatesTicker() {
           return (
             <div key={i} className="inline-flex items-center gap-2 px-3.5 whitespace-nowrap shrink-0 border-r border-dashed border-border last:border-r-0">
               <span className="font-code text-[11px] font-bold" style={{ color: "#9a9aa6" }}>{dateMono(d)}</span>
-              <span className="font-heading text-[12px] font-bold tracking-[0.08em] uppercase">{e.short}</span>
+              <span className="font-heading text-[12px] font-bold tracking-[0.08em] uppercase">{shortLabel(e.event)}</span>
               {e.note && <span className="font-code text-[10px] text-muted-foreground">{e.note}</span>}
             </div>
           );
@@ -101,7 +114,7 @@ export function KeyDatesTicker() {
             <div key={`past-${i}`} className="inline-flex items-center gap-2 px-3.5 whitespace-nowrap shrink-0 border-r border-dashed border-border last:border-r-0">
               <span className="text-[11px] font-extrabold text-[#4ade80]">✓</span>
               <span className="font-code text-[11px] font-bold text-muted-foreground line-through">{dateMono(d)}</span>
-              <span className="font-heading text-[12px] font-bold tracking-[0.08em] uppercase text-muted-foreground line-through">{e.short}</span>
+              <span className="font-heading text-[12px] font-bold tracking-[0.08em] uppercase text-muted-foreground line-through">{shortLabel(e.event)}</span>
             </div>
           );
         })}
