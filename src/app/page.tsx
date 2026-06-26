@@ -12,6 +12,7 @@ import { WeeklyTape } from "@/components/home/weekly-tape";
 import { RivalryDesk } from "@/components/home/rivalry-desk";
 
 import { getHomeData, type HomeData, type LeaderCard } from "@/lib/home-data";
+import { getKeyDates } from "@/lib/key-dates";
 import { AUCTION_DATE } from "@/lib/config";
 import { getDivColors } from "@/lib/ui-utils";
 import type { StandingsEntry } from "@/lib/standings";
@@ -257,10 +258,11 @@ function StandingsStrip({
 export default async function HomePage() {
   await connection();
   const data = await getHomeData();
+  const keyDates = await getKeyDates(data.season);
 
   return (
     <div className="space-y-8">
-      <KeyDatesTicker />
+      <KeyDatesTicker events={keyDates} />
 
       <Hero data={data} />
 
