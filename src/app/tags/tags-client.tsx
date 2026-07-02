@@ -1,5 +1,6 @@
 "use client";
 
+import { OwnerAvatarsProvider } from "@/components/owner-avatar";
 import { TagHistoryTable } from "./tag-history-table";
 import { TagInsightsSection } from "./tag-insights";
 import { TagEligibilitySection } from "./tag-eligibility";
@@ -14,12 +15,13 @@ function SectionTick({ label }: { label: string }) {
   );
 }
 
-export function TagsClient({ data }: { data: TagTrackerData }) {
+export function TagsClient({ data, ownerAvatars }: { data: TagTrackerData; ownerAvatars: Record<string, string> }) {
   const { history, insights, eligibility, usingSampleData } = data;
   const franchiseCount = history.filter((h) => h.tagType === "franchise").length;
   const fifthYearCount = history.filter((h) => h.tagType === "fifth-year").length;
 
   return (
+    <OwnerAvatarsProvider avatars={ownerAvatars}>
     <div>
       {/* Page header */}
       <div className="pb-6 border-b border-border mb-6">
@@ -62,5 +64,6 @@ export function TagsClient({ data }: { data: TagTrackerData }) {
         </section>
       </div>
     </div>
+    </OwnerAvatarsProvider>
   );
 }

@@ -2,6 +2,8 @@
 
 import { OwnerLink } from "@/components/owner-link";
 import { PlayerLink } from "@/components/player-link";
+import { PlayerAvatar } from "@/components/player-avatar";
+import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { Tooltip } from "@/components/ui/tooltip";
 import { getPositionColors } from "@/lib/ui-utils";
 import type { TagEligibility } from "@/types/tags";
@@ -15,6 +17,26 @@ function PosBadge({ pos }: { pos: string }) {
     >
       {pos}
     </span>
+  );
+}
+
+function OwnerHeader({ name }: { name: string }) {
+  const avatarId = useOwnerAvatar(name);
+  const initials = name.slice(0, 2).toUpperCase();
+  return (
+    <OwnerLink name={name} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+      <div
+        className="w-6 h-6 rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden"
+        style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+      >
+        <SleeperAvatarImage
+          avatarId={avatarId}
+          name={name}
+          fallback={<span className="font-heading text-[9px] font-bold text-[#60a5fa]">{initials}</span>}
+        />
+      </div>
+      <span className="text-[13px] font-heading font-extrabold tracking-[0.04em] uppercase">{name}</span>
+    </OwnerLink>
   );
 }
 
@@ -52,9 +74,7 @@ export function TagEligibilitySection({ eligibility }: { eligibility: TagEligibi
           {ownersWithEligibility.map((o) => (
             <div key={o.owner} className="bg-card border border-border rounded-[10px] overflow-hidden">
               <div className="px-4 py-2.5 border-b border-border bg-secondary/50">
-                <OwnerLink name={o.owner} className="text-[13px] font-heading font-extrabold tracking-[0.04em] uppercase hover:underline underline-offset-2">
-                  {o.owner}
-                </OwnerLink>
+                <OwnerHeader name={o.owner} />
               </div>
               <div className="p-3 flex flex-col gap-3">
                 {o.franchiseEligible.length > 0 && (
@@ -73,6 +93,7 @@ export function TagEligibilitySection({ eligibility }: { eligibility: TagEligibi
                       {o.franchiseEligible.map((p) => (
                         <div key={p.playerId || p.player} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-secondary/40 border border-border/60">
                           <PosBadge pos={p.position} />
+                          <PlayerAvatar playerId={p.playerId} playerName={p.player} position={p.position} size={26} />
                           <PlayerLink playerId={p.playerId} className="text-[13px] font-medium flex-1 min-w-0 truncate hover:underline underline-offset-2">
                             {p.player}
                           </PlayerLink>
@@ -105,6 +126,7 @@ export function TagEligibilitySection({ eligibility }: { eligibility: TagEligibi
                       {o.fifthYearEligible.map((p) => (
                         <div key={p.playerId || p.player} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-secondary/40 border border-border/60">
                           <PosBadge pos={p.position} />
+                          <PlayerAvatar playerId={p.playerId} playerName={p.player} position={p.position} size={26} />
                           <PlayerLink playerId={p.playerId} className="text-[13px] font-medium flex-1 min-w-0 truncate hover:underline underline-offset-2">
                             {p.player}
                           </PlayerLink>

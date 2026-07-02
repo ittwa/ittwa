@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { OwnerLink } from "@/components/owner-link";
 import { PlayerLink } from "@/components/player-link";
+import { PlayerAvatar } from "@/components/player-avatar";
+import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { Tooltip } from "@/components/ui/tooltip";
 import { getPositionColors } from "@/lib/ui-utils";
 import type { TagHistoryEntry, TagType } from "@/types/tags";
@@ -81,6 +83,41 @@ function SortTh({ label, field, sortKey, sortDir, onSort, align = "left", toolti
   );
 }
 
+function SearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="relative">
+      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-[13px]">⌕</span>
+      <input
+        type="text"
+        placeholder="Search player…"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="bg-secondary border border-border rounded-lg py-1.5 pl-[30px] pr-3 text-[13px] text-foreground w-[180px]"
+      />
+    </div>
+  );
+}
+
+function OwnerCell({ name }: { name: string }) {
+  const avatarId = useOwnerAvatar(name);
+  const initials = name.slice(0, 2).toUpperCase();
+  return (
+    <OwnerLink name={name} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+      <div
+        className="w-6 h-6 rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden"
+        style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)" }}
+      >
+        <SleeperAvatarImage
+          avatarId={avatarId}
+          name={name}
+          fallback={<span className="font-heading text-[9px] font-bold text-[#60a5fa]">{initials}</span>}
+        />
+      </div>
+      <span className="text-[13px] text-muted-foreground whitespace-nowrap">{name}</span>
+    </OwnerLink>
+  );
+}
+
 function FilterSelect({ value, onChange, options, placeholder }: {
   value: string;
   onChange: (v: string) => void;
@@ -112,6 +149,7 @@ function FilterSelect({ value, onChange, options, placeholder }: {
 }
 
 export function TagHistoryTable({ history }: { history: TagHistoryEntry[] }) {
+  const [search, setSearch] = useState("");
   const [seasonFilter, setSeasonFilter] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("");
   const [posFilter, setPosFilter] = useState("");
@@ -125,6 +163,10 @@ export function TagHistoryTable({ history }: { history: TagHistoryEntry[] }) {
 
   const filtered = useMemo(() => {
     let result = [...history];
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((h) => h.player.toLowerCase().includes(q));
+    }
     if (seasonFilter) result = result.filter((h) => h.season === seasonFilter);
     if (ownerFilter) result = result.filter((h) => h.owner === ownerFilter);
     if (posFilter) result = result.filter((h) => h.position === posFilter);
@@ -143,19 +185,20 @@ export function TagHistoryTable({ history }: { history: TagHistoryEntry[] }) {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return result;
-  }, [history, seasonFilter, ownerFilter, posFilter, typeFilter, sortKey, sortDir]);
+  }, [history, search, seasonFilter, ownerFilter, posFilter, typeFilter, sortKey, sortDir]);
 
   function toggleSort(field: SortKey) {
     if (sortKey === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortKey(field); setSortDir("desc"); }
   }
 
-  const activeFilters = [seasonFilter, ownerFilter, posFilter, typeFilter].filter(Boolean).length;
+  const activeFilters = [search, seasonFilter, ownerFilter, posFilter, typeFilter].filter(Boolean).length;
 
   return (
     <div>
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-4 items-center">
+        <SearchInput value={search} onChange={setSearch} />
         <FilterSelect value={seasonFilter} onChange={setSeasonFilter} placeholder="All Seasons"
           options={seasons.map((s) => ({ value: s, label: s }))} />
         <FilterSelect value={ownerFilter} onChange={setOwnerFilter} placeholder="All Owners"
@@ -166,7 +209,7 @@ export function TagHistoryTable({ history }: { history: TagHistoryEntry[] }) {
           options={[{ value: "franchise", label: "Franchise" }, { value: "fifth-year", label: "5th Year" }]} />
         {activeFilters > 0 && (
           <button
-            onClick={() => { setSeasonFilter(""); setOwnerFilter(""); setPosFilter(""); setTypeFilter(""); }}
+            onClick={() => { setSearch(""); setSeasonFilter(""); setOwnerFilter(""); setPosFilter(""); setTypeFilter(""); }}
             className="bg-transparent border-none cursor-pointer text-xs text-[#FD4A48] font-semibold px-2 py-1.5"
           >
             Clear all ×
@@ -211,20 +254,21 @@ export function TagHistoryTable({ history }: { history: TagHistoryEntry[] }) {
                   >
                     <td className="px-3 py-2 text-center text-xs text-muted-foreground font-mono">{h.season}</td>
                     <td className="px-3 py-2 pl-4">
-                      <PlayerLink playerId={h.playerId} className="text-[13px] font-medium whitespace-nowrap hover:underline underline-offset-2">
-                        {h.player}
-                      </PlayerLink>
-                      {h.incompleteData && (
-                        <Tooltip content="Some contract history for this player is missing or ambiguous — treat this entry's details as approximate.">
-                          <span className="ml-1.5 text-[10px] text-muted-foreground cursor-help">⚠</span>
-                        </Tooltip>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <PlayerAvatar playerId={h.playerId} playerName={h.player} position={h.position} size={26} />
+                        <PlayerLink playerId={h.playerId} className="text-[13px] font-medium whitespace-nowrap hover:underline underline-offset-2">
+                          {h.player}
+                        </PlayerLink>
+                        {h.incompleteData && (
+                          <Tooltip content="Some contract history for this player is missing or ambiguous — treat this entry's details as approximate.">
+                            <span className="text-[10px] text-muted-foreground cursor-help">⚠</span>
+                          </Tooltip>
+                        )}
+                      </div>
                     </td>
                     <td className="px-3 py-2"><PosBadge pos={h.position} /></td>
                     <td className="px-3 py-2">
-                      <OwnerLink name={h.owner} className="text-[13px] text-muted-foreground whitespace-nowrap hover:underline underline-offset-2">
-                        {h.owner}
-                      </OwnerLink>
+                      <OwnerCell name={h.owner} />
                     </td>
                     <td className="px-3 py-2 text-center"><TagTypeBadge tagType={h.tagType} /></td>
                     <td className="px-3 py-2 text-center">
