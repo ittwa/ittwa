@@ -20,18 +20,21 @@ Built with Next.js 16, React 19, and Tailwind CSS v4. Live data from the Sleeper
 | Contracts | `/contracts` | Full contract database with salary and years |
 | Cap Hits | `/cap-hits` | Dead cap penalties and cap hit projections |
 | Free Agents | `/free-agents` | Expiring contracts and upcoming free agents |
+| Trade Analyzer | `/trade-analyzer` | Contract-adjusted dynasty trade value analyzer |
+| Tag Tracker | `/tags` | Franchise & 5th-year tag history, insights, and eligibility |
+| Data Check | `/data-check` | Reconciles Contracts sheet rosters against live Sleeper rosters |
+| Records | `/records` | All-time league records and superlatives |
+| Rivalry | `/rivalry` | 12×12 all-time head-to-head matrix |
 | Drafts | `/drafts` | Rookie draft history with pick values and future pick matrix |
 | Trades | `/trades` | Full trade log pulled from Sleeper |
-| Rivalry | `/rivalry` | 12×12 all-time head-to-head matrix |
-| Records | `/records` | All-time league records and superlatives |
-| Rule Changes | `/rule-changes` | Proposal history with vote results and status |
 | Constitution | `/constitution` | Full league rules reference |
+| Rule Changes | `/rule-changes` | Proposal history with vote results and status |
 
 ## Data Sources
 
 | Data | Source | Revalidation |
 |------|--------|-------------|
-| Rosters, matchups, trades, drafts | Sleeper API | 90s – 24h depending on endpoint |
+| Rosters, matchups, trades, drafts | Sleeper API | 5 min – 24h depending on endpoint |
 | Contracts, cap hits | Google Sheets (2 tabs) | 10 min |
 
 The two sources are joined by `player_id`. The Google Sheet is the source of truth for contract data; Sleeper is the source of truth for everything else.
@@ -78,7 +81,15 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### 4. Deploy
+### 4. Run Tests
+
+```bash
+npm test
+```
+
+Vitest unit tests cover pure data-layer logic (Luck Index, head-to-head records, tag eligibility, weekly recaps, sheet/roster reconciliation).
+
+### 5. Deploy
 
 Push to GitHub and import in [Vercel](https://vercel.com). Add the three environment variables above under Project Settings → Environment Variables.
 
