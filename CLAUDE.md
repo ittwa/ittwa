@@ -23,7 +23,7 @@ Dynasty fantasy football league site for the ITTWA league (est. 2014). 12 teams,
 
 Two data sources, joined by `player_id`:
 
-1. **Sleeper API** — rosters, matchups, drafts, transactions, player metadata. Each fetch sets its own `revalidate` (see `REVALIDATE` in `config.ts`: matchups 5min, rosters 1h, players 24h) so results are served from the Next.js Data Cache between requests.
+1. **Sleeper API** — rosters, matchups, drafts, transactions, player metadata. Each fetch sets its own `revalidate` (see `REVALIDATE` in `config.ts`: matchups 5min, rosters 10min, players 24h) so results are served from the Next.js Data Cache between requests.
 2. **Google Sheets** — contracts and cap hits only. Two tabs: Contracts and CapHits. Revalidate at 600s. Uses a public API key (server-side only, never expose to client).
 
 **Join key:** `player_id` links Sleeper data to Google Sheets rows. Sheet player IDs can diverge from Sleeper IDs — handle mismatches gracefully (log, don't crash).
@@ -66,9 +66,8 @@ Salary cap is $270. Cap floor is $220 (not counting cap penalties). Years cap is
 
 ## Shared Constants and Utilities
 
-- `lib/league-config.ts` — league-wide constants
+- `lib/config.ts` — league-wide constants (salary cap, divisions, contract multipliers, revalidation intervals) and the `USERNAME_OVERRIDES` map (Sleeper username → display name)
 - `lib/ui-utils.ts` — `getDivColors()`, `getDivColorsByOwner()`
-- `lib/username-overrides.ts` — `USERNAME_OVERRIDES` map (Sleeper username → display name)
 - `globals.css` — `.font-heading` (Barlow Condensed), `.font-code` (JetBrains Mono)
 
 ## Do Not Touch
@@ -93,5 +92,6 @@ These files are working and fragile. Do not refactor, reorganize, or "improve" t
 
 - For large file changes, use a skeleton-first approach: write the structure, then fill sections with `str_replace`. Do not attempt to rewrite entire large files in a single response — this causes stream idle timeouts.
 - Always run `npm run build` after changes to verify nothing is broken.
+- Run `npm test` (Vitest) after changes to `lib/` data logic — covers Luck Index, head-to-head records, tag eligibility, weekly recaps, and Sheets/Sleeper reconciliation.
 - Commit after each logical unit of work, not at the end of a big batch.
 - When in doubt about whether a change is safe, leave a `// TODO` comment instead of guessing.
