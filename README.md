@@ -72,23 +72,23 @@ cp .env.local.example .env.local
 NEXT_PUBLIC_SLEEPER_LEAGUE_ID=1351401929883807744
 NEXT_PUBLIC_GOOGLE_SHEETS_ID=17kspYjtSNtiBuUxbdWYkHbP8Y5K7qs0nJ-D1VA-Wpwo
 GOOGLE_API_KEY=your_google_api_key_here
-DATABASE_URL=your_neon_postgres_connection_string
+NEON_DATABASE_URL=your_neon_postgres_connection_string
 AUCTION_ADMIN_PIN=a_pin_only_the_commissioner_knows
 ```
 
-> `GOOGLE_API_KEY` is server-side only — do **not** use the `NEXT_PUBLIC_` prefix. Same goes for `DATABASE_URL` and `AUCTION_ADMIN_PIN`.
+> `GOOGLE_API_KEY` is server-side only — do **not** use the `NEXT_PUBLIC_` prefix. Same goes for `NEON_DATABASE_URL` and `AUCTION_ADMIN_PIN`.
 
 ### 3. Free Agent Auction database (one-time, non-developer friendly)
 
 The auction feature needs a Postgres database (already provisioned via the Vercel Marketplace as **Neon**) and a commissioner PIN. Nothing else — no accounts, no extra services.
 
-1. **Get the connection string.** In Vercel: Project → Storage → your Neon database → copy the `DATABASE_URL` (or `POSTGRES_URL`) connection string. Paste it into `.env.local` as `DATABASE_URL` for local work — Vercel already injects it automatically in deployed environments once the database is connected to the project.
+1. **Get the connection string.** In Vercel: Project → Storage → your Neon database → copy the connection string (this project's Neon integration exposes it as `NEON_DATABASE_URL`). Paste it into `.env.local` as `NEON_DATABASE_URL` for local work — Vercel already injects it automatically in deployed environments once the database is connected to the project.
 2. **Pick a PIN.** Any string works — set it as `AUCTION_ADMIN_PIN` in `.env.local`. This is the only thing that gates `/auction/admin`; owners visiting `/auction` need nothing.
 3. **Run the migration** (creates the auction tables — safe to re-run, it won't touch existing data):
    ```bash
    npm run db:migrate
    ```
-4. **Set the same two variables in Vercel** (Project Settings → Environment Variables) for **all three environments** — Production, Preview, and Development — then redeploy. `DATABASE_URL` is usually already there if the Neon integration is connected; you only need to add `AUCTION_ADMIN_PIN` yourself.
+4. **Set the same two variables in Vercel** (Project Settings → Environment Variables) for **all three environments** — Production, Preview, and Development — then redeploy. `NEON_DATABASE_URL` is usually already there if the Neon integration is connected; you only need to add `AUCTION_ADMIN_PIN` yourself.
 5. **(Optional) Seed mock data** to see every screen state locally without touching real league data:
    ```bash
    npm run db:seed:auction

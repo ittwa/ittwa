@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Runs migrations/0001_auction.sql against DATABASE_URL.
+// Runs migrations/0001_auction.sql against NEON_DATABASE_URL.
 // Usage: npm run db:migrate
 //
 // Safe to re-run — every statement in the migration is idempotent
@@ -14,8 +14,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 
 // next dev/build auto-load .env.local; a plain node script does not, so load
-// it here for local runs. Vercel injects DATABASE_URL directly in deployed
-// environments, so this is a no-op there.
+// it here for local runs. Vercel injects NEON_DATABASE_URL directly in
+// deployed environments, so this is a no-op there.
 function loadDotEnvLocal() {
   const envPath = path.join(root, ".env.local");
   if (!existsSync(envPath)) return;
@@ -39,10 +39,10 @@ function loadDotEnvLocal() {
 async function main() {
   loadDotEnvLocal();
 
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
   if (!databaseUrl) {
     console.error(
-      "DATABASE_URL is not set. Add it to .env.local (local) or the Vercel project's env vars (deployed), then re-run.",
+      "NEON_DATABASE_URL is not set. Add it to .env.local (local) or the Vercel project's env vars (deployed), then re-run.",
     );
     process.exit(1);
   }

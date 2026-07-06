@@ -97,9 +97,9 @@ async function insertRows(sql, table, columns, rows) {
 
 async function main() {
   loadDotEnvLocal();
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
   if (!databaseUrl) {
-    console.error("DATABASE_URL is not set. Add it to .env.local, then re-run.");
+    console.error("NEON_DATABASE_URL is not set. Add it to .env.local, then re-run.");
     process.exit(1);
   }
 
