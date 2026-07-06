@@ -5,6 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { getLatestAuction, getFullState } from "@/lib/auction-db";
+import { isMissingTableError } from "@/lib/auction-schema";
 import { bidToBeatTable } from "@/lib/auction";
 import type { AuctionPublicState } from "@/types/auction";
 
@@ -51,6 +52,14 @@ export async function GET() {
     };
     return NextResponse.json(state);
   } catch (err) {
+    // Tables not created yet (migration hasn't run) means "no auction has
+    // ever been set up" — that's the pre-auction state, not an outage. The
+    // schema is created automatically when the commissioner starts an
+    // auction, so this resolves itself without manual intervention.
+    if (isMissingTableError(err)) {
+      console.warn("[auction/state] auction tables not created yet — returning pre-auction state");
+      return NextResponse.json(emptyState());
+    }
     console.error("[auction/state] unavailable:", err);
     return NextResponse.json({ error: "unavailable" }, { status: 503 });
   }

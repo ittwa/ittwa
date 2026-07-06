@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // lib/auction-schema.ts reads migrations/0001_auction.sql at runtime to
+  // auto-create the auction tables on first "Start Auction"; without this the
+  // file wouldn't be traced into the serverless bundle.
+  outputFileTracingIncludes: {
+    "/api/auction/admin/start": ["./migrations/**"],
+  },
   images: {
     // The Vercel Image Optimization quota is exhausted: every NEW
     // transformation returns 402 OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED and

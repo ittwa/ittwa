@@ -84,10 +84,11 @@ The auction feature needs a Postgres database (already provisioned via the Verce
 
 1. **Get the connection string.** In Vercel: Project → Storage → your Neon database → copy the connection string (this project's Neon integration exposes it as `NEON_DATABASE_URL`). Paste it into `.env.local` as `NEON_DATABASE_URL` for local work — Vercel already injects it automatically in deployed environments once the database is connected to the project.
 2. **Pick a PIN.** Any string works — set it as `AUCTION_ADMIN_PIN` in `.env.local`. This is the only thing that gates `/auction/admin`; owners visiting `/auction` need nothing.
-3. **Run the migration** (creates the auction tables — safe to re-run, it won't touch existing data):
+3. **(Optional) Run the migration.** The auction tables are created automatically the first time you click "Start Auction," so there's nothing you *have* to run. If you'd rather create them ahead of time (or verify the connection works), run:
    ```bash
    npm run db:migrate
    ```
+   It's safe to re-run — it never touches existing data.
 4. **Set the same two variables in Vercel** (Project Settings → Environment Variables) for **all three environments** — Production, Preview, and Development — then redeploy. `NEON_DATABASE_URL` is usually already there if the Neon integration is connected; you only need to add `AUCTION_ADMIN_PIN` yourself.
 5. **(Optional) Seed mock data** to see every screen state locally without touching real league data:
    ```bash
