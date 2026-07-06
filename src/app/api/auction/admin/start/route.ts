@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/auction-auth";
 import { startAuction } from "@/lib/auction-db";
+import { ensureAuctionSchema } from "@/lib/auction-schema";
 import type { DerivedOwnerCap, DerivedRosterEntry, DerivedFreeAgent } from "@/types/auction";
 
 interface StartBody {
@@ -27,6 +28,11 @@ export async function POST(request: Request) {
   if (body.nominationOrder.length === 0) {
     return NextResponse.json({ error: "Set a nomination order before starting" }, { status: 400 });
   }
+
+  // Create the auction tables if this is the first auction ever run against
+  // this database — idempotent, so it's a no-op on every start after that.
+  // This means the commissioner never has to run `npm run db:migrate`.
+  await ensureAuctionSchema();
 
   const auctionId = await startAuction({
     season: body.season,

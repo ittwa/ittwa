@@ -465,7 +465,18 @@ export function AuctionBoardClient() {
       </div>
 
       {!data ? (
-        <div className="text-center py-16 text-sm text-muted-foreground">Loading…</div>
+        error ? (
+          // First fetch failed, so there's no stale data to keep on screen.
+          // Keep polling (SWR retries) and say so instead of a dead "Loading…".
+          <div className="bg-card border border-border rounded-[10px] p-10 text-center">
+            <div className="font-heading text-2xl font-black uppercase tracking-[0.04em] mb-2">Reconnecting…</div>
+            <p className="text-sm text-muted-foreground">
+              The auction board can&apos;t reach the server right now. It retries automatically — no need to refresh.
+            </p>
+          </div>
+        ) : (
+          <div className="text-center py-16 text-sm text-muted-foreground">Loading…</div>
+        )
       ) : !data.auction ? (
         <PreAuctionHero />
       ) : (

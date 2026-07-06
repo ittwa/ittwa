@@ -51,11 +51,20 @@ async function main() {
   const raw = readFileSync(sqlFile, "utf8");
 
   // Split into individual statements. None of our DDL contains a semicolon
-  // inside a string literal, so a plain split is safe here.
+  // inside a string literal, so a plain split is safe here. Comment-only
+  // lines are stripped from each chunk BEFORE deciding whether it's empty —
+  // the first CREATE TABLE sits directly below the file's header comments,
+  // and discarding chunks that merely start with "--" would silently skip it.
   const statements = raw
     .split(";")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0 && !s.startsWith("--"));
+    .map((chunk) =>
+      chunk
+        .split("\n")
+        .filter((line) => !line.trim().startsWith("--"))
+        .join("\n")
+        .trim(),
+    )
+    .filter((s) => s.length > 0);
 
   const sql = neon(databaseUrl);
 
