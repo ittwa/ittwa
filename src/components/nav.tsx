@@ -29,6 +29,7 @@ const NAV_STRUCTURE: NavGroup[] = [
   // Hybrid item: the header navigates straight to the All Teams index, while
   // hovering opens a dropdown to each individual franchise.
   { type: "teams", href: "/teams", label: "Teams" },
+  { type: "link", href: "/auction", label: "Auction" },
   {
     type: "dropdown", label: "Contracts", panelLabel: "Contracts",
     items: [
@@ -73,6 +74,9 @@ const MOBILE_NAV_SECTIONS: MobileNavSectionDef[] = [
   ]},
   { label: "Teams", items: [
     { href: "/teams", label: "Teams", icon: "users", desc: "The 12 franchises" },
+  ]},
+  { label: "Auction", items: [
+    { href: "/auction", label: "Auction", icon: "gavel", desc: "Live free agent auction board" },
   ]},
   { label: "Contracts", items: [
     { href: "/contracts", label: "Contracts", icon: "doc", desc: "Player deals" },
