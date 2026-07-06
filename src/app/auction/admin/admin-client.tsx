@@ -5,7 +5,6 @@ import useSWR, { mutate as globalMutate } from "swr";
 import { useOwnerAvatar, SleeperAvatarImage } from "@/components/owner-avatar";
 import { GOLD, ACCENT, getPositionColors } from "@/lib/ui-utils";
 import { ALL_OWNERS } from "@/lib/config";
-import { bidIncrement, MIN_BID } from "@/lib/auction";
 import type {
   AuctionPublicState,
   DerivationResult,
@@ -377,189 +376,12 @@ function SetupWizard({ defaultSeason }: { defaultSeason: string }) {
 }
 
 // ── Live console ──────────────────────────────────────────────────────────────
-
-function NominatePanel({ state }: { state: AuctionPublicState }) {
-  const [search, setSearch] = useState("");
-  const [writeIn, setWriteIn] = useState(false);
-  const [manual, setManual] = useState({ player: "", position: "WR" });
-  const [nominatorOverride, setNominatorOverride] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const available = state.pool.filter((p) => p.status === "available");
-  const matches = search.length >= 2 ? available.filter((p) => p.player.toLowerCase().includes(search.toLowerCase())).slice(0, 8) : [];
-
-  async function nominate(player: DerivedFreeAgent | { playerId: string; player: string; position: string; rfa: boolean; previousOwner: string | null }) {
-    setBusy(true);
-    setError(null);
-    try {
-      await postJSON("/api/auction/admin/nominate", {
-        ...player,
-        nominatorOverride: nominatorOverride || null,
-      });
-      setSearch("");
-      setManual({ player: "", position: "WR" });
-      globalMutate(STATE_KEY);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Nominate failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (state.current) {
-    return (
-      <div className="bg-card border border-border rounded-[10px] p-4">
-        <div className="text-xs text-muted-foreground mb-1">Currently nominated</div>
-        <div className="font-heading text-lg font-bold uppercase">{state.current.player} <PosBadge pos={state.current.position} /></div>
-        <p className="text-xs text-muted-foreground mt-2">Award or undo before nominating the next player.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-card border border-border rounded-[10px] p-4">
-      <div className="text-xs font-bold uppercase tracking-[0.06em] text-muted-foreground mb-2">Nominate</div>
-      {error && <Banner tone="error">{error}</Banner>}
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs text-muted-foreground">Override nominator:</span>
-        <select value={nominatorOverride} onChange={(e) => setNominatorOverride(e.target.value)} className="bg-secondary border border-border rounded px-2 py-1 text-xs">
-          <option value="">{state.onClock ?? "—"} (default)</option>
-          {ALL_OWNERS.map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
-      </div>
-
-      {!writeIn ? (
-        <>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search free agent…"
-            className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm mb-2"
-          />
-          {matches.length > 0 && (
-            <div className="border border-border rounded-lg mb-2 overflow-hidden">
-              {matches.map((p) => (
-                <button
-                  key={p.playerId}
-                  onClick={() => nominate(p)}
-                  disabled={busy}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent/30 flex items-center gap-2 cursor-pointer"
-                >
-                  <span className="flex-1">{p.player}</span>
-                  <PosBadge pos={p.position} />
-                  {p.rfa && <span className="text-[9px]" style={{ color: GOLD }}>RFA</span>}
-                </button>
-              ))}
-            </div>
-          )}
-          <Btn small variant="ghost" onClick={() => setWriteIn(true)}>+ Write-in (player missing from pool)</Btn>
-        </>
-      ) : (
-        <div className="flex gap-2 items-center flex-wrap">
-          <input placeholder="Player name" value={manual.player} onChange={(e) => setManual({ ...manual, player: e.target.value })} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm w-40" />
-          <select value={manual.position} onChange={(e) => setManual({ ...manual, position: e.target.value })} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
-            {["QB", "RB", "WR", "TE", "DEF"].map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
-          <Btn small variant="primary" disabled={busy || !manual.player} onClick={() => nominate({
-            playerId: `manual-${manual.player.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`,
-            player: manual.player, position: manual.position, rfa: false, previousOwner: null,
-          })}>Nominate</Btn>
-          <Btn small variant="ghost" onClick={() => setWriteIn(false)}>Cancel</Btn>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Keyed by the current nomination's playerId from the parent, so React
-// remounts (and re-initializes local state) whenever the nomination changes
-// instead of syncing prop → state inside an effect.
-function BiddingPanel({ state }: { state: AuctionPublicState }) {
-  const [salary, setSalary] = useState(() => state.current?.highBidSalary ?? MIN_BID);
-  const [years, setYears] = useState(() => state.current?.highBidYears ?? 1);
-  const [bidder, setBidder] = useState("");
-  const [open, setOpen] = useState(false);
-
-  if (!state.current) return null;
-
-  async function submit() {
-    await postJSON("/api/auction/admin/bid", { salary, years, bidder: bidder || null });
-    globalMutate(STATE_KEY);
-  }
-
-  const step = bidIncrement(salary);
-
-  return (
-    <div className="bg-card border border-border rounded-[10px] p-4 mt-3">
-      <button onClick={() => setOpen((o) => !o)} className="text-xs font-bold uppercase tracking-[0.06em] text-muted-foreground cursor-pointer">
-        {open ? "▾" : "▸"} Track Bidding (optional)
-      </button>
-      {open && (
-        <div className="flex items-center gap-3 flex-wrap mt-2">
-          <div className="flex items-center gap-1">
-            <button onClick={() => setSalary((s) => Math.max(MIN_BID, Math.round((s - step) * 10) / 10))} className="w-7 h-7 bg-secondary border border-border rounded cursor-pointer">−</button>
-            <span className="font-code text-sm w-16 text-center">${salary.toFixed(1)}</span>
-            <button onClick={() => setSalary((s) => Math.round((s + step) * 10) / 10)} className="w-7 h-7 bg-secondary border border-border rounded cursor-pointer">+</button>
-          </div>
-          <select value={years} onChange={(e) => setYears(Number(e.target.value))} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
-            {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y}yr</option>)}
-          </select>
-          <select value={bidder} onChange={(e) => setBidder(e.target.value)} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
-            <option value="">Bidder…</option>
-            {ALL_OWNERS.map((o) => <option key={o} value={o}>{o}</option>)}
-          </select>
-          <Btn small variant="primary" onClick={submit}>Set Bid</Btn>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AwardPanel({ state }: { state: AuctionPublicState }) {
-  const [winner, setWinner] = useState(() => state.current?.highBidder ?? "");
-  const [salary, setSalary] = useState(() => state.current?.highBidSalary ?? MIN_BID);
-  const [years, setYears] = useState(() => state.current?.highBidYears ?? 1);
-  const [warnings, setWarnings] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  if (!state.current) return null;
-
-  async function award() {
-    setBusy(true);
-    setError(null);
-    setWarnings([]);
-    try {
-      const res = await postJSON("/api/auction/admin/award", { winner, salary, years });
-      setWarnings(res.warnings ?? []);
-      globalMutate(STATE_KEY);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Award failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="bg-card border border-border rounded-[10px] p-4 mt-3">
-      <div className="text-xs font-bold uppercase tracking-[0.06em] text-muted-foreground mb-2">Award</div>
-      {error && <Banner tone="error">{error}</Banner>}
-      {warnings.map((w, i) => <Banner key={i} tone="warn">⚠ {w}</Banner>)}
-      <div className="flex items-center gap-2 flex-wrap">
-        <select value={winner} onChange={(e) => setWinner(e.target.value)} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
-          <option value="">Winner…</option>
-          {ALL_OWNERS.map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
-        <input type="number" step={0.5} min={0} value={salary} onChange={(e) => setSalary(Number(e.target.value))} className="w-20 bg-secondary border border-border rounded px-2 py-1.5 text-sm font-code" />
-        <select value={years} onChange={(e) => setYears(Number(e.target.value))} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
-          {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y}yr</option>)}
-        </select>
-        <Btn variant="primary" disabled={busy || !winner} onClick={award}>{busy ? "Awarding…" : "Award"}</Btn>
-      </div>
-    </div>
-  );
-}
+//
+// Nominate/bid/award/undo/timer/pause/resume/nominator-override all live on
+// the public /auction board now — anyone on the call can run them, so the
+// live flow doesn't bottleneck on one device. This console keeps only what
+// stays commissioner-only: marking the auction complete, exporting the CSV,
+// the confirm-guarded full reset, and editing/deleting past results.
 
 function ResultRowEditor({ r }: { r: AuctionResultRow }) {
   const [editing, setEditing] = useState(false);
@@ -608,40 +430,12 @@ function ResultRowEditor({ r }: { r: AuctionResultRow }) {
   );
 }
 
-function TimerPanel() {
-  const [open, setOpen] = useState(false);
-  async function set(seconds: number | null) {
-    await postJSON("/api/auction/admin/timer", { seconds });
-    globalMutate(STATE_KEY);
-  }
-  return (
-    <div className="mt-3">
-      <button onClick={() => setOpen((o) => !o)} className="text-xs font-bold uppercase tracking-[0.06em] text-muted-foreground cursor-pointer">
-        {open ? "▾" : "▸"} Timer
-      </button>
-      {open && (
-        <div className="flex gap-2 mt-2">
-          <Btn small onClick={() => set(30)}>30s</Btn>
-          <Btn small onClick={() => set(60)}>60s</Btn>
-          <Btn small variant="ghost" onClick={() => set(null)}>Clear</Btn>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function LiveConsole({ state }: { state: AuctionPublicState }) {
   const [includePlayerId, setIncludePlayerId] = useState(false);
 
-  async function pause() { await postJSON("/api/auction/admin/pause"); globalMutate(STATE_KEY); }
-  async function resume() { await postJSON("/api/auction/admin/resume"); globalMutate(STATE_KEY); }
   async function complete() {
     if (!confirm("Mark the auction complete? The public board will show it as final.")) return;
     await postJSON("/api/auction/admin/complete"); globalMutate(STATE_KEY);
-  }
-  async function undo() {
-    if (!confirm("Undo the last award?")) return;
-    await postJSON("/api/auction/admin/undo"); globalMutate(STATE_KEY);
   }
   async function reset() {
     if (!confirm("Full reset? This permanently deletes the current auction and all results.")) return;
@@ -658,10 +452,7 @@ function LiveConsole({ state }: { state: AuctionPublicState }) {
           <span className="text-xs text-muted-foreground">· status: {auction.status}</span>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {auction.status === "live" && <Btn small onClick={pause}>Pause</Btn>}
-          {auction.status === "paused" && <Btn small variant="primary" onClick={resume}>Resume</Btn>}
           {auction.status !== "complete" && <Btn small variant="ghost" onClick={complete}>Mark Complete</Btn>}
-          <Btn small onClick={undo}>Undo Last</Btn>
           <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
             <input type="checkbox" checked={includePlayerId} onChange={(e) => setIncludePlayerId(e.target.checked)} /> Player ID
           </label>
@@ -672,10 +463,9 @@ function LiveConsole({ state }: { state: AuctionPublicState }) {
         </div>
       </div>
 
-      <NominatePanel state={state} />
-      <BiddingPanel key={state.current?.playerId ?? "none"} state={state} />
-      <AwardPanel key={state.current?.playerId ?? "none"} state={state} />
-      <TimerPanel />
+      <p className="text-xs text-muted-foreground mb-4">
+        Nominating, bidding, awarding, undo, the timer, and pause/resume all run from the public board at <a href="/auction" target="_blank" rel="noreferrer" className="underline underline-offset-2">/auction</a> — anyone on the call can use them. This console is for setup, exporting results, and fixing a past pick.
+      </p>
 
       <div className="mt-6">
         <div className="text-xs font-bold uppercase tracking-[0.06em] text-muted-foreground mb-2">Recent Results</div>

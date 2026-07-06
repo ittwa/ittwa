@@ -24,7 +24,7 @@ Built with Next.js 16, React 19, and Tailwind CSS v4. Live data from the Sleeper
 | Tag Tracker | `/tags` | Franchise & 5th-year tag history, insights, and eligibility |
 | Data Check | `/data-check` | Reconciles Contracts sheet rosters against live Sleeper rosters |
 | Auction | `/auction` | Live free agent auction board — public, updates every few seconds |
-| Auction Admin | `/auction/admin` | Commissioner-only console for running the auction (PIN-protected) |
+| Auction Admin | `/auction/admin` | Commissioner-only console for setup, exporting results, and editing past picks (PIN-protected) |
 | Records | `/records` | All-time league records and superlatives |
 | Rivalry | `/rivalry` | 12×12 all-time head-to-head matrix |
 | Drafts | `/drafts` | Rookie draft history with pick values and future pick matrix |
@@ -137,18 +137,21 @@ The exact click-path for running the live Free Agent Auction, end to end.
 
 ### During the call
 
+**Everything below runs on the public `/auction` board — no PIN, open to anyone with the link.** This is intentional: nominating, tracking bids, awarding, undoing, the timer, and pausing/resuming don't bottleneck on the commissioner's device, so whoever's driving the call (or any owner) can operate it directly. The commissioner's role during the call is just to watch and step in if something needs fixing afterward.
+
 6. Share the `/auction` link with all 12 owners — no login needed, it refreshes itself every few seconds.
-7. **Nominate:** search the free agent pool and click a player, or use "Write-in" for someone missing from the derived pool (rare, but covers a name mismatch or a very deep sleeper). "Override nominator" is a one-time swap for this pick only — it doesn't change the rotation.
-8. **Track bidding (optional):** if you want the "Bid to Beat" table on the public board to update as bidding happens, expand "Track Bidding" and enter the current salary/years/bidder as the room calls it out. You can skip this entirely and go straight to Award if the room is moving fast.
-9. **Award:** pick the winner, final salary, and final years, then click **Award**. If the deal busts that owner's max bid, max years, or cash, you'll see a warning — it's informational only, the award still goes through. This is the commissioner's call, not the app's.
-10. Made a mistake? **Undo Last** reverses the most recent award and rewinds the nomination order by one. Any older pick can be fixed with the **Edit** or **Delete** links in the Recent Results list.
-11. **Pause/Resume** if the call needs a break — the public board shows "Paused" clearly. A confirm-guarded **Reset** is available for practice runs only; it deletes everything for the current auction.
+7. **Nominate:** in the "Run the Auction" panel, search the free agent pool and click a player, or use "Write-in" for someone missing from the derived pool (rare, but covers a name mismatch or a very deep sleeper). "Nominate for" is a one-time swap of who's on the clock for this pick only — it doesn't change the rotation.
+8. **Track bidding (optional):** expand "Track Bidding" to enter the current salary/years/bidder as the room calls it out, which updates the "Bid to Beat" table for everyone watching. You can skip this entirely and go straight to Award if the room is moving fast.
+9. **Award:** pick the winner, final salary, and final years, then click **Award**. If the deal busts that owner's max bid, max years, or cash, you'll see a warning — it's informational only, the award still goes through. The room is the authority, not the app.
+10. Made a mistake? **Undo Last** (also on the public board) reverses the most recent award and rewinds the nomination order by one.
+11. **Pause/Resume** if the call needs a break — the board shows "Paused" clearly. **30s/60s/Clear Timer** is a purely visual countdown; nothing auto-advances when it hits zero.
 
 ### After the call
 
-12. Click **Mark Complete** — the public `/auction` board becomes the permanent final record for the season.
-13. Click **Export CSV**. Check "Player ID" first if you want a `Player ID` column included (makes it much faster to paste results into the Contracts tab, which is keyed on `player_id`). The file downloads as `ittwa-fa-auction-{season}.csv` in the exact old Drafted Players format: `ID, Nominator, Owner, Player, Position, Years, Salary`.
-14. Manually enter the CSV results into the Google Sheet's Contracts tab for next season — the auction does not write back to the Sheet automatically (by design, see Out of Scope).
+12. Back on `/auction/admin` (PIN required): click **Mark Complete** — the public `/auction` board becomes the permanent final record for the season.
+13. Any past pick can still be fixed here too — the **Recent Results** list has **Edit**/**Delete** links for after-the-fact corrections (a typo'd salary, wrong winner, etc). A confirm-guarded **Reset** is also here for practice runs only; it permanently deletes the current auction.
+14. Click **Export CSV**. Check "Player ID" first if you want a `Player ID` column included (makes it much faster to paste results into the Contracts tab, which is keyed on `player_id`). The file downloads as `ittwa-fa-auction-{season}.csv` in the exact old Drafted Players format: `ID, Nominator, Owner, Player, Position, Years, Salary`.
+15. Manually enter the CSV results into the Google Sheet's Contracts tab for next season — the auction does not write back to the Sheet automatically (by design, see Out of Scope).
 
 ## Tech Stack
 
