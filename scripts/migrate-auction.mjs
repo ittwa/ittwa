@@ -50,20 +50,26 @@ async function main() {
   const sqlFile = path.join(root, "migrations", "0001_auction.sql");
   const raw = readFileSync(sqlFile, "utf8");
 
-  // Split into individual statements. None of our DDL contains a semicolon
-  // inside a string literal, so a plain split is safe here. Comment-only
-  // lines are stripped from each chunk BEFORE deciding whether it's empty —
-  // the first CREATE TABLE sits directly below the file's header comments,
-  // and discarding chunks that merely start with "--" would silently skip it.
-  const statements = raw
+  // Comments must be stripped (everything from "--" to end of line, on EVERY
+  // line) before splitting on ";" — not after. A prose comment containing a
+  // semicolon (e.g. "for the NEXT nomination only;") otherwise creates a
+  // bogus split point in the middle of a statement, truncating it. None of
+  // this file's DDL puts "--" inside a string literal, so a per-line strip
+  // is safe here. Keep this in sync with splitSqlStatements in
+  // src/lib/auction-schema.ts (duplicated here since this plain Node script
+  // has no TS loader to import it directly) — src/lib/auction-schema.test.ts
+  // covers the shared logic.
+  const codeOnly = raw
+    .split("\n")
+    .map((line) => {
+      const commentIdx = line.indexOf("--");
+      return commentIdx === -1 ? line : line.slice(0, commentIdx);
+    })
+    .join("\n");
+
+  const statements = codeOnly
     .split(";")
-    .map((chunk) =>
-      chunk
-        .split("\n")
-        .filter((line) => !line.trim().startsWith("--"))
-        .join("\n")
-        .trim(),
-    )
+    .map((s) => s.trim())
     .filter((s) => s.length > 0);
 
   const sql = neon(databaseUrl);

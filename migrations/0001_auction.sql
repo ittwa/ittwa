@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS auction (
   status TEXT NOT NULL DEFAULT 'setup', -- setup | live | paused | complete
   nomination_order JSONB NOT NULL DEFAULT '[]',
   current_nominator_index INTEGER NOT NULL DEFAULT 0,
-  -- One-off override of who is on the clock for the NEXT nomination only;
+  -- One-off override of who is on the clock for the NEXT nomination only —
   -- cleared automatically after that pick is awarded.
   nominator_override TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
