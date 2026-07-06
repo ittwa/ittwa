@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import useSWR from "swr";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { PlayerLink } from "@/components/player-link";
 import { SectionLabel } from "@/components/section-label";
 import { GOLD, ACCENT, getPositionColors } from "@/lib/ui-utils";
 import { AUCTION_DATE } from "@/lib/config";
+import { playerHeadshotUrls } from "@/lib/player-images";
 import type { AuctionPublicState, DerivedOwnerCap, DerivedFreeAgent, AuctionResultRow } from "@/types/auction";
+
+type SortDir = "asc" | "desc";
 
 const EMERALD = "#4ade80";
 const ROSE = "#f87171";
@@ -44,6 +48,62 @@ function PosBadge({ pos }: { pos: string }) {
     >
       {pos}
     </span>
+  );
+}
+
+// Sleeper only has headshots for real numeric player IDs — write-ins
+// ("manual-...") and team defenses (e.g. "SF") fall straight to initials.
+function PlayerAvatar({ playerId, name, pos, size = 32 }: { playerId: string; name: string; pos: string; size?: number }) {
+  const [attempt, setAttempt] = useState(0);
+  const pc = getPositionColors(pos);
+  const initials = name.split(" ").map((w) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+  const validId = /^\d+$/.test(playerId);
+  const urls = validId ? playerHeadshotUrls(playerId) : [];
+
+  if (!validId || attempt >= urls.length) {
+    return (
+      <div
+        className="flex-shrink-0 flex items-center justify-center"
+        style={{ width: size, height: size, borderRadius: 8, background: pc.bg, border: `1px solid ${pc.border}` }}
+      >
+        <span className="font-heading font-bold" style={{ fontSize: size * 0.34, color: pc.text }}>{initials}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex-shrink-0 overflow-hidden"
+      style={{ position: "relative", width: size, height: size, borderRadius: 8, background: pc.bg, border: `1px solid ${pc.border}` }}
+    >
+      <Image
+        key={urls[attempt]}
+        src={urls[attempt]}
+        alt={name}
+        fill
+        sizes="64px"
+        className="object-cover object-top"
+        onError={() => setAttempt((a) => a + 1)}
+      />
+    </div>
+  );
+}
+
+function SortTh({
+  label, field, sortKey, sortDir, onSort, align = "left", className,
+}: {
+  label: string; field: string; sortKey: string; sortDir: SortDir;
+  onSort: (field: string) => void; align?: "left" | "right" | "center"; className?: string;
+}) {
+  const active = sortKey === field;
+  return (
+    <th
+      onClick={() => onSort(field)}
+      className={`px-3 py-2 text-[10px] font-bold uppercase tracking-[0.06em] whitespace-nowrap cursor-pointer select-none ${className ?? ""}`}
+      style={{ textAlign: align, color: active ? GOLD : "var(--muted-foreground)" }}
+    >
+      {label}{active && <span className="ml-1 opacity-80">{sortDir === "asc" ? "↑" : "↓"}</span>}
+    </th>
   );
 }
 
@@ -111,6 +171,7 @@ function CurrentNominationPanel({ state }: { state: AuctionPublicState }) {
         <div className="flex-1 min-w-0">
           <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2">On the Block</div>
           <div className="flex items-center gap-3 flex-wrap mb-3">
+            <PlayerAvatar playerId={current.playerId} name={current.player} pos={current.position} size={44} />
             <PlayerLink playerId={current.playerId} className="font-heading text-2xl md:text-3xl font-black uppercase tracking-[0.01em] hover:underline underline-offset-2">
               {current.player}
             </PlayerLink>
@@ -196,7 +257,7 @@ function bar(used: number, cap: number, color: string) {
 }
 
 function OwnerGridRow({ o }: { o: DerivedOwnerCap }) {
-  const cashColor = o.cash < 20 ? ROSE : o.cash < 50 ? GOLD : EMERALD;
+  const capSpaceColor = o.cash < 20 ? ROSE : o.cash < 50 ? GOLD : EMERALD;
   const needColor = o.needToSpend > 0 ? ROSE : EMERALD;
   return (
     <tr className="border-b border-border/50 last:border-0 hover:bg-accent/20">
@@ -213,12 +274,11 @@ function OwnerGridRow({ o }: { o: DerivedOwnerCap }) {
           {bar(o.yearsRostered, 60, GOLD)}
         </div>
       </td>
-      <td className="px-3 py-2 whitespace-nowrap">
-        <div className="flex items-center gap-2 justify-end">
-          <span className="font-code text-sm">${o.salaryRostered.toFixed(1)}<span className="text-muted-foreground">/${o.cash.toFixed(1)}</span></span>
-        </div>
+      <td className="px-3 py-2 text-right font-code text-sm whitespace-nowrap">${o.salaryRostered.toFixed(1)}</td>
+      <td className="px-3 py-2 text-right font-code text-sm font-bold whitespace-nowrap" style={{ color: capSpaceColor }}>
+        ${o.cash.toFixed(1)}
       </td>
-      <td className="px-3 py-2 text-right font-code text-sm font-bold" style={{ color: cashColor }}>
+      <td className="px-3 py-2 text-right font-code text-sm font-bold" style={{ color: capSpaceColor }}>
         {o.maxBid != null ? `$${o.maxBid.toFixed(1)}` : "—"}
       </td>
       <td className="px-3 py-2 text-right font-code text-sm">{o.maxYears ?? "—"}</td>
@@ -229,23 +289,53 @@ function OwnerGridRow({ o }: { o: DerivedOwnerCap }) {
   );
 }
 
+type OwnerSortKey = "owner" | "players" | "years" | "salary" | "capSpace" | "maxBid" | "maxYears" | "needToSpend";
+
 function OwnerGrid({ owners }: { owners: DerivedOwnerCap[] }) {
-  const sorted = [...owners].sort((a, b) => b.cash - a.cash);
+  const [sortKey, setSortKey] = useState<OwnerSortKey>("capSpace");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  function onSort(field: string) {
+    const key = field as OwnerSortKey;
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir(key === "owner" ? "asc" : "desc"); }
+  }
+
+  const sorted = useMemo(() => {
+    const arr = [...owners];
+    arr.sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case "owner": cmp = a.owner.localeCompare(b.owner); break;
+        case "players": cmp = a.playersRostered - b.playersRostered; break;
+        case "years": cmp = a.yearsRostered - b.yearsRostered; break;
+        case "salary": cmp = a.salaryRostered - b.salaryRostered; break;
+        case "capSpace": cmp = a.cash - b.cash; break;
+        case "maxBid": cmp = (a.maxBid ?? -Infinity) - (b.maxBid ?? -Infinity); break;
+        case "maxYears": cmp = (a.maxYears ?? -Infinity) - (b.maxYears ?? -Infinity); break;
+        case "needToSpend": cmp = a.needToSpend - b.needToSpend; break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [owners, sortKey, sortDir]);
+
   return (
     <section className="mb-7">
       <SectionLabel label="Owner Board" count={`${owners.length} owners`} color={GOLD} />
       <div className="bg-card border border-border rounded-[10px] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse min-w-[760px]">
+          <table className="w-full border-collapse min-w-[820px]">
             <thead>
               <tr className="bg-secondary">
-                <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground sticky left-0 bg-secondary">Owner</th>
-                <th className="px-3 py-2 text-right text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground">Players</th>
-                <th className="px-3 py-2 text-right text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground">Years</th>
-                <th className="px-3 py-2 text-right text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground">Salary</th>
-                <th className="px-3 py-2 text-right text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground">Max Bid</th>
-                <th className="px-3 py-2 text-right text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground">Max Yrs</th>
-                <th className="px-3 py-2 text-right text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground">Need to Spend</th>
+                <SortTh label="Owner" field="owner" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="sticky left-0 bg-secondary" />
+                <SortTh label="Players" field="players" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+                <SortTh label="Years" field="years" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+                <SortTh label="Salary" field="salary" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+                <SortTh label="Cap Space" field="capSpace" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+                <SortTh label="Max Bid" field="maxBid" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+                <SortTh label="Max Yrs" field="maxYears" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+                <SortTh label="Need to Spend" field="needToSpend" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
               </tr>
             </thead>
             <tbody>
@@ -275,6 +365,7 @@ function ResultsFeed({ results }: { results: AuctionResultRow[] }) {
               <OwnerAvatar name={r.winner} size={20} />
               <span className="font-semibold">{r.winner}</span>
               <span className="text-muted-foreground">wins</span>
+              <PlayerAvatar playerId={r.playerId} name={r.player} pos={r.position} size={22} />
               <PlayerLink playerId={r.playerId} className="font-semibold hover:underline underline-offset-2">{r.player}</PlayerLink>
               <PosBadge pos={r.position} />
               <span className="font-code text-xs text-muted-foreground ml-auto whitespace-nowrap">
@@ -290,17 +381,42 @@ function ResultsFeed({ results }: { results: AuctionResultRow[] }) {
 
 // ── Available / Drafted tabs ─────────────────────────────────────────────────
 
+type AvailableSortKey = "player" | "position" | "rfa";
+
 function AvailablePlayersTab({ pool }: { pool: DerivedFreeAgent[] }) {
   const [search, setSearch] = useState("");
   const [pos, setPos] = useState("");
+  const [rfaOnly, setRfaOnly] = useState(false);
+  const [sortKey, setSortKey] = useState<AvailableSortKey>("player");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function onSort(field: string) {
+    const key = field as AvailableSortKey;
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  }
+
   const available = pool.filter((p) => p.status === "available");
-  const filtered = available.filter(
-    (p) => (!search || p.player.toLowerCase().includes(search.toLowerCase())) && (!pos || p.position === pos),
-  );
+  const filtered = useMemo(() => {
+    const r = available.filter(
+      (p) =>
+        (!search || p.player.toLowerCase().includes(search.toLowerCase())) &&
+        (!pos || p.position === pos) &&
+        (!rfaOnly || p.rfa),
+    );
+    r.sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "player") cmp = a.player.localeCompare(b.player);
+      else if (sortKey === "position") cmp = a.position.localeCompare(b.position);
+      else if (sortKey === "rfa") cmp = Number(a.rfa) - Number(b.rfa);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return r;
+  }, [available, search, pos, rfaOnly, sortKey, sortDir]);
 
   return (
     <div>
-      <div className="flex gap-2 mb-3 flex-wrap">
+      <div className="flex gap-2 mb-3 flex-wrap items-center">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -315,46 +431,94 @@ function AvailablePlayersTab({ pool }: { pool: DerivedFreeAgent[] }) {
           <option value="">All Positions</option>
           {["QB", "RB", "WR", "TE", "DEF"].map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
+        <label className="flex items-center gap-1.5 text-[13px] text-muted-foreground cursor-pointer select-none">
+          <input type="checkbox" checked={rfaOnly} onChange={(e) => setRfaOnly(e.target.checked)} />
+          RFA only
+        </label>
         <span className="text-xs text-muted-foreground self-center ml-1">{filtered.length} of {available.length}</span>
       </div>
-      <div className="bg-card border border-border rounded-[10px] max-h-[420px] overflow-y-auto">
-        {filtered.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground italic">No players match.</div>
-        ) : (
-          filtered.map((p) => (
-            <div key={p.playerId} className="px-4 py-2 border-b border-border/50 last:border-0 flex items-center gap-2 text-sm">
-              <PlayerLink playerId={p.playerId} className="font-medium hover:underline underline-offset-2">{p.player}</PlayerLink>
-              <PosBadge pos={p.position} />
-              {p.rfa && <RfaBadge previousOwner={p.previousOwner} />}
-            </div>
-          ))
-        )}
+      <div className="bg-card border border-border rounded-[10px] overflow-hidden">
+        <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
+          <table className="w-full border-collapse min-w-[420px]">
+            <thead>
+              <tr className="bg-secondary">
+                <SortTh label="Player" field="player" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+                <SortTh label="Position" field="position" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+                <SortTh label="RFA" field="rfa" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="center" />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-4 py-8 text-center text-sm text-muted-foreground italic">No players match.</td>
+                </tr>
+              ) : (
+                filtered.map((p) => (
+                  <tr key={p.playerId} className="border-t border-border/50">
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <PlayerAvatar playerId={p.playerId} name={p.player} pos={p.position} size={28} />
+                        <PlayerLink playerId={p.playerId} className="font-medium text-sm hover:underline underline-offset-2">{p.player}</PlayerLink>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2"><PosBadge pos={p.position} /></td>
+                    <td className="px-3 py-2 text-center">
+                      {p.rfa ? <RfaBadge previousOwner={p.previousOwner} /> : <span className="text-muted-foreground text-xs">—</span>}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
 }
 
+type DraftedSortKey = "pick" | "nominator" | "winner" | "player" | "position" | "years" | "salary";
+
 function DraftedPlayersTab({ results }: { results: AuctionResultRow[] }) {
-  const [sortDesc, setSortDesc] = useState(true);
-  const sorted = [...results].sort((a, b) => (sortDesc ? b.pickNumber - a.pickNumber : a.pickNumber - b.pickNumber));
+  const [sortKey, setSortKey] = useState<DraftedSortKey>("pick");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  function onSort(field: string) {
+    const key = field as DraftedSortKey;
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir(key === "pick" || key === "years" || key === "salary" ? "desc" : "asc"); }
+  }
+
+  const sorted = useMemo(() => {
+    const arr = [...results];
+    arr.sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case "pick": cmp = a.pickNumber - b.pickNumber; break;
+        case "nominator": cmp = a.nominator.localeCompare(b.nominator); break;
+        case "winner": cmp = a.winner.localeCompare(b.winner); break;
+        case "player": cmp = a.player.localeCompare(b.player); break;
+        case "position": cmp = a.position.localeCompare(b.position); break;
+        case "years": cmp = a.years - b.years; break;
+        case "salary": cmp = a.salary - b.salary; break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [results, sortKey, sortDir]);
+
   return (
     <div className="bg-card border border-border rounded-[10px] overflow-hidden">
       <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
-        <table className="w-full border-collapse min-w-[600px]">
+        <table className="w-full border-collapse min-w-[640px]">
           <thead>
             <tr className="bg-secondary">
-              <th
-                onClick={() => setSortDesc((d) => !d)}
-                className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground cursor-pointer"
-              >
-                Pick {sortDesc ? "↓" : "↑"}
-              </th>
-              <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground">Nominator</th>
-              <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground">Winner</th>
-              <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground">Player</th>
-              <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground">Pos</th>
-              <th className="px-3 py-2 text-right text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground">Yrs</th>
-              <th className="px-3 py-2 text-right text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground">Salary</th>
+              <SortTh label="Pick" field="pick" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortTh label="Nominator" field="nominator" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortTh label="Winner" field="winner" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortTh label="Player" field="player" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortTh label="Pos" field="position" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortTh label="Yrs" field="years" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+              <SortTh label="Salary" field="salary" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
             </tr>
           </thead>
           <tbody>
@@ -363,7 +527,12 @@ function DraftedPlayersTab({ results }: { results: AuctionResultRow[] }) {
                 <td className="px-3 py-2 font-code text-xs text-muted-foreground">{String(r.pickNumber).padStart(3, "0")}</td>
                 <td className="px-3 py-2 text-sm">{r.nominator}</td>
                 <td className="px-3 py-2 text-sm font-semibold">{r.winner}</td>
-                <td className="px-3 py-2 text-sm"><PlayerLink playerId={r.playerId} className="hover:underline underline-offset-2">{r.player}</PlayerLink></td>
+                <td className="px-3 py-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <PlayerAvatar playerId={r.playerId} name={r.player} pos={r.position} size={24} />
+                    <PlayerLink playerId={r.playerId} className="hover:underline underline-offset-2">{r.player}</PlayerLink>
+                  </div>
+                </td>
                 <td className="px-3 py-2"><PosBadge pos={r.position} /></td>
                 <td className="px-3 py-2 text-right font-code text-sm">{r.years}</td>
                 <td className="px-3 py-2 text-right font-code text-sm">${r.salary.toFixed(1)}</td>
