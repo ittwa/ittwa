@@ -20,21 +20,24 @@ export function isMissingTableError(err: unknown): boolean {
   );
 }
 
-// Splits a migration file into executable statements. Comment-only lines are
-// stripped from each chunk BEFORE deciding whether it's empty — a chunk that
-// begins with header comments still contains real DDL after them (the first
-// CREATE TABLE in the file sits right below the file header, and discarding
-// chunks that merely start with "--" would silently skip it).
+// Splits a migration file into executable statements. Comments must be
+// stripped (everything from "--" to end of line, on EVERY line) before
+// splitting on ";" — not after. A prose comment containing a semicolon
+// (e.g. "for the NEXT nomination only;") otherwise creates a bogus split
+// point in the middle of a statement, truncating it. None of this file's
+// DDL puts "--" inside a string literal, so a per-line strip is safe here.
 export function splitSqlStatements(raw: string): string[] {
-  return raw
+  const codeOnly = raw
+    .split("\n")
+    .map((line) => {
+      const commentIdx = line.indexOf("--");
+      return commentIdx === -1 ? line : line.slice(0, commentIdx);
+    })
+    .join("\n");
+
+  return codeOnly
     .split(";")
-    .map((chunk) =>
-      chunk
-        .split("\n")
-        .filter((line) => !line.trim().startsWith("--"))
-        .join("\n")
-        .trim(),
-    )
+    .map((s) => s.trim())
     .filter((s) => s.length > 0);
 }
 

@@ -33,6 +33,39 @@ describe("splitSqlStatements — against the real migration file", () => {
     expect(auctionTable).toBeDefined();
     expect(auctionTable).toContain("status TEXT NOT NULL DEFAULT 'setup'");
   });
+
+  it("produces exactly one statement per CREATE in the file — none truncated or split apart", () => {
+    // Regression: a prose comment containing a semicolon ("...NEXT
+    // nomination only;") split CREATE TABLE auction into two fragments —
+    // one truncated (missing its closing paren and two trailing columns)
+    // and one that was an orphan half-statement. Both "started with CREATE"
+    // style checks still passed, because the truncated fragment still began
+    // with "CREATE TABLE IF NOT EXISTS auction (" — only a structural check
+    // catches this.
+    const createCount = (raw.match(/^\s*CREATE /gm) || []).length;
+    expect(statements).toHaveLength(createCount);
+    for (const s of statements) {
+      expect(s.startsWith("CREATE")).toBe(true);
+    }
+  });
+
+  it("balances parentheses in every statement (catches truncated CREATE TABLE bodies)", () => {
+    for (const s of statements) {
+      const opens = (s.match(/\(/g) || []).length;
+      const closes = (s.match(/\)/g) || []).length;
+      expect(opens, `unbalanced parens in: ${s.slice(0, 60)}...`).toBe(closes);
+      expect(opens).toBeGreaterThan(0);
+    }
+  });
+
+  it("includes every column of the auction table in a single statement", () => {
+    const auctionTable = statements.find((s) => s.startsWith("CREATE TABLE IF NOT EXISTS auction ("));
+    expect(auctionTable).toBeDefined();
+    for (const column of ["id SERIAL", "season TEXT", "status TEXT", "nomination_order JSONB", "current_nominator_index INTEGER", "nominator_override TEXT", "created_at TIMESTAMPTZ"]) {
+      expect(auctionTable, `missing "${column}"`).toContain(column);
+    }
+    expect(auctionTable!.trim().endsWith(")")).toBe(true);
+  });
 });
 
 describe("isMissingTableError", () => {
