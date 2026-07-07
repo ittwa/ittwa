@@ -648,12 +648,14 @@ function ResultsFeed({ results }: { results: AuctionResultRow[] }) {
 
 type AvailableSortKey = "player" | "position" | "rfa";
 
-function AvailablePlayersTab({ pool }: { pool: DerivedFreeAgent[] }) {
+function AvailablePlayersTab({ state }: { state: AuctionPublicState }) {
   const [search, setSearch] = useState("");
   const [pos, setPos] = useState("");
   const [rfaOnly, setRfaOnly] = useState(false);
   const [sortKey, setSortKey] = useState<AvailableSortKey>("player");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [nominatingId, setNominatingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   function onSort(field: string) {
     const key = field as AvailableSortKey;
@@ -661,6 +663,32 @@ function AvailablePlayersTab({ pool }: { pool: DerivedFreeAgent[] }) {
     else { setSortKey(key); setSortDir("asc"); }
   }
 
+  // Nobody has to go back up to the search box — this credits whichever
+  // owner is currently on the clock, no matter who clicks it. Disabled
+  // while a pick is already on the block so it can't silently blow away an
+  // in-progress bid; award or undo that one first.
+  const locked = state.current != null;
+
+  async function nominate(p: DerivedFreeAgent) {
+    setNominatingId(p.playerId);
+    setError(null);
+    try {
+      await postJSON("/api/auction/nominate", {
+        playerId: p.playerId,
+        player: p.player,
+        position: p.position,
+        rfa: p.rfa,
+        previousOwner: p.previousOwner,
+      });
+      globalMutate(STATE_KEY);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Nominate failed");
+    } finally {
+      setNominatingId(null);
+    }
+  }
+
+  const pool = state.pool;
   const available = pool.filter((p) => p.status === "available");
   const filtered = useMemo(() => {
     const r = available.filter(
@@ -702,20 +730,27 @@ function AvailablePlayersTab({ pool }: { pool: DerivedFreeAgent[] }) {
         </label>
         <span className="text-xs text-muted-foreground self-center ml-1">{filtered.length} of {available.length}</span>
       </div>
+      {error && <Banner tone="error">{error}</Banner>}
+      {locked && (
+        <p className="text-xs text-muted-foreground mb-2">
+          <span className="font-semibold text-foreground">{state.current!.player}</span> is on the block — award or undo it above before nominating the next player.
+        </p>
+      )}
       <div className="bg-card border border-border rounded-[10px] overflow-hidden">
         <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
-          <table className="w-full border-collapse min-w-[420px]">
+          <table className="w-full border-collapse min-w-[500px]">
             <thead>
               <tr className="bg-secondary">
                 <SortTh label="Player" field="player" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <SortTh label="Position" field="position" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <SortTh label="RFA" field="rfa" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="center" />
+                <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground text-right">Nominate{state.onClock ? ` for ${state.onClock}` : ""}</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-sm text-muted-foreground italic">No players match.</td>
+                  <td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground italic">No players match.</td>
                 </tr>
               ) : (
                 filtered.map((p) => (
@@ -729,6 +764,15 @@ function AvailablePlayersTab({ pool }: { pool: DerivedFreeAgent[] }) {
                     <td className="px-3 py-2"><PosBadge pos={p.position} /></td>
                     <td className="px-3 py-2 text-center">
                       {p.rfa ? <RfaBadge previousOwner={p.previousOwner} /> : <span className="text-muted-foreground text-xs">—</span>}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <Btn
+                        variant="primary"
+                        disabled={locked || nominatingId === p.playerId}
+                        onClick={() => nominate(p)}
+                      >
+                        {nominatingId === p.playerId ? "Nominating…" : "Nominate"}
+                      </Btn>
                     </td>
                   </tr>
                 ))
@@ -810,8 +854,10 @@ function DraftedPlayersTab({ results }: { results: AuctionResultRow[] }) {
   );
 }
 
-function Tabs({ pool, results }: { pool: DerivedFreeAgent[]; results: AuctionResultRow[] }) {
+function Tabs({ state }: { state: AuctionPublicState }) {
   const [tab, setTab] = useState<"available" | "drafted">("available");
+  const pool = state.pool;
+  const results = state.results;
   return (
     <section>
       <div className="flex items-center gap-2 mb-3.5">
@@ -830,7 +876,7 @@ function Tabs({ pool, results }: { pool: DerivedFreeAgent[]; results: AuctionRes
           </button>
         ))}
       </div>
-      {tab === "available" ? <AvailablePlayersTab pool={pool} /> : <DraftedPlayersTab results={results} />}
+      {tab === "available" ? <AvailablePlayersTab state={state} /> : <DraftedPlayersTab results={results} />}
     </section>
   );
 }
@@ -925,7 +971,7 @@ export function AuctionBoardClient() {
           )}
           <OwnerGrid owners={data.owners} />
           <ResultsFeed results={data.results} />
-          <Tabs pool={data.pool} results={data.results} />
+          <Tabs state={data} />
         </>
       )}
 
