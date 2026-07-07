@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import useSWR from "swr";
+import useSWR, { mutate as globalMutate } from "swr";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { PlayerLink } from "@/components/player-link";
 import { SectionLabel } from "@/components/section-label";
 import { GOLD, ACCENT, getPositionColors } from "@/lib/ui-utils";
-import { AUCTION_DATE } from "@/lib/config";
+import { AUCTION_DATE, ALL_OWNERS } from "@/lib/config";
 import { playerHeadshotUrls } from "@/lib/player-images";
+import { bidIncrement, MIN_BID } from "@/lib/auction";
 import type { AuctionPublicState, DerivedOwnerCap, DerivedFreeAgent, AuctionResultRow } from "@/types/auction";
 
 type SortDir = "asc" | "desc";
@@ -16,11 +17,62 @@ type SortDir = "asc" | "desc";
 const EMERALD = "#4ade80";
 const ROSE = "#f87171";
 const MUTED = "var(--muted-foreground)";
+const STATE_KEY = "/api/auction/state";
 
 const fetcher = (url: string) => fetch(url).then((r) => {
   if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
 });
+
+// Every action below hits an unauthenticated /api/auction/* route on
+// purpose — nominate, bid, award, undo, timer, pause/resume, and
+// nominator-override are open to anyone with this link so the live call
+// doesn't bottleneck on one device. Only setup and post-hoc result
+// edits/deletes require the commissioner PIN (see /auction/admin).
+async function postJSON(url: string, body?: unknown) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  return data;
+}
+
+function Btn({
+  children, onClick, variant = "default", disabled,
+}: {
+  children: React.ReactNode; onClick?: () => void; variant?: "default" | "primary" | "ghost"; disabled?: boolean;
+}) {
+  const base = "font-heading font-bold uppercase tracking-[0.04em] text-[11px] px-3 py-1.5 rounded-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed";
+  const variants: Record<string, string> = {
+    default: "bg-secondary text-foreground border border-border",
+    ghost: "bg-transparent text-muted-foreground border border-border",
+    primary: "border",
+  };
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${base} ${variants[variant]}`}
+      style={variant === "primary" ? { background: GOLD, color: "#1a1400", borderColor: GOLD } : undefined}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Banner({ tone, children }: { tone: "warn" | "error"; children: React.ReactNode }) {
+  const c = tone === "warn"
+    ? { color: GOLD, bg: "rgba(232,184,75,0.1)", b: "rgba(232,184,75,0.3)" }
+    : { color: ROSE, bg: "rgba(248,113,113,0.1)", b: "rgba(248,113,113,0.3)" };
+  return (
+    <div className="text-xs rounded-lg px-3 py-2 mb-2" style={{ background: c.bg, color: c.color, border: `1px solid ${c.b}` }}>
+      {children}
+    </div>
+  );
+}
 
 function OwnerAvatar({ name, size = 28 }: { name: string; size?: number }) {
   const avatarId = useOwnerAvatar(name);
@@ -241,6 +293,219 @@ function NominationStrip({ onClock, onDeck }: { onClock: string | null; onDeck: 
           <span>{onDeck}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Run the auction (public — nominate / bid / award / undo / timer) ────────
+
+function NominateSection({ state }: { state: AuctionPublicState }) {
+  const [search, setSearch] = useState("");
+  const [writeIn, setWriteIn] = useState(false);
+  const [manual, setManual] = useState({ player: "", position: "WR" });
+  const [nominatorOverride, setNominatorOverride] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const available = state.pool.filter((p) => p.status === "available");
+  const matches = search.length >= 2 ? available.filter((p) => p.player.toLowerCase().includes(search.toLowerCase())).slice(0, 8) : [];
+
+  async function nominate(player: { playerId: string; player: string; position: string; rfa: boolean; previousOwner: string | null }) {
+    setBusy(true);
+    setError(null);
+    try {
+      await postJSON("/api/auction/nominate", { ...player, nominatorOverride: nominatorOverride || null });
+      setSearch("");
+      setManual({ player: "", position: "WR" });
+      setNominatorOverride("");
+      globalMutate(STATE_KEY);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Nominate failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (state.current) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        <span className="font-semibold text-foreground">{state.current.player}</span> is on the block — award or undo above before nominating the next player.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      {error && <Banner tone="error">{error}</Banner>}
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
+        <span className="text-xs text-muted-foreground">Nominate for:</span>
+        <select value={nominatorOverride} onChange={(e) => setNominatorOverride(e.target.value)} className="bg-secondary border border-border rounded px-2 py-1 text-xs">
+          <option value="">{state.onClock ?? "—"} (on the clock)</option>
+          {ALL_OWNERS.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </div>
+      {!writeIn ? (
+        <>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search free agent to nominate…"
+            className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm mb-2"
+          />
+          {matches.length > 0 && (
+            <div className="border border-border rounded-lg mb-2 overflow-hidden">
+              {matches.map((p) => (
+                <button
+                  key={p.playerId}
+                  onClick={() => nominate(p)}
+                  disabled={busy}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent/30 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <PlayerAvatar playerId={p.playerId} name={p.player} pos={p.position} size={24} />
+                  <span className="flex-1">{p.player}</span>
+                  <PosBadge pos={p.position} />
+                  {p.rfa && <span className="text-[9px] font-bold" style={{ color: GOLD }}>RFA</span>}
+                </button>
+              ))}
+            </div>
+          )}
+          <Btn variant="ghost" onClick={() => setWriteIn(true)}>+ Write-in (player missing from list)</Btn>
+        </>
+      ) : (
+        <div className="flex gap-2 items-center flex-wrap">
+          <input placeholder="Player name" value={manual.player} onChange={(e) => setManual({ ...manual, player: e.target.value })} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm w-40" />
+          <select value={manual.position} onChange={(e) => setManual({ ...manual, position: e.target.value })} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
+            {["QB", "RB", "WR", "TE", "DEF"].map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
+          <Btn variant="primary" disabled={busy || !manual.player} onClick={() => nominate({
+            playerId: `manual-${manual.player.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`,
+            player: manual.player, position: manual.position, rfa: false, previousOwner: null,
+          })}>Nominate</Btn>
+          <Btn variant="ghost" onClick={() => setWriteIn(false)}>Cancel</Btn>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Keyed by the current nomination's playerId from the parent, so React
+// remounts (and re-initializes local state from the live bid) whenever the
+// nomination changes instead of syncing prop → state inside an effect.
+function BidSection({ state }: { state: AuctionPublicState }) {
+  const current = state.current!;
+  const [salary, setSalary] = useState(() => current.highBidSalary ?? MIN_BID);
+  const [years, setYears] = useState(() => current.highBidYears ?? 1);
+  const [bidder, setBidder] = useState("");
+  const [open, setOpen] = useState(false);
+
+  async function submit() {
+    await postJSON("/api/auction/bid", { salary, years, bidder: bidder || null });
+    globalMutate(STATE_KEY);
+  }
+
+  const step = bidIncrement(salary);
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border/60">
+      <button onClick={() => setOpen((o) => !o)} className="text-xs font-bold uppercase tracking-[0.06em] text-muted-foreground cursor-pointer">
+        {open ? "▾" : "▸"} Track Bidding (optional)
+      </button>
+      {open && (
+        <div className="flex items-center gap-3 flex-wrap mt-2">
+          <div className="flex items-center gap-1">
+            <button onClick={() => setSalary((s) => Math.max(MIN_BID, Math.round((s - step) * 10) / 10))} className="w-7 h-7 bg-secondary border border-border rounded cursor-pointer">−</button>
+            <span className="font-code text-sm w-16 text-center">${salary.toFixed(1)}</span>
+            <button onClick={() => setSalary((s) => Math.round((s + step) * 10) / 10)} className="w-7 h-7 bg-secondary border border-border rounded cursor-pointer">+</button>
+          </div>
+          <select value={years} onChange={(e) => setYears(Number(e.target.value))} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
+            {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y}yr</option>)}
+          </select>
+          <select value={bidder} onChange={(e) => setBidder(e.target.value)} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
+            <option value="">Bidder…</option>
+            {ALL_OWNERS.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+          <Btn variant="primary" onClick={submit}>Set Bid</Btn>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AwardSection({ state }: { state: AuctionPublicState }) {
+  const current = state.current!;
+  const [winner, setWinner] = useState(() => current.highBidder ?? "");
+  const [salary, setSalary] = useState(() => current.highBidSalary ?? MIN_BID);
+  const [years, setYears] = useState(() => current.highBidYears ?? 1);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function award() {
+    setBusy(true);
+    setError(null);
+    setWarnings([]);
+    try {
+      const res = await postJSON("/api/auction/award", { winner, salary, years });
+      setWarnings(res.warnings ?? []);
+      globalMutate(STATE_KEY);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Award failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border/60">
+      <div className="text-xs font-bold uppercase tracking-[0.06em] text-muted-foreground mb-2">Award</div>
+      {error && <Banner tone="error">{error}</Banner>}
+      {warnings.map((w, i) => <Banner key={i} tone="warn">⚠ {w}</Banner>)}
+      <div className="flex items-center gap-2 flex-wrap">
+        <select value={winner} onChange={(e) => setWinner(e.target.value)} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
+          <option value="">Winner…</option>
+          {ALL_OWNERS.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+        <input type="number" step={0.5} min={0} value={salary} onChange={(e) => setSalary(Number(e.target.value))} className="w-20 bg-secondary border border-border rounded px-2 py-1.5 text-sm font-code" />
+        <select value={years} onChange={(e) => setYears(Number(e.target.value))} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
+          {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y}yr</option>)}
+        </select>
+        <Btn variant="primary" disabled={busy || !winner} onClick={award}>{busy ? "Awarding…" : "Award"}</Btn>
+      </div>
+    </div>
+  );
+}
+
+function AuctionControls({ state }: { state: AuctionPublicState }) {
+  const auction = state.auction!;
+
+  async function pause() { await postJSON("/api/auction/pause"); globalMutate(STATE_KEY); }
+  async function resume() { await postJSON("/api/auction/resume"); globalMutate(STATE_KEY); }
+  async function undo() {
+    if (!confirm("Undo the last award?")) return;
+    await postJSON("/api/auction/undo");
+    globalMutate(STATE_KEY);
+  }
+  async function setTimer(seconds: number | null) {
+    await postJSON("/api/auction/timer", { seconds });
+    globalMutate(STATE_KEY);
+  }
+
+  return (
+    <div className="bg-card border border-border rounded-[10px] p-4 md:p-5 mb-5">
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+        <span className="font-heading text-xs font-bold uppercase tracking-[0.08em]" style={{ color: GOLD }}>Run the Auction</span>
+        <div className="flex gap-2 flex-wrap">
+          {auction.status === "live" && <Btn onClick={pause}>Pause</Btn>}
+          {auction.status === "paused" && <Btn variant="primary" onClick={resume}>Resume</Btn>}
+          <Btn onClick={undo}>Undo Last</Btn>
+          <Btn onClick={() => setTimer(30)}>30s</Btn>
+          <Btn onClick={() => setTimer(60)}>60s</Btn>
+          <Btn variant="ghost" onClick={() => setTimer(null)}>Clear Timer</Btn>
+        </div>
+      </div>
+      <NominateSection state={state} />
+      {state.current && <BidSection key={state.current.playerId} state={state} />}
+      {state.current && <AwardSection key={state.current.playerId} state={state} />}
     </div>
   );
 }
@@ -596,7 +861,7 @@ function CompleteBanner({ season }: { season: string }) {
 // ── Main client component ────────────────────────────────────────────────────
 
 export function AuctionBoardClient() {
-  const { data, error } = useSWR<AuctionPublicState>("/api/auction/state", fetcher, {
+  const { data, error } = useSWR<AuctionPublicState>(STATE_KEY, fetcher, {
     refreshInterval: 4000,
     keepPreviousData: true,
   });
@@ -655,6 +920,7 @@ export function AuctionBoardClient() {
             <>
               <CurrentNominationPanel state={data} />
               <NominationStrip onClock={data.onClock} onDeck={data.onDeck} />
+              <AuctionControls state={data} />
             </>
           )}
           <OwnerGrid owners={data.owners} />

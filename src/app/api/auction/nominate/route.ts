@@ -1,5 +1,8 @@
+// Public — no auth. Anyone with the /auction link can nominate a player for
+// the current pick, so the whole call doesn't bottleneck on one device.
+
 import { NextResponse } from "next/server";
-import { requireAdmin, requireActiveAuctionId } from "@/lib/auction-route-utils";
+import { requireActiveAuctionId } from "@/lib/auction-route-utils";
 import { nominate, setNominatorOverride } from "@/lib/auction-db";
 
 interface NominateBody {
@@ -12,8 +15,6 @@ interface NominateBody {
 }
 
 export async function POST(request: Request) {
-  const unauthorized = await requireAdmin();
-  if (unauthorized) return unauthorized;
   const auctionId = await requireActiveAuctionId();
   if (auctionId instanceof NextResponse) return auctionId;
 

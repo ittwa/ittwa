@@ -1,13 +1,12 @@
-// Simple, de-emphasized timer — 30s/60s presets shown on the public board.
-// No auto-actions fire when it expires; it's purely a visual aid.
+// Public — no auth. Simple, de-emphasized timer — 30s/60s presets shown on
+// the public board. No auto-actions fire when it expires; it's purely a
+// visual aid, so there's no harm in anyone starting/clearing it.
 
 import { NextResponse } from "next/server";
-import { requireAdmin, requireActiveAuctionId } from "@/lib/auction-route-utils";
+import { requireActiveAuctionId } from "@/lib/auction-route-utils";
 import { setTimer } from "@/lib/auction-db";
 
 export async function POST(request: Request) {
-  const unauthorized = await requireAdmin();
-  if (unauthorized) return unauthorized;
   const auctionId = await requireActiveAuctionId();
   if (auctionId instanceof NextResponse) return auctionId;
 
