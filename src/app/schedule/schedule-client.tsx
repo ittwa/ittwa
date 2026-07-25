@@ -171,6 +171,13 @@ export function ScheduleClient({
 
   const isCurrentSeason = season === currentSeason;
 
+  // `team` is preserved across season switches so re-selecting the same
+  // owner in another season is a single click, but a team isn't guaranteed
+  // to exist in every season (owner turnover). Derive the season-valid
+  // selection here rather than clearing `team` in an effect, so nothing
+  // downstream (sidebar, week filter) ever sees a team absent from `data`.
+  const effectiveTeam = team !== null && data.teams[team] ? team : null;
+
   return (
     <div>
       {/* Page header */}
@@ -200,7 +207,7 @@ export function ScheduleClient({
               playoffWeeks={playoffWeeks}
               lookup={lookup}
               sortedTeams={sortedTeams}
-              focusTeam={team}
+              focusTeam={effectiveTeam}
               isCurrentSeason={isCurrentSeason}
               currentWeek={currentWeek}
               ownerAvatars={ownerAvatars}
@@ -208,7 +215,7 @@ export function ScheduleClient({
           ) : (
             <WeekView
               data={data}
-              focusTeam={team}
+              focusTeam={effectiveTeam}
               isCurrentSeason={isCurrentSeason}
               currentWeek={currentWeek}
               ownerAvatars={ownerAvatars}
@@ -216,10 +223,10 @@ export function ScheduleClient({
           )}
         </div>
         <div className="mt-5 lg:mt-0 lg:sticky lg:top-[70px]" style={{ minWidth: 0 }}>
-          {team ? (
+          {effectiveTeam ? (
             <TeamFocusPanel
               data={data}
-              teamKey={team}
+              teamKey={effectiveTeam}
               isCurrentSeason={isCurrentSeason}
               ownerAvatars={ownerAvatars}
             />
@@ -944,10 +951,10 @@ function TeamFocusPanel({
   isCurrentSeason: boolean;
   ownerAvatars: Record<string, string>;
 }) {
-  const info = data.teams[teamKey];
-  if (!info) return null;
-  const dc = getDivColors(info.division);
-
+  // Hooks must run unconditionally on every render, so this is computed
+  // before the `info` guard below — teamKey is always valid when this panel
+  // is rendered (ScheduleClient only mounts it for a team present in the
+  // current season), but keep the guard as defense in depth.
   const games = useMemo(() => {
     return data.matchups
       .filter((m) => m.teamA === teamKey || m.teamB === teamKey)
@@ -964,6 +971,10 @@ function TeamFocusPanel({
       })
       .sort((a, b) => a.week - b.week);
   }, [data.matchups, teamKey]);
+
+  const info = data.teams[teamKey];
+  if (!info) return null;
+  const dc = getDivColors(info.division);
 
   const finals = games.filter((g) => g.completed);
   const w = finals.filter((g) => g.my > g.op).length;
