@@ -12,13 +12,20 @@ const ThemeContext = createContext<{
   toggleTheme: () => {},
 });
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
+// The blocking inline script in layout.tsx (next/script, beforeInteractive)
+// already set the class on <html> before this component mounts, so read it
+// back instead of defaulting to "dark" and correcting in an effect — that
+// default-then-correct pattern is what caused the flash this replaces.
+// Server-rendered output has no document, so it falls back to "dark" there;
+// <html suppressHydrationWarning> in layout.tsx covers the resulting
+// mismatch between that server default and the script-set client class.
+function getInitialTheme(): Theme {
+  if (typeof document === "undefined") return "dark";
+  return document.documentElement.classList.contains("light") ? "light" : "dark";
+}
 
-  useEffect(() => {
-    const stored = localStorage.getItem("ittwa-theme") as Theme | null;
-    if (stored) setTheme(stored);
-  }, []);
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
 
   useEffect(() => {
     document.documentElement.classList.remove("dark", "light");

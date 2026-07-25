@@ -1,9 +1,30 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import { ThemeProvider } from "@/components/theme-provider";
 import { NavServer } from "@/components/nav-server";
 import { DataFreshness } from "@/components/data-freshness";
 import "./globals.css";
+
+// Runs before hydration (see next/script beforeInteractive below) so the
+// <html> element gets its theme class before first paint — otherwise the
+// page always paints .dark first (see hardcoded default removed below) and
+// light-theme users see a flash on every load. Kept intentionally tiny since
+// it's render-blocking; wrapped in try/catch for Safari private mode, where
+// localStorage access throws.
+const THEME_INIT_SCRIPT = `
+(function () {
+  try {
+    var stored = localStorage.getItem("ittwa-theme");
+    var theme = stored === "light" || stored === "dark"
+      ? stored
+      : (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+    document.documentElement.classList.add(theme);
+  } catch (e) {
+    document.documentElement.classList.add("dark");
+  }
+})();
+`;
 
 const inter = Inter({
   subsets: ["latin"],
@@ -49,14 +70,24 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#090909" },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`dark ${inter.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_INIT_SCRIPT}
+        </Script>
         <ThemeProvider>
           <NavServer />
           <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
