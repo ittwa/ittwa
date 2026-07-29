@@ -430,8 +430,19 @@ function ResultRowEditor({ r }: { r: AuctionResultRow }) {
   );
 }
 
+interface ResyncSummary {
+  rosterRows: number;
+  capHitsUpdated: number;
+  poolAdded: number;
+  poolRemoved: number;
+  warnings: string[];
+}
+
 function LiveConsole({ state }: { state: AuctionPublicState }) {
   const [includePlayerId, setIncludePlayerId] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
+  const [resync, setResync] = useState<ResyncSummary | null>(null);
+  const [resyncError, setResyncError] = useState<string | null>(null);
 
   async function complete() {
     if (!confirm("Mark the auction complete? The public board will show it as final.")) return;
@@ -440,6 +451,20 @@ function LiveConsole({ state }: { state: AuctionPublicState }) {
   async function reset() {
     if (!confirm("Full reset? This permanently deletes the current auction and all results.")) return;
     await postJSON("/api/auction/admin/reset", { confirm: true }); globalMutate(STATE_KEY);
+  }
+  async function resyncInputs() {
+    if (!confirm("Re-import rosters, cap hits, and the free agent pool from Sleeper + the sheet? Auction results, manual roster edits, and overridden cap hits are kept.")) return;
+    setResyncing(true);
+    setResyncError(null);
+    setResync(null);
+    try {
+      setResync(await postJSON("/api/auction/admin/resync"));
+      globalMutate(STATE_KEY);
+    } catch (e) {
+      setResyncError(e instanceof Error ? e.message : "Resync failed");
+    } finally {
+      setResyncing(false);
+    }
   }
 
   const auction = state.auction!;
@@ -452,6 +477,11 @@ function LiveConsole({ state }: { state: AuctionPublicState }) {
           <span className="text-xs text-muted-foreground">· status: {auction.status}</span>
         </div>
         <div className="flex gap-2 flex-wrap">
+          {auction.status !== "complete" && (
+            <Btn small variant="default" onClick={resyncInputs} disabled={resyncing}>
+              {resyncing ? "Resyncing…" : "Resync Rosters"}
+            </Btn>
+          )}
           {auction.status !== "complete" && <Btn small variant="ghost" onClick={complete}>Mark Complete</Btn>}
           <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
             <input type="checkbox" checked={includePlayerId} onChange={(e) => setIncludePlayerId(e.target.checked)} /> Player ID
@@ -463,8 +493,21 @@ function LiveConsole({ state }: { state: AuctionPublicState }) {
         </div>
       </div>
 
+      {resyncError && <Banner tone="error">{resyncError}</Banner>}
+      {resync && (
+        <>
+          <Banner tone="info">
+            Resynced from Sleeper + the sheet — {resync.rosterRows} imported roster rows, {resync.capHitsUpdated} cap hit{resync.capHitsUpdated === 1 ? "" : "s"} updated, {resync.poolAdded} added to the pool, {resync.poolRemoved} removed. Auction results and manual edits were untouched.
+          </Banner>
+          {resync.warnings.map((w, i) => <Banner key={i} tone="warn">⚠ {w}</Banner>)}
+        </>
+      )}
+
       <p className="text-xs text-muted-foreground mb-4">
         Nominating, bidding, awarding, undo, the timer, and pause/resume all run from the public board at <a href="/auction" target="_blank" rel="noreferrer" className="underline underline-offset-2">/auction</a> — anyone on the call can use them. This console is for setup, exporting results, and fixing a past pick.
+      </p>
+      <p className="text-xs text-muted-foreground mb-4">
+        <strong className="text-foreground">Resync Rosters</strong> re-imports rosters, cap hits, and the free agent pool from Sleeper and the Contracts sheet. Use it when a trade or drop lands after the auction was started — Sleeper decides who is on which roster, the sheet supplies salary and years.
       </p>
 
       <div className="mt-6">

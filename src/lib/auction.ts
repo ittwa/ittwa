@@ -8,7 +8,7 @@
 // one set of formulas, used everywhere.
 
 import type { ContractRow, CapHitRow } from "@/types/contracts";
-import type { SleeperPlayersMap } from "@/types/sleeper";
+import type { SleeperPlayersMap, SleeperRoster, SleeperUser } from "@/types/sleeper";
 import type {
   DerivedRosterEntry,
   DerivedOwnerCap,
@@ -19,11 +19,23 @@ import type {
 } from "@/types/auction";
 import { SALARY_CAP, SALARY_FLOOR, YEARS_CAP, ROSTER_SIZE, ALL_OWNERS } from "./config";
 import { calculateContractValue, resolveOwnerName } from "./contracts";
+import { getDisplayName } from "./sleeper";
 
 export { calculateContractValue };
 
 function isRealPlayerId(id: string | undefined | null): id is string {
   return !!id && id !== "#N/A" && id !== "N/A" && id !== "";
+}
+
+// Same normalization the Data Check page uses for same-player matching:
+// lowercase, letters only ("D.J. Moore" / "DJ Moore" -> "djmoore").
+function normalizeName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z]/g, "");
+}
+
+function sleeperPlayerName(p: SleeperPlayersMap[string] | undefined): string {
+  if (!p) return "";
+  return p.full_name || `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim();
 }
 
 // ── Cap math (mirrors the old Cap Breakdown tab exactly) ────────────────────
@@ -123,6 +135,81 @@ export function deriveRosterFromContracts(
     }));
 }
 
+// Sleeper is the source of truth for WHO is on a roster; the sheet is the
+// source of truth for contract TERMS (salary/years travel with the player
+// through a trade).
+//
+// The Contracts sheet's Owner column is maintained by hand and lags behind
+// trades and drops — that lag is exactly what the Data Check page flags. The
+// team pages have always read rosters from Sleeper and joined contracts on
+// player_id, which is why they show post-trade rosters correctly. This does
+// the same join for the auction so the owner board's salary, cap space, max
+// bid, and need-to-spend reflect the same rosters.
+//
+// Join order mirrors the team page: player_id first, normalized name as a
+// fallback so sheet rows with a missing or "#N/A" player_id still match.
+export function attributeRosterToSleeperOwners(params: {
+  contractRoster: DerivedRosterEntry[];
+  rosters: SleeperRoster[];
+  users: SleeperUser[];
+  nflPlayers: SleeperPlayersMap;
+}): { roster: DerivedRosterEntry[]; unrostered: DerivedRosterEntry[] } {
+  const { contractRoster, rosters, users, nflPlayers } = params;
+
+  const byPlayerId = new Map<string, DerivedRosterEntry>();
+  const byName = new Map<string, DerivedRosterEntry>();
+  for (const entry of contractRoster) {
+    if (isRealPlayerId(entry.playerId)) byPlayerId.set(entry.playerId, entry);
+    if (entry.player) byName.set(normalizeName(entry.player), entry);
+  }
+
+  const ownerByUserId = new Map(users.map((u) => [u.user_id, getDisplayName(u)] as const));
+
+  const roster: DerivedRosterEntry[] = [];
+  const claimed = new Set<DerivedRosterEntry>();
+
+  for (const r of rosters) {
+    const owner = ownerByUserId.get(r.owner_id);
+    if (!owner) continue;
+    for (const playerId of r.players ?? []) {
+      let entry = byPlayerId.get(playerId);
+      if (!entry) {
+        const name = sleeperPlayerName(nflPlayers[playerId]);
+        if (name) entry = byName.get(normalizeName(name));
+      }
+      // A Sleeper-rostered player with no current-season contract row is not
+      // rostered for auction purposes — his deal expired (or he was a
+      // mid-season pickup), so he enters the free agent pool like any other
+      // uncontracted player.
+      if (!entry || claimed.has(entry)) continue;
+      claimed.add(entry);
+      // Carry Sleeper's player_id so the free agent pool excludes him even
+      // when the sheet row's id is "#N/A".
+      roster.push({ ...entry, owner, playerId });
+    }
+  }
+
+  // Active in the sheet but on nobody's Sleeper roster — dropped or traded
+  // away since the sheet was last updated.
+  const unrostered = contractRoster.filter((entry) => !claimed.has(entry));
+  return { roster, unrostered };
+}
+
+// pid -> current Sleeper owner, across every roster in the league.
+function sleeperOwnerByPlayerId(
+  rosters: SleeperRoster[],
+  users: SleeperUser[],
+): Map<string, string> {
+  const ownerByUserId = new Map(users.map((u) => [u.user_id, getDisplayName(u)] as const));
+  const map = new Map<string, string>();
+  for (const r of rosters) {
+    const owner = ownerByUserId.get(r.owner_id);
+    if (!owner) continue;
+    for (const playerId of r.players ?? []) map.set(playerId, owner);
+  }
+  return map;
+}
+
 export function deriveCapHitsByOwner(capHits: CapHitRow[], season: string): Map<string, number> {
   const seasonNum = parseInt(season, 10);
   const map = new Map<string, number>();
@@ -176,11 +263,32 @@ export function deriveAuctionState(params: {
   contracts: ContractRow[];
   capHits: CapHitRow[];
   nflPlayers: SleeperPlayersMap;
+  // Sleeper rosters + users decide who owns whom. Optional so the pure
+  // contract-only path stays available, but callers should always pass them.
+  rosters?: SleeperRoster[];
+  users?: SleeperUser[];
 }): DerivationResult {
-  const { season, contracts, capHits, nflPlayers } = params;
+  const { season, contracts, capHits, nflPlayers, rosters, users } = params;
   const warnings: string[] = [];
 
-  const roster = deriveRosterFromContracts(contracts, season);
+  const contractRoster = deriveRosterFromContracts(contracts, season);
+  const hasSleeper = !!rosters?.length && !!users?.length;
+
+  let roster = contractRoster;
+  let unrostered: DerivedRosterEntry[] = [];
+  if (hasSleeper) {
+    ({ roster, unrostered } = attributeRosterToSleeperOwners({
+      contractRoster,
+      rosters: rosters!,
+      users: users!,
+      nflPlayers,
+    }));
+  } else {
+    warnings.push(
+      "Sleeper rosters were unavailable, so rosters fell back to the Contracts sheet's Owner column — trades and drops made since the sheet was last updated by hand are NOT reflected. Re-derive once Sleeper is reachable.",
+    );
+  }
+
   const capHitsByOwner = deriveCapHitsByOwner(capHits, season);
   const owners = aggregateOwnerCaps(roster, capHitsByOwner);
 
@@ -199,6 +307,18 @@ export function deriveAuctionState(params: {
     priorSeasonOwnerByPlayerId.set(c.playerId, resolveOwnerName(c.owner));
   }
 
+  // An expiring contract's RFA rights follow the player when he is traded, so
+  // whoever holds him on Sleeper right now is the previous owner of record.
+  // Only players already RFA-eligible from the prior season are re-attributed
+  // — being on a Sleeper roster does not by itself make someone an RFA.
+  if (hasSleeper) {
+    const currentOwners = sleeperOwnerByPlayerId(rosters!, users!);
+    for (const [playerId] of priorSeasonOwnerByPlayerId) {
+      const currentOwner = currentOwners.get(playerId);
+      if (currentOwner) priorSeasonOwnerByPlayerId.set(playerId, currentOwner);
+    }
+  }
+
   const pool = deriveFreeAgentPool({ nflPlayers, contractedPlayerIds, priorSeasonOwnerByPlayerId });
 
   const midSeasonPickups = contracts.filter(
@@ -210,6 +330,15 @@ export function deriveAuctionState(params: {
   if (midSeasonPickups.length > 0) {
     warnings.push(
       `${midSeasonPickups.length} mid-season pickup row${midSeasonPickups.length === 1 ? "" : "s"} for ${season} (Years = 0, Active) were excluded from rosters and are free agents entering the auction — double check they belong in the pool, not on a roster.`,
+    );
+  }
+
+  if (unrostered.length > 0) {
+    const names = unrostered.map((r) => `${r.player} (${r.owner})`);
+    const shown = names.slice(0, 12).join(", ");
+    const rest = names.length > 12 ? `, +${names.length - 12} more` : "";
+    warnings.push(
+      `${unrostered.length} active ${season} contract row${unrostered.length === 1 ? "" : "s"} in the sheet ${unrostered.length === 1 ? "is" : "are"} on nobody's Sleeper roster — dropped or traded away since the sheet was updated. Removed from rosters and added to the free agent pool: ${shown}${rest}. The owner shown is the stale one from the sheet.`,
     );
   }
 
