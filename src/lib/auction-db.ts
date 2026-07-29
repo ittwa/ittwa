@@ -322,6 +322,117 @@ export async function deleteResult(auctionId: number, resultId: number): Promise
   }
 }
 
+// ── Mid-auction resync of the imported inputs ────────────────────────────────
+//
+// Starting an auction snapshots rosters and cap hits, and from then on the DB
+// is the source of truth. But roster moves keep happening right up to (and
+// during) the auction — a trade or a drop that lands after the snapshot leaves
+// the owner board showing salary, cap space and max bid for a roster that no
+// longer exists.
+//
+// This re-imports just the derived inputs and leaves everything the auction
+// itself has produced alone: results, the roster rows those awards created
+// (source='auction'), commissioner-added rows (source='manual'), overridden
+// cap hits, the nomination order, and anything already nominated or drafted.
+
+export interface ResyncInput {
+  roster: DerivedRosterEntry[];
+  capHitsByOwner: Map<string, number>;
+  pool: DerivedFreeAgent[];
+}
+
+export interface ResyncSummary {
+  rosterRows: number;
+  capHitsUpdated: number;
+  poolAdded: number;
+  poolRemoved: number;
+}
+
+export async function resyncAuctionInputs(
+  auctionId: number,
+  input: ResyncInput,
+): Promise<ResyncSummary> {
+  const sql = getSql();
+
+  // Player ids the auction itself owns — never re-import over them, even if
+  // the sheet has since grown a contract row for a player who was just won.
+  const keptRows = (await sql.query(
+    `SELECT player_id AS "playerId" FROM auction_roster
+     WHERE auction_id = $1 AND source <> 'import'`,
+    [auctionId],
+  )) as unknown as { playerId: string }[];
+  const keptIds = new Set(keptRows.map((r) => r.playerId));
+
+  const importRoster = input.roster.filter((r) => !keptIds.has(r.playerId));
+
+  await sql.query(`DELETE FROM auction_roster WHERE auction_id = $1 AND source = 'import'`, [auctionId]);
+  await insertRows(
+    "auction_roster",
+    ["auction_id", "owner", "player_id", "player", "position", "years", "salary", "source"],
+    importRoster.map((r) => [auctionId, r.owner, r.playerId, r.player, r.position, r.years, r.salary, "import"]),
+  );
+
+  // Cap hits: skip owners the commissioner has hand-corrected.
+  let capHitsUpdated = 0;
+  const ownerRows = (await sql.query(
+    `SELECT owner, cap_hit AS "capHit" FROM auction_owner
+     WHERE auction_id = $1 AND cap_hit_overridden = FALSE`,
+    [auctionId],
+  )) as unknown as { owner: string; capHit: string }[];
+  for (const row of ownerRows) {
+    const fresh = input.capHitsByOwner.get(row.owner) ?? 0;
+    if (Number(row.capHit) === fresh) continue;
+    await sql.query(
+      `UPDATE auction_owner SET cap_hit = $1 WHERE auction_id = $2 AND owner = $3 AND cap_hit_overridden = FALSE`,
+      [fresh, auctionId, row.owner],
+    );
+    capHitsUpdated++;
+  }
+
+  // Pool: a player who is now under contract must not stay biddable, and a
+  // player who was just dropped must become biddable. Only untouched
+  // ('available') rows move — nominated and drafted players are left alone.
+  const poolRows = (await sql.query(
+    `SELECT player_id AS "playerId", status FROM auction_pool WHERE auction_id = $1`,
+    [auctionId],
+  )) as unknown as { playerId: string; status: PoolStatus }[];
+  const existingPoolIds = new Set(poolRows.map((p) => p.playerId));
+
+  const rosteredIds = new Set([...importRoster.map((r) => r.playerId), ...keptIds]);
+  const nowRostered = poolRows
+    .filter((p) => p.status === "available" && rosteredIds.has(p.playerId))
+    .map((p) => p.playerId);
+
+  let poolRemoved = 0;
+  if (nowRostered.length > 0) {
+    // Numbered placeholders rather than an array parameter — the Neon HTTP
+    // driver is only exercised with scalars everywhere else in this file.
+    const placeholders = nowRostered.map((_, i) => `$${i + 2}`).join(",");
+    await sql.query(
+      `DELETE FROM auction_pool
+       WHERE auction_id = $1 AND status = 'available' AND player_id IN (${placeholders})`,
+      [auctionId, ...nowRostered],
+    );
+    poolRemoved = nowRostered.length;
+  }
+
+  const newlyAvailable = input.pool.filter(
+    (p) => !existingPoolIds.has(p.playerId) && !rosteredIds.has(p.playerId),
+  );
+  await insertRows(
+    "auction_pool",
+    ["auction_id", "player_id", "player", "position", "status", "rfa", "previous_owner"],
+    newlyAvailable.map((p) => [auctionId, p.playerId, p.player, p.position, "available", p.rfa, p.previousOwner]),
+  );
+
+  return {
+    rosterRows: importRoster.length,
+    capHitsUpdated,
+    poolAdded: newlyAvailable.length,
+    poolRemoved,
+  };
+}
+
 export async function overrideCapHit(auctionId: number, owner: string, capHit: number): Promise<void> {
   const sql = getSql();
   await sql.query(

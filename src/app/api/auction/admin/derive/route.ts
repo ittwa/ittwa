@@ -4,8 +4,7 @@
 
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/auction-auth";
-import { deriveAuctionState } from "@/lib/auction";
-import { getContracts, getCapHits, getNFLPlayers, getNFLState } from "@/lib/data";
+import { deriveDefaultSeason, deriveInputs } from "@/lib/auction-derive";
 
 export async function GET(request: Request) {
   if (!(await isAdminRequest())) {
@@ -13,17 +12,8 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  let season = searchParams.get("season") || undefined;
+  const season = searchParams.get("season") || (await deriveDefaultSeason());
 
-  const [contracts, capHits, nflPlayers, nflState] = await Promise.all([
-    getContracts(),
-    getCapHits(),
-    getNFLPlayers(),
-    getNFLState().catch(() => null),
-  ]);
-
-  if (!season) season = nflState?.season || String(new Date().getFullYear());
-
-  const result = deriveAuctionState({ season, contracts, capHits, nflPlayers });
+  const result = await deriveInputs(season);
   return NextResponse.json(result);
 }

@@ -85,6 +85,7 @@ These files are working and fragile. Do not refactor, reorganize, or "improve" t
 - `font-heading` = Barlow Condensed (CSS var). `font-code` = JetBrains Mono (utility class, not the same as Tailwind's `font-mono`)
 - Owner display names always go through `USERNAME_OVERRIDES`, never use raw Sleeper usernames in UI
 - Division colors via `getDivColors()`/`getDivColorsByOwner()` — do not hardcode division color values
+- **Sleeper decides WHO is on a roster; the sheet decides contract TERMS.** The Contracts sheet's `Owner` column is maintained by hand and lags behind trades and drops (that lag is what the Data Check page flags). Anything that answers "who does this owner have?" must read Sleeper rosters and join contracts on `player_id` — never group sheet rows by `Owner`. Salary and years travel with the player through a trade.
 - Sleeper CDN images must use `next/image` (already in `next.config.ts` remotePatterns)
 - Prefer Tailwind classes over inline styles. Only use inline styles for truly dynamic values (computed colors, percentages, conditionals)
 

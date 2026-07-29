@@ -1,11 +1,12 @@
 import { describe, it, expect } from "vitest";
 import type { ContractRow, CapHitRow } from "@/types/contracts";
-import type { SleeperPlayersMap } from "@/types/sleeper";
+import type { SleeperPlayersMap, SleeperRoster, SleeperUser } from "@/types/sleeper";
 import {
   calculateContractValue,
   computeOwnerCap,
   aggregateOwnerCaps,
   deriveRosterFromContracts,
+  attributeRosterToSleeperOwners,
   deriveCapHitsByOwner,
   deriveFreeAgentPool,
   deriveAuctionState,
@@ -152,6 +153,157 @@ describe("deriveRosterFromContracts", () => {
     ];
     const roster = deriveRosterFromContracts(contracts, SEASON);
     expect(roster).toHaveLength(1);
+  });
+});
+
+describe("attributeRosterToSleeperOwners — Sleeper owns WHO, the sheet owns TERMS", () => {
+  // "SamCummings" and "mschapman" are mapped to "Cummings"/"Chapman" by
+  // USERNAME_OVERRIDES, same as everywhere else on the site.
+  const users: SleeperUser[] = [
+    { user_id: "u1", username: "SamCummings", display_name: "SamCummings", avatar: null },
+    { user_id: "u2", username: "mschapman", display_name: "mschapman", avatar: null },
+  ];
+
+  function roster(over: Partial<SleeperRoster> & { roster_id: number; owner_id: string }): SleeperRoster {
+    return {
+      league_id: "L",
+      players: [],
+      starters: [],
+      reserve: [],
+      settings: { wins: 0, losses: 0, ties: 0, fpts: 0 },
+      ...over,
+    };
+  }
+
+  const nflPlayers: SleeperPlayersMap = {
+    "1": { player_id: "1", first_name: "Traded", last_name: "Vet", full_name: "Traded Vet", position: "WR", team: "DAL", sport: "nfl" },
+    "2": { player_id: "2", first_name: "Dropped", last_name: "Guy", full_name: "Dropped Guy", position: "RB", team: "SF", sport: "nfl" },
+    "3": { player_id: "3", first_name: "D.J.", last_name: "Moore", full_name: "D.J. Moore", position: "WR", team: "CHI", sport: "nfl" },
+  };
+
+  it("moves a traded player to the Sleeper owner, keeping the sheet's salary and years", () => {
+    // Sheet still says Chapman owns him; Sleeper says he is on Cummings' roster.
+    const contractRoster = deriveRosterFromContracts(
+      [contract({ playerId: "1", owner: "Chapman", player: "Traded Vet", years: 3, salary: 22 })],
+      SEASON,
+    );
+    const { roster: result, unrostered } = attributeRosterToSleeperOwners({
+      contractRoster,
+      rosters: [roster({ roster_id: 1, owner_id: "u1", players: ["1"] }), roster({ roster_id: 2, owner_id: "u2", players: [] })],
+      users,
+      nflPlayers,
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].owner).toBe("Cummings");
+    expect(result[0].salary).toBe(22);
+    expect(result[0].years).toBe(3);
+    expect(unrostered).toHaveLength(0);
+  });
+
+  it("drops a player who is no longer on any Sleeper roster and reports him as unrostered", () => {
+    const contractRoster = deriveRosterFromContracts(
+      [contract({ playerId: "2", owner: "Cummings", player: "Dropped Guy", years: 2, salary: 14 })],
+      SEASON,
+    );
+    const { roster: result, unrostered } = attributeRosterToSleeperOwners({
+      contractRoster,
+      rosters: [roster({ roster_id: 1, owner_id: "u1", players: [] })],
+      users,
+      nflPlayers,
+    });
+
+    expect(result).toHaveLength(0);
+    expect(unrostered.map((r) => r.player)).toEqual(["Dropped Guy"]);
+  });
+
+  it("falls back to a normalized name match and adopts Sleeper's player_id", () => {
+    const contractRoster = deriveRosterFromContracts(
+      [contract({ playerId: "#N/A", owner: "Chapman", player: "DJ Moore", years: 2, salary: 18 })],
+      SEASON,
+    );
+    const { roster: result } = attributeRosterToSleeperOwners({
+      contractRoster,
+      rosters: [roster({ roster_id: 1, owner_id: "u1", players: ["3"] })],
+      users,
+      nflPlayers,
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].owner).toBe("Cummings");
+    expect(result[0].playerId).toBe("3");
+  });
+
+  it("leaves a Sleeper-rostered player with no current-season contract off the roster", () => {
+    const { roster: result } = attributeRosterToSleeperOwners({
+      contractRoster: [],
+      rosters: [roster({ roster_id: 1, owner_id: "u1", players: ["1", "2"] })],
+      users,
+      nflPlayers,
+    });
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe("deriveAuctionState — Sleeper attribution end to end", () => {
+  const users: SleeperUser[] = [
+    { user_id: "u1", username: "SamCummings", display_name: "SamCummings", avatar: null },
+    { user_id: "u2", username: "mschapman", display_name: "mschapman", avatar: null },
+  ];
+  const rosters: SleeperRoster[] = [
+    {
+      roster_id: 1, owner_id: "u1", league_id: "L", players: ["1", "9"], starters: [], reserve: [],
+      settings: { wins: 0, losses: 0, ties: 0, fpts: 0 },
+    },
+    {
+      roster_id: 2, owner_id: "u2", league_id: "L", players: [], starters: [], reserve: [],
+      settings: { wins: 0, losses: 0, ties: 0, fpts: 0 },
+    },
+  ];
+  const nflPlayers: SleeperPlayersMap = {
+    "1": { player_id: "1", first_name: "Traded", last_name: "Vet", full_name: "Traded Vet", position: "WR", team: "DAL", sport: "nfl" },
+    "2": { player_id: "2", first_name: "Dropped", last_name: "Guy", full_name: "Dropped Guy", position: "RB", team: "SF", sport: "nfl" },
+    "9": { player_id: "9", first_name: "Expiring", last_name: "Rfa", full_name: "Expiring Rfa", position: "TE", team: "KC", sport: "nfl" },
+  };
+
+  it("bills the traded-in salary to the Sleeper owner and frees the dropped player", () => {
+    const contracts: ContractRow[] = [
+      contract({ playerId: "1", owner: "Chapman", player: "Traded Vet", years: 3, salary: 22 }),
+      contract({ playerId: "2", owner: "Cummings", player: "Dropped Guy", years: 2, salary: 14 }),
+    ];
+    const result = deriveAuctionState({ season: SEASON, contracts, capHits: [], nflPlayers, rosters, users });
+
+    const cummings = result.owners.find((o) => o.owner === "Cummings")!;
+    const chapman = result.owners.find((o) => o.owner === "Chapman")!;
+    expect(cummings.salaryRostered).toBe(22);
+    expect(cummings.playersRostered).toBe(1);
+    expect(chapman.salaryRostered).toBe(0);
+
+    // The dropped player is biddable again; the traded player is not.
+    expect(result.pool.map((p) => p.playerId)).toContain("2");
+    expect(result.pool.map((p) => p.playerId)).not.toContain("1");
+    expect(result.warnings.some((w) => w.includes("no longer on any Sleeper roster") || w.includes("nobody's Sleeper roster"))).toBe(true);
+  });
+
+  it("gives RFA rights to the owner who holds the expiring player on Sleeper now", () => {
+    const contracts: ContractRow[] = [
+      contract({ playerId: "9", owner: "Chapman", player: "Expiring Rfa", years: 1, salary: 9, season: "2025" }),
+    ];
+    const result = deriveAuctionState({ season: SEASON, contracts, capHits: [], nflPlayers, rosters, users });
+
+    const rfa = result.pool.find((p) => p.playerId === "9")!;
+    expect(rfa.rfa).toBe(true);
+    expect(rfa.previousOwner).toBe("Cummings");
+  });
+
+  it("warns loudly when Sleeper is unavailable and it has to trust the sheet's Owner column", () => {
+    const contracts: ContractRow[] = [
+      contract({ playerId: "1", owner: "Chapman", player: "Traded Vet", years: 3, salary: 22 }),
+    ];
+    const result = deriveAuctionState({ season: SEASON, contracts, capHits: [], nflPlayers });
+
+    expect(result.roster[0].owner).toBe("Chapman");
+    expect(result.warnings.some((w) => w.includes("Sleeper rosters were unavailable"))).toBe(true);
   });
 });
 
