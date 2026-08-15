@@ -9,7 +9,7 @@ import { SectionLabel } from "@/components/section-label";
 import { GOLD, ACCENT, getPositionColors } from "@/lib/ui-utils";
 import { AUCTION_DATE, ALL_OWNERS } from "@/lib/config";
 import { playerHeadshotUrls } from "@/lib/player-images";
-import { bidIncrement, MIN_BID } from "@/lib/auction";
+import { bidIncrement, bidToBeatTable, MIN_BID } from "@/lib/auction";
 import type { AuctionPublicState, DerivedOwnerCap, DerivedFreeAgent, AuctionResultRow } from "@/types/auction";
 
 type SortDir = "asc" | "desc";
@@ -203,8 +203,44 @@ function Countdown({ endsAt }: { endsAt: string }) {
 
 // ── Current nomination panel ─────────────────────────────────────────────────
 
-function CurrentNominationPanel({ state }: { state: AuctionPublicState }) {
-  const { current, bidToBeat } = state;
+// The bid the commissioner is dialing in right now, before (or without) pressing
+// Set Bid. Lifted out of the controls so the Bid to Beat table can track it
+// live — the whole point of the numbers is to answer "what beats this?", which
+// is useless if you have to publish a bid first to find out.
+export interface BidDraft {
+  salary: number;
+  years: number;
+  owner: string;
+  // False until the commissioner touches a control. While untouched the draft
+  // is derived from the live server bid, so a bid entered on another device
+  // still flows through. Once touched, local input wins until the next
+  // nomination remounts the board.
+  touched: boolean;
+}
+
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+function CurrentNominationPanel({ state, draft }: { state: AuctionPublicState; draft: BidDraft | null }) {
+  const { current } = state;
+
+  // Recomputed client-side from the dialed numbers rather than read from
+  // state.bidToBeat (which only refreshes after a bid is published).
+  const committed = current?.highBidSalary ?? null;
+  const draftSalary = draft?.salary ?? null;
+  const draftYears = draft?.years ?? null;
+  // With no bid placed and nothing dialed, show the $1.0 opening table instead
+  // of "what it takes to beat $1.0".
+  const isLive = draft != null && (draft.touched || committed != null);
+  const bidToBeat = useMemo(
+    () => bidToBeatTable(isLive ? draftSalary : null, isLive ? draftYears : null),
+    [isLive, draftSalary, draftYears],
+  );
+  const isPreview =
+    draft != null &&
+    current != null &&
+    (draft.salary !== current.highBidSalary || draft.years !== current.highBidYears);
 
   if (!current) {
     return (
@@ -250,7 +286,14 @@ function CurrentNominationPanel({ state }: { state: AuctionPublicState }) {
         </div>
 
         <div className="md:w-[340px] flex-shrink-0">
-          <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2">Bid to Beat</div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2">
+            Bid to Beat
+            {isPreview && (
+              <span className="ml-1.5 font-semibold normal-case tracking-normal" style={{ color: GOLD }}>
+                · preview
+              </span>
+            )}
+          </div>
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -388,94 +431,220 @@ function NominateSection({ state }: { state: AuctionPublicState }) {
   );
 }
 
-// Keyed by the current nomination's playerId from the parent, so React
-// remounts (and re-initializes local state from the live bid) whenever the
-// nomination changes instead of syncing prop → state inside an effect.
-function BidSection({ state }: { state: AuctionPublicState }) {
-  const current = state.current!;
-  const [salary, setSalary] = useState(() => current.highBidSalary ?? MIN_BID);
-  const [years, setYears] = useState(() => current.highBidYears ?? 1);
-  const [bidder, setBidder] = useState("");
-  const [open, setOpen] = useState(false);
+// A big +/− stepper with a directly editable value. Sized for a phone held in
+// one hand at a live auction — the old controls were 28px buttons and a
+// dropdown, which is a hard target to hit while running the room.
+function BigStepper({
+  label, value, display, min, max, onStep, onEnter,
+}: {
+  label: string;
+  value: number;
+  display: string;
+  min: number;
+  max: number;
+  onStep: (dir: 1 | -1) => void;
+  onEnter: (raw: string) => void;
+}) {
+  // While focused the input is free text, so typing "12" doesn't get clamped
+  // and reformatted after the first keystroke. Committed on blur/Enter.
+  const [text, setText] = useState<string | null>(null);
 
-  async function submit() {
-    await postJSON("/api/auction/bid", { salary, years, bidder: bidder || null });
-    globalMutate(STATE_KEY);
-  }
-
-  const step = bidIncrement(salary);
-
-  return (
-    <div className="mt-3 pt-3 border-t border-border/60">
-      <button onClick={() => setOpen((o) => !o)} className="text-xs font-bold uppercase tracking-[0.06em] text-muted-foreground cursor-pointer">
-        {open ? "▾" : "▸"} Track Bidding (optional)
-      </button>
-      {open && (
-        <div className="flex items-center gap-3 flex-wrap mt-2">
-          <div className="flex items-center gap-1">
-            <button onClick={() => setSalary((s) => Math.max(MIN_BID, Math.round((s - step) * 10) / 10))} className="w-7 h-7 bg-secondary border border-border rounded cursor-pointer">−</button>
-            <span className="font-code text-sm w-16 text-center">${salary.toFixed(1)}</span>
-            <button onClick={() => setSalary((s) => Math.round((s + step) * 10) / 10)} className="w-7 h-7 bg-secondary border border-border rounded cursor-pointer">+</button>
-          </div>
-          <select value={years} onChange={(e) => setYears(Number(e.target.value))} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
-            {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y}yr</option>)}
-          </select>
-          <select value={bidder} onChange={(e) => setBidder(e.target.value)} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
-            <option value="">Bidder…</option>
-            {ALL_OWNERS.map((o) => <option key={o} value={o}>{o}</option>)}
-          </select>
-          <Btn variant="primary" onClick={submit}>Set Bid</Btn>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AwardSection({ state }: { state: AuctionPublicState }) {
-  const current = state.current!;
-  const [winner, setWinner] = useState(() => current.highBidder ?? "");
-  const [salary, setSalary] = useState(() => current.highBidSalary ?? MIN_BID);
-  const [years, setYears] = useState(() => current.highBidYears ?? 1);
-  const [warnings, setWarnings] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function award() {
-    setBusy(true);
-    setError(null);
-    setWarnings([]);
-    try {
-      const res = await postJSON("/api/auction/award", { winner, salary, years });
-      setWarnings(res.warnings ?? []);
-      globalMutate(STATE_KEY);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Award failed");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const btn =
+    "w-12 h-12 md:w-14 md:h-14 flex items-center justify-center text-2xl font-bold bg-secondary " +
+    "border border-border cursor-pointer select-none hover:bg-accent transition-colors " +
+    "disabled:opacity-30 disabled:cursor-not-allowed";
 
   return (
-    <div className="mt-3 pt-3 border-t border-border/60">
-      <div className="text-xs font-bold uppercase tracking-[0.06em] text-muted-foreground mb-2">Award</div>
-      {error && <Banner tone="error">{error}</Banner>}
-      {warnings.map((w, i) => <Banner key={i} tone="warn">⚠ {w}</Banner>)}
-      <div className="flex items-center gap-2 flex-wrap">
-        <select value={winner} onChange={(e) => setWinner(e.target.value)} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
-          <option value="">Winner…</option>
-          {ALL_OWNERS.map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
-        <input type="number" step={0.5} min={0} value={salary} onChange={(e) => setSalary(Number(e.target.value))} className="w-20 bg-secondary border border-border rounded px-2 py-1.5 text-sm font-code" />
-        <select value={years} onChange={(e) => setYears(Number(e.target.value))} className="bg-secondary border border-border rounded px-2 py-1.5 text-sm">
-          {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y}yr</option>)}
-        </select>
-        <Btn variant="primary" disabled={busy || !winner} onClick={award}>{busy ? "Awarding…" : "Award"}</Btn>
+    <div className="flex flex-col gap-1.5">
+      <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{label}</div>
+      <div className="flex items-stretch">
+        <button
+          type="button"
+          onClick={() => onStep(-1)}
+          disabled={value <= min}
+          aria-label={`Decrease ${label}`}
+          className={`${btn} rounded-l-lg`}
+        >
+          −
+        </button>
+        <input
+          inputMode="decimal"
+          value={text ?? display}
+          onChange={(e) => setText(e.target.value)}
+          onFocus={(e) => { setText(display); e.currentTarget.select(); }}
+          onBlur={() => { if (text !== null) onEnter(text); setText(null); }}
+          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+          aria-label={label}
+          className="w-20 md:w-24 h-12 md:h-14 text-center font-code text-xl md:text-2xl font-bold bg-background border-y border-border focus:outline-none focus:ring-2 focus:ring-inset"
+          style={{ color: GOLD }}
+        />
+        <button
+          type="button"
+          onClick={() => onStep(1)}
+          disabled={value >= max}
+          aria-label={`Increase ${label}`}
+          className={`${btn} rounded-r-lg`}
+        >
+          +
+        </button>
       </div>
     </div>
   );
 }
 
-function AuctionControls({ state }: { state: AuctionPublicState }) {
+// One section for both tracking the bidding and awarding the player. These used
+// to be two panels with duplicate salary/years/owner inputs, which meant
+// re-entering the winning numbers at the moment they mattered most. Now the
+// numbers on screen are the numbers that get published and the numbers that get
+// awarded.
+function BidAndAwardSection({
+  state, draft, setDraft,
+}: {
+  state: AuctionPublicState;
+  draft: BidDraft;
+  setDraft: (d: BidDraft) => void;
+}) {
+  const current = state.current!;
+  const [busy, setBusy] = useState<"bid" | "award" | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  // Handlers read `draft` (already the effective value) rather than a functional
+  // updater, because while untouched the stored draft lags the live server bid.
+  function stepSalary(dir: 1 | -1) {
+    // Walk the legal ladder symmetrically: stepping down from $10.0 lands on
+    // $9.5 (the $0.5 rung below it), not $9.0.
+    const step = dir === 1 ? bidIncrement(draft.salary) : bidIncrement(draft.salary - 0.01);
+    setDraft({ ...draft, salary: Math.max(MIN_BID, round1(draft.salary + dir * step)), touched: true });
+  }
+
+  function enterSalary(raw: string) {
+    const n = parseFloat(raw.replace(/[^0-9.]/g, ""));
+    if (!Number.isFinite(n)) return;
+    setDraft({ ...draft, salary: Math.max(MIN_BID, round1(n)), touched: true });
+  }
+
+  function stepYears(dir: 1 | -1) {
+    setDraft({ ...draft, years: Math.min(5, Math.max(1, draft.years + dir)), touched: true });
+  }
+
+  function enterYears(raw: string) {
+    const n = parseInt(raw.replace(/[^0-9]/g, ""), 10);
+    if (!Number.isFinite(n)) return;
+    setDraft({ ...draft, years: Math.min(5, Math.max(1, n)), touched: true });
+  }
+
+  async function setBid() {
+    setBusy("bid");
+    setError(null);
+    setWarnings([]);
+    try {
+      await postJSON("/api/auction/bid", { salary: draft.salary, years: draft.years, bidder: draft.owner || null });
+      globalMutate(STATE_KEY);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Set bid failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function award() {
+    setBusy("award");
+    setError(null);
+    setWarnings([]);
+    try {
+      const res = await postJSON("/api/auction/award", {
+        winner: draft.owner, salary: draft.salary, years: draft.years,
+      });
+      setWarnings(res.warnings ?? []);
+      globalMutate(STATE_KEY);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Award failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const bigBtn =
+    "font-heading font-bold uppercase tracking-[0.04em] text-sm px-5 h-12 md:h-14 rounded-lg cursor-pointer " +
+    "transition-opacity disabled:opacity-40 disabled:cursor-not-allowed";
+
+  return (
+    <div className="mt-4 pt-4 border-t border-border/60">
+      <div className="text-xs font-bold uppercase tracking-[0.06em] text-muted-foreground mb-3">
+        Track the Bidding · Award {current.player}
+      </div>
+      {error && <Banner tone="error">{error}</Banner>}
+      {warnings.map((w, i) => <Banner key={i} tone="warn">⚠ {w}</Banner>)}
+
+      <div className="flex flex-wrap items-end gap-3 md:gap-5">
+        <BigStepper
+          label="Salary ($)"
+          value={draft.salary}
+          display={draft.salary.toFixed(1)}
+          min={MIN_BID}
+          max={Infinity}
+          onStep={stepSalary}
+          onEnter={enterSalary}
+        />
+        <BigStepper
+          label="Years"
+          value={draft.years}
+          display={String(draft.years)}
+          min={1}
+          max={5}
+          onStep={stepYears}
+          onEnter={enterYears}
+        />
+        <div className="flex flex-col gap-1.5">
+          <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Owner</div>
+          <select
+            value={draft.owner}
+            onChange={(e) => setDraft({ ...draft, owner: e.target.value, touched: true })}
+            aria-label="Owner"
+            className="h-12 md:h-14 bg-secondary border border-border rounded-lg px-3 text-sm md:text-base cursor-pointer"
+          >
+            <option value="">Owner…</option>
+            {ALL_OWNERS.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={setBid}
+            disabled={busy !== null}
+            className={`${bigBtn} bg-secondary text-foreground border border-border`}
+          >
+            {busy === "bid" ? "Setting…" : "Set Bid"}
+          </button>
+          <button
+            type="button"
+            onClick={award}
+            disabled={busy !== null || !draft.owner}
+            className={`${bigBtn} border`}
+            style={{ background: GOLD, color: "#1a1400", borderColor: GOLD }}
+          >
+            {busy === "award" ? "Awarding…" : "Award"}
+          </button>
+        </div>
+      </div>
+
+      <p className="text-[11px] text-muted-foreground mt-3">
+        Bid to Beat updates as you dial. <span className="text-foreground font-semibold">Set Bid</span> publishes
+        to everyone watching; <span className="text-foreground font-semibold">Award</span> closes{" "}
+        {current.player} at these numbers.
+      </p>
+    </div>
+  );
+}
+
+function AuctionControls({
+  state, draft, setDraft,
+}: {
+  state: AuctionPublicState;
+  draft: BidDraft;
+  setDraft: (d: BidDraft) => void;
+}) {
   const auction = state.auction!;
 
   async function pause() { await postJSON("/api/auction/pause"); globalMutate(STATE_KEY); }
@@ -504,9 +673,43 @@ function AuctionControls({ state }: { state: AuctionPublicState }) {
         </div>
       </div>
       <NominateSection state={state} />
-      {state.current && <BidSection key={state.current.playerId} state={state} />}
-      {state.current && <AwardSection key={state.current.playerId} state={state} />}
+      {state.current && <BidAndAwardSection state={state} draft={draft} setDraft={setDraft} />}
     </div>
+  );
+}
+
+// Owns the bid draft shared by the Bid to Beat table and the bid/award
+// controls. Keyed by playerId at the call site, so a new nomination remounts
+// this and re-seeds the draft from the live bid rather than syncing prop →
+// state in an effect.
+function LiveBoard({ state }: { state: AuctionPublicState }) {
+  const current = state.current;
+  const [draft, setDraft] = useState<BidDraft>(() => ({
+    salary: current?.highBidSalary ?? MIN_BID,
+    years: current?.highBidYears ?? 1,
+    owner: current?.highBidder ?? "",
+    touched: false,
+  }));
+
+  // Until the commissioner touches a control, follow the live server bid so a
+  // bid placed on another device shows up here. Deriving it (rather than
+  // syncing in an effect) keeps the "local input wins once touched" rule
+  // without a prop → state effect.
+  const effective: BidDraft = draft.touched
+    ? draft
+    : {
+        salary: current?.highBidSalary ?? MIN_BID,
+        years: current?.highBidYears ?? 1,
+        owner: current?.highBidder ?? "",
+        touched: false,
+      };
+
+  return (
+    <>
+      <CurrentNominationPanel state={state} draft={current ? effective : null} />
+      <NominationStrip onClock={state.onClock} onDeck={state.onDeck} />
+      <AuctionControls state={state} draft={effective} setDraft={setDraft} />
+    </>
   );
 }
 
@@ -964,9 +1167,7 @@ export function AuctionBoardClient() {
           {data.auction.status === "complete" && <CompleteBanner season={data.auction.season} />}
           {data.auction.status !== "complete" && (
             <>
-              <CurrentNominationPanel state={data} />
-              <NominationStrip onClock={data.onClock} onDeck={data.onDeck} />
-              <AuctionControls state={data} />
+              <LiveBoard key={data.current?.playerId ?? "none"} state={data} />
             </>
           )}
           <OwnerGrid owners={data.owners} />
