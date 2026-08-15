@@ -10,13 +10,15 @@ import {
   SleeperTradePick,
   SleeperPlayersMap,
 } from "@/types/sleeper";
-import { LEAGUE_ID, SLEEPER_API_BASE, REVALIDATE, USERNAME_OVERRIDES } from "./config";
+import { LEAGUE_ID, SLEEPER_API_BASE, REVALIDATE, USERNAME_OVERRIDES, CACHE_TAGS } from "./config";
 
 // --- Fetcher utility ---
 
 async function fetchSleeper<T>(path: string, revalidate: number): Promise<T> {
   const res = await fetch(`${SLEEPER_API_BASE}${path}`, {
-    next: { revalidate },
+    // The `sleeper` tag lets the footer Refresh button expire every Sleeper
+    // response at once; `revalidate` still governs normal background refresh.
+    next: { revalidate, tags: [CACHE_TAGS.sleeper] },
   });
   if (!res.ok) {
     throw new Error(`Sleeper API error: ${res.status} ${res.statusText} for ${path}`);

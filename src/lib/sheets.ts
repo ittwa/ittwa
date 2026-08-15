@@ -1,5 +1,5 @@
 import { ContractRow, CapHitRow } from "@/types/contracts";
-import { GOOGLE_SHEETS_ID } from "./config";
+import { GOOGLE_SHEETS_ID, CACHE_TAGS } from "./config";
 
 // Google Sheets API v4 — server-side only
 // The GOOGLE_API_KEY env var must NOT be prefixed with NEXT_PUBLIC_ to ensure
@@ -18,7 +18,9 @@ async function fetchSheet(tab: string, range: string): Promise<string[][]> {
   // Contracts/cap-hits change rarely — cache in the Data Cache for 10 min (matches
   // the documented sheets revalidation). Using no-store here previously disabled
   // caching AND forced every consuming page into uncached dynamic rendering.
-  const res = await fetch(url, { next: { revalidate: 600 } });
+  // The `sheets` tag lets the footer Refresh button expire every sheet tab at
+  // once; the 600s revalidate still governs normal background refresh.
+  const res = await fetch(url, { next: { revalidate: 600, tags: [CACHE_TAGS.sheets] } });
 
   if (!res.ok) {
     console.error(`Google Sheets API error: ${res.status} for tab "${tab}"`);

@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { getNFLState } from "@/lib/sleeper";
 import { getContracts } from "@/lib/sheets";
-import { REVALIDATE } from "@/lib/config";
+import { REVALIDATE, CACHE_TAGS } from "@/lib/config";
 
 // ── Data freshness timestamps ────────────────────────────────────────────────
 //
@@ -29,7 +29,7 @@ const getSleeperFreshness = unstable_cache(
     return Date.now();
   },
   ["freshness-sleeper"],
-  { revalidate: REVALIDATE.matchups },
+  { revalidate: REVALIDATE.matchups, tags: [CACHE_TAGS.sleeper] },
 );
 
 const getSheetsFreshness = unstable_cache(
@@ -42,7 +42,7 @@ const getSheetsFreshness = unstable_cache(
     return Date.now();
   },
   ["freshness-sheets"],
-  { revalidate: SHEETS_REVALIDATE },
+  { revalidate: SHEETS_REVALIDATE, tags: [CACHE_TAGS.sheets] },
 );
 
 export async function getDataFreshness(): Promise<DataFreshness> {

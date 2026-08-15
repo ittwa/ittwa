@@ -9,7 +9,7 @@ import {
   calculateStandings,
 } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
-import { LEAGUE_ID, SEASON_LEAGUE_IDS, SALARY_CAP, SALARY_FLOOR, YEARS_CAP, ALL_OWNERS } from "@/lib/config";
+import { LEAGUE_ID, SEASON_LEAGUE_IDS, SALARY_CAP, SALARY_FLOOR, YEARS_CAP, ALL_OWNERS, CACHE_TAGS } from "@/lib/config";
 import { computeLuckIndex, type AllPlayRecord } from "@/lib/luck-index";
 import { computeWeeklyRecaps, type WeeklyRecap } from "@/lib/weekly-recap";
 import { buildHeadToHeadMatrix, type H2HMatrix, type H2HGame } from "@/lib/head-to-head";
@@ -123,7 +123,7 @@ const getCachedH2HMatrix = unstable_cache(
     return buildHeadToHeadMatrix(games);
   },
   ["home-h2h-matrix"],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: [CACHE_TAGS.sleeper] },
 );
 
 // ── Leaderboard ─────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import { Inter, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { NavServer } from "@/components/nav-server";
 import { DataFreshness } from "@/components/data-freshness";
+import { RefreshDataButton } from "@/components/refresh-data-button";
 import "./globals.css";
 
 const inter = Inter({
@@ -66,7 +67,10 @@ export default function RootLayout({
                 ITTWA — I Thought This Was America &middot; Est. 2014 &middot; A contract dynasty
                 league that tries its best.
               </div>
-              <DataFreshness />
+              <div className="flex flex-col gap-1.5 sm:items-end">
+                <DataFreshness />
+                <RefreshDataButton />
+              </div>
             </div>
           </footer>
         </ThemeProvider>

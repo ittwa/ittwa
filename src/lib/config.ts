@@ -140,6 +140,16 @@ export const PAYOUTS = {
 // API base URL
 export const SLEEPER_API_BASE = "https://api.sleeper.app/v1";
 
+// Cache tags for on-demand invalidation.
+// Every Sleeper fetch carries `sleeper`, every Google Sheets fetch carries
+// `sheets`, and the derived unstable_cache entries carry whichever source they
+// are built from. The footer "Refresh" button expires both tags so a commish
+// who just made a trade doesn't have to wait out the revalidate window.
+export const CACHE_TAGS = {
+  sleeper: "sleeper",
+  sheets: "sheets",
+} as const;
+
 // Revalidation intervals (seconds)
 export const REVALIDATE = {
   players: 86400,      // 24 hours

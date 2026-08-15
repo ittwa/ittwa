@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getSeasonPosRanks } from "@/lib/data";
-import { SLEEPER_API_BASE } from "@/lib/config";
+import { SLEEPER_API_BASE, CACHE_TAGS } from "@/lib/config";
 import type { SleeperPlayersMap } from "@/types/sleeper";
 
 /**
@@ -28,7 +28,7 @@ export async function getCachedSeasonPosRanks(
       return Object.fromEntries(ranks);
     },
     ["season-pos-ranks"],
-    { revalidate: isCurrentSeason ? 600 : 86400 },
+    { revalidate: isCurrentSeason ? 600 : 86400, tags: [CACHE_TAGS.sleeper] },
   );
   return cached(leagueId);
 }
@@ -51,7 +51,7 @@ export async function getCachedNflPosRanks(
     async (yr: string) => {
       try {
         const res = await fetch(`${SLEEPER_API_BASE}/stats/nfl/regular/${yr}`, {
-          next: { revalidate: isCurrentSeason ? 3600 : 86400 },
+          next: { revalidate: isCurrentSeason ? 3600 : 86400, tags: [CACHE_TAGS.sleeper] },
         });
         if (!res.ok) return {};
         const data: Record<string, { pts_half_ppr?: number }> =
@@ -80,7 +80,7 @@ export async function getCachedNflPosRanks(
       }
     },
     ["nfl-pos-ranks"],
-    { revalidate: isCurrentSeason ? 3600 : 86400 },
+    { revalidate: isCurrentSeason ? 3600 : 86400, tags: [CACHE_TAGS.sleeper] },
   );
   return cached(season);
 }
