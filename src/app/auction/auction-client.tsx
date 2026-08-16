@@ -323,22 +323,40 @@ function CurrentNominationPanel({ state, draft }: { state: AuctionPublicState; d
 
 // ── Nomination strip ──────────────────────────────────────────────────────────
 
-function NominationStrip({ onClock, onDeck }: { onClock: string | null; onDeck: string | null }) {
-  if (!onClock) return null;
+// How many upcoming nominators to show. The order repeats every full round, so
+// for a 12-team league this is exactly one lap of the board.
+const UPCOMING_PICKS = 12;
+
+// The on-the-clock nominator plus the next several, read straight off the
+// repeating nomination order. The first entry is whoever is on the clock now;
+// the rest are the queue behind them.
+function NominationStrip({ state }: { state: AuctionPublicState }) {
+  const order = state.auction?.nominationOrder ?? [];
+  if (!state.onClock || order.length === 0) return null;
+
+  const start = state.auction!.currentNominatorIndex;
+  const count = Math.min(UPCOMING_PICKS, order.length);
+  const upcoming = Array.from({ length: count }, (_, k) => order[(start + k) % order.length]);
+
   return (
-    <div className="flex items-center gap-4 mb-5 flex-wrap">
-      <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2">
-        <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">On the Clock</span>
-        <OwnerAvatar name={onClock} size={24} />
-        <span className="font-heading font-bold uppercase tracking-[0.02em]" style={{ color: ACCENT }}>{onClock}</span>
+    <div className="mb-5">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1.5">
+        {upcoming.map((owner, k) =>
+          k === 0 ? (
+            <div key={k} className="flex-shrink-0 flex items-center gap-2 bg-card border rounded-lg px-3 py-2" style={{ borderColor: ACCENT }}>
+              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">On the Clock</span>
+              <OwnerAvatar name={owner} size={24} />
+              <span className="font-heading font-bold uppercase tracking-[0.02em] whitespace-nowrap" style={{ color: ACCENT }}>{owner}</span>
+            </div>
+          ) : (
+            <div key={k} className="flex-shrink-0 flex items-center gap-1.5 bg-secondary border border-border rounded-lg px-2.5 py-1.5">
+              <span className="font-code text-[11px] text-muted-foreground w-4 text-right">{k + 1}</span>
+              <OwnerAvatar name={owner} size={20} />
+              <span className="text-sm whitespace-nowrap">{owner}</span>
+            </div>
+          ),
+        )}
       </div>
-      {onDeck && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="text-[10px] font-bold uppercase tracking-[0.08em]">Next</span>
-          <OwnerAvatar name={onDeck} size={20} />
-          <span>{onDeck}</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -710,7 +728,7 @@ function LiveBoard({ state }: { state: AuctionPublicState }) {
   return (
     <>
       <CurrentNominationPanel state={state} draft={current ? effective : null} />
-      <NominationStrip onClock={state.onClock} onDeck={state.onDeck} />
+      <NominationStrip state={state} />
       <AuctionControls state={state} draft={effective} setDraft={setDraft} />
     </>
   );
