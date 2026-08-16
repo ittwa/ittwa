@@ -5,7 +5,6 @@ import Image from "next/image";
 import useSWR, { mutate as globalMutate } from "swr";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { PlayerLink } from "@/components/player-link";
-import { SectionLabel } from "@/components/section-label";
 import { GOLD, ACCENT, getPositionColors } from "@/lib/ui-utils";
 import { AUCTION_DATE, ALL_OWNERS } from "@/lib/config";
 import { playerHeadshotUrls } from "@/lib/player-images";
@@ -789,30 +788,27 @@ function OwnerGrid({ owners }: { owners: DerivedOwnerCap[] }) {
   }, [owners, sortKey, sortDir]);
 
   return (
-    <section className="mb-7">
-      <SectionLabel label="Owner Board" count={`${owners.length} owners`} color={GOLD} />
-      <div className="bg-card border border-border rounded-[10px] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse min-w-[820px]">
-            <thead>
-              <tr className="bg-secondary">
-                <SortTh label="Owner" field="owner" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="sticky left-0 bg-secondary" />
-                <SortTh label="Players" field="players" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
-                <SortTh label="Years" field="years" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
-                <SortTh label="Salary" field="salary" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
-                <SortTh label="Cap Space" field="capSpace" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
-                <SortTh label="Max Bid" field="maxBid" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
-                <SortTh label="Max Yrs" field="maxYears" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
-                <SortTh label="Need to Spend" field="needToSpend" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((o) => <OwnerGridRow key={o.owner} o={o} />)}
-            </tbody>
-          </table>
-        </div>
+    <div className="bg-card border border-border rounded-[10px] overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse min-w-[820px]">
+          <thead>
+            <tr className="bg-secondary">
+              <SortTh label="Owner" field="owner" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="sticky left-0 bg-secondary" />
+              <SortTh label="Players" field="players" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+              <SortTh label="Years" field="years" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+              <SortTh label="Salary" field="salary" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+              <SortTh label="Cap Space" field="capSpace" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+              <SortTh label="Max Bid" field="maxBid" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+              <SortTh label="Max Yrs" field="maxYears" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+              <SortTh label="Need to Spend" field="needToSpend" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((o) => <OwnerGridRow key={o.owner} o={o} />)}
+          </tbody>
+        </table>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -820,30 +816,27 @@ function OwnerGrid({ owners }: { owners: DerivedOwnerCap[] }) {
 
 function ResultsFeed({ results }: { results: AuctionResultRow[] }) {
   return (
-    <section className="mb-7">
-      <SectionLabel label="Results Feed" count={`${results.length} picks`} color={GOLD} />
-      <div className="bg-card border border-border rounded-[10px] overflow-hidden max-h-[320px] overflow-y-auto">
-        {results.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground italic">No awards yet.</div>
-        ) : (
-          results.map((r) => (
-            <div key={r.id} className="px-4 py-2.5 border-b border-border/50 last:border-0 flex items-center gap-2 flex-wrap text-sm">
-              <span className="font-code text-xs text-muted-foreground">Pick {String(r.pickNumber).padStart(3, "0")}</span>
-              <span className="text-muted-foreground">—</span>
-              <OwnerAvatar name={r.winner} size={20} />
-              <span className="font-semibold">{r.winner}</span>
-              <span className="text-muted-foreground">wins</span>
-              <PlayerAvatar playerId={r.playerId} name={r.player} pos={r.position} size={22} />
-              <PlayerLink playerId={r.playerId} className="font-semibold hover:underline underline-offset-2">{r.player}</PlayerLink>
-              <PosBadge pos={r.position} />
-              <span className="font-code text-xs text-muted-foreground ml-auto whitespace-nowrap">
-                {r.years}yr / ${r.salary.toFixed(1)}
-              </span>
-            </div>
-          ))
-        )}
-      </div>
-    </section>
+    <div className="bg-card border border-border rounded-[10px] overflow-hidden max-h-[320px] overflow-y-auto">
+      {results.length === 0 ? (
+        <div className="px-4 py-8 text-center text-sm text-muted-foreground italic">No awards yet.</div>
+      ) : (
+        results.map((r) => (
+          <div key={r.id} className="px-4 py-2.5 border-b border-border/50 last:border-0 flex items-center gap-2 flex-wrap text-sm">
+            <span className="font-code text-xs text-muted-foreground">Pick {String(r.pickNumber).padStart(3, "0")}</span>
+            <span className="text-muted-foreground">—</span>
+            <OwnerAvatar name={r.winner} size={20} />
+            <span className="font-semibold">{r.winner}</span>
+            <span className="text-muted-foreground">wins</span>
+            <PlayerAvatar playerId={r.playerId} name={r.player} pos={r.position} size={22} />
+            <PlayerLink playerId={r.playerId} className="font-semibold hover:underline underline-offset-2">{r.player}</PlayerLink>
+            <PosBadge pos={r.position} />
+            <span className="font-code text-xs text-muted-foreground ml-auto whitespace-nowrap">
+              {r.years}yr / ${r.salary.toFixed(1)}
+            </span>
+          </div>
+        ))
+      )}
+    </div>
   );
 }
 
@@ -1057,30 +1050,66 @@ function DraftedPlayersTab({ results }: { results: AuctionResultRow[] }) {
   );
 }
 
-function Tabs({ state }: { state: AuctionPublicState }) {
-  const [tab, setTab] = useState<"available" | "drafted">("available");
-  const pool = state.pool;
-  const results = state.results;
+type AuctionTab = "owners" | "nominate" | "results";
+
+// The three standing views under the live board. The Owner Board and the
+// results used to be always-on sections stacked above these tabs, which made
+// the page a long scroll during a live auction — everything below the block is
+// now one click away instead.
+function AuctionTabs({ state }: { state: AuctionPublicState }) {
+  const [tab, setTab] = useState<AuctionTab>("owners");
+
+  const tabs: { id: AuctionTab; label: string; count: number }[] = [
+    { id: "owners", label: "Owner Board", count: state.owners.length },
+    { id: "nominate", label: "Nomination", count: state.pool.filter((p) => p.status === "available").length },
+    { id: "results", label: "Results", count: state.results.length },
+  ];
+
   return (
     <section>
-      <div className="flex items-center gap-2 mb-3.5">
-        {(["available", "drafted"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className="font-heading text-xs font-bold uppercase tracking-[0.06em] px-3 py-1.5 rounded-md"
-            style={{
-              background: tab === t ? "rgba(232,184,75,0.12)" : "var(--secondary)",
-              color: tab === t ? GOLD : "var(--muted-foreground)",
-              border: `1px solid ${tab === t ? "rgba(232,184,75,0.3)" : "var(--border)"}`,
-            }}
-          >
-            {t === "available" ? `Available Players (${pool.filter((p) => p.status === "available").length})` : `Drafted Players (${results.length})`}
-          </button>
-        ))}
+      <div role="tablist" aria-label="Auction views" className="flex items-center gap-2 mb-3.5 flex-wrap">
+        {tabs.map((t) => {
+          const active = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setTab(t.id)}
+              className="font-heading text-[13px] font-bold uppercase tracking-[0.06em] px-4 py-2 rounded-md cursor-pointer transition-colors"
+              style={{
+                background: active ? "rgba(232,184,75,0.12)" : "var(--secondary)",
+                color: active ? GOLD : "var(--muted-foreground)",
+                border: `1px solid ${active ? "rgba(232,184,75,0.3)" : "var(--border)"}`,
+              }}
+            >
+              {t.label}
+              <span className="ml-1.5 font-code text-[11px] font-normal opacity-70">{t.count}</span>
+            </button>
+          );
+        })}
       </div>
-      {tab === "available" ? <AvailablePlayersTab state={state} /> : <DraftedPlayersTab results={results} />}
+      {tab === "owners" && <OwnerGrid owners={state.owners} />}
+      {tab === "nominate" && <AvailablePlayersTab state={state} />}
+      {tab === "results" && <ResultsTab results={state.results} />}
     </section>
+  );
+}
+
+// Results keeps both existing views: the chronological feed for glancing at who
+// just won what mid-auction, and the sortable table for the full record.
+function ResultsTab({ results }: { results: AuctionResultRow[] }) {
+  return (
+    <div className="flex flex-col gap-5">
+      <div>
+        <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2">Recent Awards</div>
+        <ResultsFeed results={results} />
+      </div>
+      <div>
+        <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2">All Picks</div>
+        <DraftedPlayersTab results={results} />
+      </div>
+    </div>
   );
 }
 
@@ -1170,9 +1199,7 @@ export function AuctionBoardClient() {
               <LiveBoard key={data.current?.playerId ?? "none"} state={data} />
             </>
           )}
-          <OwnerGrid owners={data.owners} />
-          <ResultsFeed results={data.results} />
-          <Tabs state={data} />
+          <AuctionTabs state={data} />
         </>
       )}
 
