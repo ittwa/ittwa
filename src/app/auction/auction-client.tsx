@@ -9,7 +9,7 @@ import { GOLD, ACCENT, getPositionColors } from "@/lib/ui-utils";
 import { AUCTION_DATE, ALL_OWNERS, CONTRACT_VALUE_MULTIPLIERS } from "@/lib/config";
 import { playerHeadshotUrls } from "@/lib/player-images";
 import { bidIncrement, bidToBeatTable, awardWarnings, calculateContractValue, MIN_BID } from "@/lib/auction";
-import { computeOwnerPerformance, computePositionTrends, ANALYSIS_POSITIONS } from "@/lib/auction-analysis";
+import { computeOwnerPerformance, computePositionTrends, ANALYSIS_POSITIONS, type OwnerPerformance } from "@/lib/auction-analysis";
 import type { AuctionPublicState, DerivedOwnerCap, DerivedFreeAgent, AuctionResultRow, PlayerRankings } from "@/types/auction";
 
 type SortDir = "asc" | "desc";
@@ -1185,6 +1185,72 @@ function signedMoney(n: number): string {
   return "$0.0";
 }
 
+// Value surplus by owner — a magnitude read (surplus = value − salary is always
+// ≥ 0 since the year multiplier is ≥ 1), so single-hue horizontal bars, sorted.
+function SurplusChart({ data }: { data: OwnerPerformance[] }) {
+  const sorted = [...data].sort((a, b) => b.surplus - a.surplus);
+  const max = Math.max(...sorted.map((d) => d.surplus), 0.1);
+  return (
+    <div className="flex flex-col gap-2">
+      {sorted.map((d) => (
+        <div key={d.owner} className="flex items-center gap-2" title={`${d.owner}: value $${d.contractValue.toFixed(1)} − spent $${d.salarySpent.toFixed(1)} = surplus $${d.surplus.toFixed(1)}`}>
+          <div className="flex items-center gap-1.5 w-[104px] flex-shrink-0">
+            <OwnerAvatar name={d.owner} size={18} />
+            <span className="text-xs font-medium truncate">{d.owner}</span>
+          </div>
+          {/* Bar in its own flex track; label in a fixed column so a full-width
+              bar never pushes its value off the edge. 4px rounded data-end,
+              square at the baseline; ≤24px thick. */}
+          <div className="flex-1 min-w-0">
+            <div className="h-[14px] rounded-r-[4px]" style={{ width: `${(d.surplus / max) * 100}%`, minWidth: d.surplus > 0 ? 3 : 0, background: GOLD }} />
+          </div>
+          <span className="font-code text-[11px] text-muted-foreground w-[56px] text-right whitespace-nowrap">${d.surplus.toFixed(1)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Deals & reaches vs market — real polarity (under/over the market benchmark),
+// so a diverging bar around a zero line: green left = deal, red right = reach.
+// Sign is encoded three ways (side of zero, hue, signed label) so it stays
+// readable under color-vision deficiency.
+function MarketChart({ data }: { data: OwnerPerformance[] }) {
+  const withMarket = data.filter((d) => d.marketDelta != null);
+  const sorted = [...withMarket].sort((a, b) => (a.marketDelta as number) - (b.marketDelta as number));
+  const maxAbs = Math.max(...sorted.map((d) => Math.abs(d.marketDelta as number)), 0.1);
+  return (
+    <div className="flex flex-col gap-2">
+      {sorted.map((d) => {
+        const v = d.marketDelta as number;
+        const pct = (Math.abs(v) / maxAbs) * 50; // each side spans half the track
+        const deal = v < 0;
+        return (
+          <div key={d.owner} className="flex items-center gap-2" title={`${d.owner}: ${deal ? "deal" : v > 0 ? "reach" : "on market"} ${signedMoney(v)} vs expected $${(d.expectedSpend as number).toFixed(1)}`}>
+            <div className="flex items-center gap-1.5 w-[104px] flex-shrink-0">
+              <OwnerAvatar name={d.owner} size={18} />
+              <span className="text-xs font-medium truncate">{d.owner}</span>
+            </div>
+            <div className="flex-1 relative h-[14px] min-w-0">
+              <div className="absolute inset-y-0 left-1/2 w-px bg-border" />
+              <div
+                className="absolute inset-y-0"
+                style={{
+                  background: v === 0 ? "transparent" : deal ? EMERALD : ROSE,
+                  left: deal ? `${50 - pct}%` : "50%",
+                  width: `${pct}%`,
+                  borderRadius: deal ? "4px 0 0 4px" : "0 4px 4px 0",
+                }}
+              />
+            </div>
+            <span className="font-code text-[11px] text-muted-foreground w-[56px] text-right whitespace-nowrap">{signedMoney(v)}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Auction performance analysis — a public, read-only view over the awarded
 // results. All math lives in lib/auction-analysis (tested); this only renders.
 function AuctionAnalysis({ results, rankings }: { results: AuctionResultRow[]; rankings: PlayerRankings }) {
@@ -1219,6 +1285,28 @@ function AuctionAnalysis({ results, rankings }: { results: AuctionResultRow[]; r
 
   return (
     <div className="flex flex-col gap-6">
+      {/* ── Quick-view charts ── */}
+      <div className={`grid grid-cols-1 gap-5 ${anyMarket ? "lg:grid-cols-2" : ""}`}>
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2.5">Value Surplus</div>
+          <div className="bg-card border border-border rounded-[10px] p-4">
+            <SurplusChart data={perf} />
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1.5">Contract value beyond salary paid — higher = more value per dollar.</p>
+        </div>
+        {anyMarket && (
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2.5">Deals &amp; Reaches</div>
+            <div className="bg-card border border-border rounded-[10px] p-4">
+              <MarketChart data={perf} />
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              vs FantasyCalc market share — <span style={{ color: EMERALD }}>green = under market (deal)</span>, <span style={{ color: ROSE }}>red = over (reach)</span>.
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* ── Owner performance: value vs. spend + market deal/reach ── */}
       <div>
         <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2">Owner Performance</div>
