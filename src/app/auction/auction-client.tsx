@@ -18,6 +18,10 @@ const ROSE = "#f87171";
 const MUTED = "var(--muted-foreground)";
 const STATE_KEY = "/api/auction/state";
 
+// Owners A–Z for the pick-an-owner dropdowns. ALL_OWNERS is in division order,
+// which is hard to scan in a <select>; sorted once here and reused.
+const OWNERS_ALPHA = [...ALL_OWNERS].sort((a, b) => a.localeCompare(b));
+
 const fetcher = (url: string) => fetch(url).then((r) => {
   if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
@@ -383,7 +387,7 @@ function NominateSection({ state }: { state: AuctionPublicState }) {
         <span className="text-xs text-muted-foreground">Nominate for:</span>
         <select value={nominatorOverride} onChange={(e) => setNominatorOverride(e.target.value)} className="bg-secondary border border-border rounded px-2 py-1 text-xs">
           <option value="">{state.onClock ?? "—"} (on the clock)</option>
-          {ALL_OWNERS.map((o) => <option key={o} value={o}>{o}</option>)}
+          {OWNERS_ALPHA.map((o) => <option key={o} value={o}>{o}</option>)}
         </select>
       </div>
       {!writeIn ? (
@@ -604,7 +608,7 @@ function BidAndAwardSection({
             className="h-12 md:h-14 bg-secondary border border-border rounded-lg px-3 text-sm md:text-base cursor-pointer"
           >
             <option value="">Owner…</option>
-            {ALL_OWNERS.map((o) => <option key={o} value={o}>{o}</option>)}
+            {OWNERS_ALPHA.map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
         </div>
         <div className="flex gap-2">
