@@ -54,7 +54,10 @@ describe("sendAuctionResultsEmail", () => {
     const r = await sendAuctionResultsEmail({ season: "2026", csv });
     expect(r).toEqual({ sent: true });
 
-    const [url, init] = fetchMock.mock.calls[0];
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [
+      string,
+      { method: string; headers: Record<string, string>; body: string },
+    ];
     expect(url).toBe("https://api.resend.com/emails");
     expect(init.method).toBe("POST");
     expect(init.headers.Authorization).toBe("Bearer re_test_key");

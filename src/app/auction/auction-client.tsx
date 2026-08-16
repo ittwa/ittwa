@@ -8,7 +8,7 @@ import { PlayerLink } from "@/components/player-link";
 import { GOLD, ACCENT, getPositionColors } from "@/lib/ui-utils";
 import { AUCTION_DATE, ALL_OWNERS } from "@/lib/config";
 import { playerHeadshotUrls } from "@/lib/player-images";
-import { bidIncrement, bidToBeatTable, MIN_BID } from "@/lib/auction";
+import { bidIncrement, bidToBeatTable, awardWarnings, MIN_BID } from "@/lib/auction";
 import type { AuctionPublicState, DerivedOwnerCap, DerivedFreeAgent, AuctionResultRow, PlayerRankings } from "@/types/auction";
 
 type SortDir = "asc" | "desc";
@@ -570,6 +570,24 @@ function BidAndAwardSection({
   }
 
   async function award() {
+    // Guard against fat-fingering a bid past what the winner can actually
+    // afford: if the salary tops their max bid or the term tops their max
+    // years, spell out why and require a second confirmation before locking
+    // it in. Within limits, awarding stays one click. (The server still
+    // records these as soft warnings after the fact — this is the pre-flight.)
+    const cap = state.owners.find((o) => o.owner === draft.owner);
+    const overBid = cap?.maxBid != null && draft.salary > cap.maxBid;
+    const overYears = cap?.maxYears != null && draft.years > cap.maxYears;
+    if (cap && (overBid || overYears)) {
+      const reasons = awardWarnings(cap, draft.salary, draft.years);
+      const proceed = confirm(
+        `⚠ This award may break ${draft.owner}'s cap:\n\n` +
+          reasons.map((r) => `• ${r}`).join("\n") +
+          `\n\nAward ${current.player} to ${draft.owner} at $${draft.salary.toFixed(1)} / ${draft.years}yr anyway?`,
+      );
+      if (!proceed) return;
+    }
+
     setBusy("award");
     setError(null);
     setWarnings([]);
