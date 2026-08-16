@@ -9,6 +9,7 @@ import { GOLD, ACCENT, getPositionColors } from "@/lib/ui-utils";
 import { AUCTION_DATE, ALL_OWNERS, CONTRACT_VALUE_MULTIPLIERS } from "@/lib/config";
 import { playerHeadshotUrls } from "@/lib/player-images";
 import { bidIncrement, bidToBeatTable, awardWarnings, calculateContractValue, MIN_BID } from "@/lib/auction";
+import { computeOwnerPerformance, computePositionTrends, ANALYSIS_POSITIONS } from "@/lib/auction-analysis";
 import type { AuctionPublicState, DerivedOwnerCap, DerivedFreeAgent, AuctionResultRow, PlayerRankings } from "@/types/auction";
 
 type SortDir = "asc" | "desc";
@@ -1125,7 +1126,7 @@ function DraftedPlayersTab({ results }: { results: AuctionResultRow[] }) {
   );
 }
 
-type AuctionTab = "owners" | "nominate" | "results" | "values";
+type AuctionTab = "owners" | "nominate" | "results" | "analysis" | "values";
 
 // The three standing views under the live board. The Owner Board and the
 // results used to be always-on sections stacked above these tabs, which made
@@ -1138,6 +1139,7 @@ function AuctionTabs({ state, rankings }: { state: AuctionPublicState; rankings:
     { id: "owners", label: "Owner Board", count: state.owners.length },
     { id: "nominate", label: "Nomination", count: state.pool.filter((p) => p.status === "available").length },
     { id: "results", label: "Results", count: state.results.length },
+    { id: "analysis", label: "Analysis" },
     // Static reference — no count.
     { id: "values", label: "Value Ladder" },
   ];
@@ -1169,8 +1171,169 @@ function AuctionTabs({ state, rankings }: { state: AuctionPublicState; rankings:
       {tab === "owners" && <OwnerGrid owners={state.owners} />}
       {tab === "nominate" && <AvailablePlayersTab state={state} rankings={rankings} />}
       {tab === "results" && <DraftedPlayersTab results={state.results} />}
+      {tab === "analysis" && <AuctionAnalysis results={state.results} rankings={rankings} />}
       {tab === "values" && <ValueLadder />}
     </section>
+  );
+}
+
+// Money helper for the analysis tab: "-$5.0" / "+$5.0" / "$0.0".
+function signedMoney(n: number): string {
+  const s = Math.abs(n).toFixed(1);
+  if (n > 0) return `+$${s}`;
+  if (n < 0) return `−$${s}`;
+  return "$0.0";
+}
+
+// Auction performance analysis — a public, read-only view over the awarded
+// results. All math lives in lib/auction-analysis (tested); this only renders.
+function AuctionAnalysis({ results, rankings }: { results: AuctionResultRow[]; rankings: PlayerRankings }) {
+  // FantasyCalc dynasty value is the market benchmark for the deal/reach column.
+  const marketValue = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const [pid, r] of Object.entries(rankings)) {
+      if (r.dynastyValue != null) m.set(pid, r.dynastyValue);
+    }
+    return m;
+  }, [rankings]);
+
+  const perf = useMemo(() => computeOwnerPerformance(results, marketValue), [results, marketValue]);
+  const trends = useMemo(() => computePositionTrends(results), [results]);
+  // Only show position columns that actually saw spending.
+  const posCols = useMemo(() => {
+    const present = new Set<string>();
+    for (const p of perf) for (const k of Object.keys(p.spendByPosition)) present.add(k);
+    return [...ANALYSIS_POSITIONS, "OTHER"].filter((p) => present.has(p));
+  }, [perf]);
+
+  if (results.length === 0) {
+    return (
+      <div className="bg-card border border-border rounded-[10px] px-4 py-8 text-center text-sm text-muted-foreground italic">
+        No picks yet — analysis appears as players are awarded.
+      </div>
+    );
+  }
+
+  const th = "px-3 py-2 text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground whitespace-nowrap";
+  const anyMarket = perf.some((p) => p.marketDelta != null);
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* ── Owner performance: value vs. spend + market deal/reach ── */}
+      <div>
+        <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2">Owner Performance</div>
+        <div className="bg-card border border-border rounded-[10px] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse min-w-[560px]">
+              <thead>
+                <tr className="bg-secondary">
+                  <th className={`${th} text-left sticky left-0 bg-secondary`}>Owner</th>
+                  <th className={`${th} text-right`}>Picks</th>
+                  <th className={`${th} text-right`}>Spent</th>
+                  <th className={`${th} text-right`}>Value</th>
+                  <th className={`${th} text-right`}>Surplus</th>
+                  <th className={`${th} text-right`}>vs Market</th>
+                </tr>
+              </thead>
+              <tbody>
+                {perf.map((p) => (
+                  <tr key={p.owner} className="border-t border-border/50">
+                    <td className="px-3 py-2 sticky left-0 bg-card">
+                      <div className="flex items-center gap-2">
+                        <OwnerAvatar name={p.owner} size={22} />
+                        <span className="font-heading font-bold text-sm uppercase tracking-[0.02em] whitespace-nowrap">{p.owner}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-right font-code text-sm">{p.picks}</td>
+                    <td className="px-3 py-2 text-right font-code text-sm">${p.salarySpent.toFixed(1)}</td>
+                    <td className="px-3 py-2 text-right font-code text-sm">${p.contractValue.toFixed(1)}</td>
+                    <td className="px-3 py-2 text-right font-code text-sm font-bold" style={{ color: p.surplus >= 0 ? EMERALD : ROSE }}>
+                      {signedMoney(p.surplus)}
+                    </td>
+                    <td className="px-3 py-2 text-right font-code text-sm" style={{ color: p.marketDelta == null ? "var(--muted-foreground)" : p.marketDelta <= 0 ? EMERALD : ROSE }}>
+                      {p.marketDelta == null ? "—" : signedMoney(p.marketDelta)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+          <span className="text-foreground font-semibold">Surplus</span> = contract value − salary (the league&apos;s year multiplier applied).
+          {anyMarket && <> <span className="text-foreground font-semibold">vs Market</span> compares spend to each pick&apos;s share of FantasyCalc dynasty value — <span style={{ color: EMERALD }}>negative = under market (deals)</span>, positive = reaches.</>}
+        </p>
+      </div>
+
+      {/* ── Spend by position ── */}
+      <div>
+        <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2">Spend by Position</div>
+        <div className="bg-card border border-border rounded-[10px] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse min-w-[520px]">
+              <thead>
+                <tr className="bg-secondary">
+                  <th className={`${th} text-left sticky left-0 bg-secondary`}>Owner</th>
+                  {posCols.map((pos) => <th key={pos} className={`${th} text-right`}>{pos}</th>)}
+                  <th className={`${th} text-right`}>Avg Yrs</th>
+                </tr>
+              </thead>
+              <tbody>
+                {perf.map((p) => (
+                  <tr key={p.owner} className="border-t border-border/50">
+                    <td className="px-3 py-2 sticky left-0 bg-card">
+                      <div className="flex items-center gap-2">
+                        <OwnerAvatar name={p.owner} size={22} />
+                        <span className="font-heading font-bold text-sm uppercase tracking-[0.02em] whitespace-nowrap">{p.owner}</span>
+                      </div>
+                    </td>
+                    {posCols.map((pos) => (
+                      <td key={pos} className="px-3 py-2 text-right font-code text-sm">
+                        {p.spendByPosition[pos] ? `$${p.spendByPosition[pos].toFixed(1)}` : <span className="text-muted-foreground">—</span>}
+                      </td>
+                    ))}
+                    <td className="px-3 py-2 text-right font-code text-sm text-muted-foreground">{p.avgYears.toFixed(1)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* ── League-wide positional market trends ── */}
+      <div>
+        <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2">Positional Market</div>
+        <div className="bg-card border border-border rounded-[10px] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse min-w-[480px]">
+              <thead>
+                <tr className="bg-secondary">
+                  <th className={`${th} text-left`}>Position</th>
+                  <th className={`${th} text-right`}>Picks</th>
+                  <th className={`${th} text-right`}>Total $</th>
+                  <th className={`${th} text-right`}>Avg $</th>
+                  <th className={`${th} text-right`}>Avg Yrs</th>
+                  <th className={`${th} text-right`}>Avg Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trends.map((t) => (
+                  <tr key={t.position} className="border-t border-border/50">
+                    <td className="px-3 py-2"><PosBadge pos={t.position} /></td>
+                    <td className="px-3 py-2 text-right font-code text-sm">{t.picks}</td>
+                    <td className="px-3 py-2 text-right font-code text-sm">${t.totalSalary.toFixed(1)}</td>
+                    <td className="px-3 py-2 text-right font-code text-sm">${t.avgSalary.toFixed(1)}</td>
+                    <td className="px-3 py-2 text-right font-code text-sm text-muted-foreground">{t.avgYears.toFixed(1)}</td>
+                    <td className="px-3 py-2 text-right font-code text-sm">${t.avgValue.toFixed(1)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
