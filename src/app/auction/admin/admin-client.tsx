@@ -458,8 +458,16 @@ function LiveConsole({ state }: { state: AuctionPublicState }) {
   const [resyncError, setResyncError] = useState<string | null>(null);
 
   async function complete() {
-    if (!confirm("Mark the auction complete? The public board will show it as final.")) return;
-    await postJSON("/api/auction/admin/complete"); globalMutate(STATE_KEY);
+    if (!confirm("Mark the auction complete? The public board will show it as final, and the results CSV is emailed to the league inbox.")) return;
+    const res = await postJSON("/api/auction/admin/complete");
+    globalMutate(STATE_KEY);
+    // The auction is complete regardless; just tell the commish whether the
+    // results email actually went out (Export CSV is always available as a
+    // fallback).
+    const email = res?.email;
+    if (email && !email.sent) {
+      alert(`Auction marked complete, but the results email did not send: ${email.error ?? email.skipped ?? "unknown reason"}.\n\nUse Export CSV to send it manually.`);
+    }
   }
   async function reset() {
     if (!confirm("Full reset? This permanently deletes the current auction and all results.")) return;
