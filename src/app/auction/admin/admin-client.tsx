@@ -307,6 +307,16 @@ function SetupWizard({ defaultSeason }: { defaultSeason: string }) {
     setPool((prev) => prev.filter((p) => p.playerId !== row.playerId));
   }
 
+  function randomizeOrder() {
+    // Fisher–Yates — an unbiased shuffle, unlike sort(() => Math.random() - 0.5).
+    const next = [...order];
+    for (let i = next.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [next[i], next[j]] = [next[j], next[i]];
+    }
+    setOrder(next);
+  }
+
   async function start() {
     if (!confirm(`Start the ${season} auction? This snapshots the reviewed state — the sheet won't be re-read after this.`)) return;
     setStarting(true);
@@ -362,8 +372,11 @@ function SetupWizard({ defaultSeason }: { defaultSeason: string }) {
           <div className="font-heading text-sm font-bold uppercase tracking-[0.06em] mb-2">Free Agent Pool</div>
           <p className="text-xs text-muted-foreground mb-2">{pool.length} players derived. Full search happens during the auction on the live board.</p>
 
-          <div className="font-heading text-sm font-bold uppercase tracking-[0.06em] mb-2 mt-6">Nomination Order</div>
-          <p className="text-xs text-muted-foreground mb-2">Drag rows (or use the arrows) to set the draft order.</p>
+          <div className="flex items-center justify-between gap-2 mb-2 mt-6">
+            <div className="font-heading text-sm font-bold uppercase tracking-[0.06em]">Nomination Order</div>
+            <Btn small variant="default" onClick={randomizeOrder}>🎲 Randomize</Btn>
+          </div>
+          <p className="text-xs text-muted-foreground mb-2">Drag rows (or use the arrows) to set the draft order — or randomize it.</p>
           <NominationOrderEditor order={order} setOrder={setOrder} />
 
           <div className="mt-6">
