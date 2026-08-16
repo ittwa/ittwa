@@ -759,8 +759,10 @@ function OwnerGridRow({ o }: { o: DerivedOwnerCap }) {
 type OwnerSortKey = "owner" | "players" | "years" | "salary" | "capSpace" | "maxBid" | "maxYears" | "needToSpend";
 
 function OwnerGrid({ owners }: { owners: DerivedOwnerCap[] }) {
-  const [sortKey, setSortKey] = useState<OwnerSortKey>("capSpace");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  // Default to alphabetical by owner — the board is a reference table people
+  // scan by name; other columns are one click away.
+  const [sortKey, setSortKey] = useState<OwnerSortKey>("owner");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   function onSort(field: string) {
     const key = field as OwnerSortKey;
@@ -1080,8 +1082,18 @@ function DraftedPlayersTab({ results }: { results: AuctionResultRow[] }) {
             {sorted.map((r) => (
               <tr key={r.id} className="border-t border-border/50">
                 <td className="px-3 py-2 font-code text-xs text-muted-foreground">{String(r.pickNumber).padStart(3, "0")}</td>
-                <td className="px-3 py-2 text-sm">{r.nominator}</td>
-                <td className="px-3 py-2 text-sm font-semibold">{r.winner}</td>
+                <td className="px-3 py-2 text-sm">
+                  <div className="flex items-center gap-1.5">
+                    {r.nominator !== "—" && <OwnerAvatar name={r.nominator} size={18} />}
+                    <span>{r.nominator}</span>
+                  </div>
+                </td>
+                <td className="px-3 py-2 text-sm font-semibold">
+                  <div className="flex items-center gap-1.5">
+                    <OwnerAvatar name={r.winner} size={18} />
+                    <span>{r.winner}</span>
+                  </div>
+                </td>
                 <td className="px-3 py-2 text-sm">
                   <div className="flex items-center gap-2">
                     <PlayerAvatar playerId={r.playerId} name={r.player} pos={r.position} size={24} />
