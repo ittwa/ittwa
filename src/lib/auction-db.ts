@@ -271,13 +271,22 @@ export async function undoLastResult(auctionId: number): Promise<void> {
   if (!auction) throw new Error("Auction not found");
 
   const lastRows = (await sql.query(
-    `SELECT id FROM auction_result WHERE auction_id = $1 ORDER BY pick_number DESC LIMIT 1`,
+    `SELECT id, player_id AS "playerId" FROM auction_result WHERE auction_id = $1 ORDER BY pick_number DESC LIMIT 1`,
     [auctionId],
-  )) as unknown as { id: number }[];
+  )) as unknown as { id: number; playerId: string }[];
   const last = lastRows[0];
   if (!last) return;
 
+  // Deleting the result cascades to the auction_roster row it created
+  // (roster.result_id is ON DELETE CASCADE), but auction_pool.status is a plain
+  // column with nothing to cascade from — so the player has to be put back by
+  // hand or they stay 'drafted' and never reappear in the nomination list.
   await sql.query(`DELETE FROM auction_result WHERE id = $1`, [last.id]);
+
+  await sql.query(
+    `UPDATE auction_pool SET status = 'available' WHERE auction_id = $1 AND player_id = $2`,
+    [auctionId, last.playerId],
+  );
 
   const prevIndex =
     auction.nominationOrder.length > 0
