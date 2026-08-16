@@ -6,9 +6,9 @@ import useSWR, { mutate as globalMutate } from "swr";
 import { SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
 import { PlayerLink } from "@/components/player-link";
 import { GOLD, ACCENT, getPositionColors } from "@/lib/ui-utils";
-import { AUCTION_DATE, ALL_OWNERS } from "@/lib/config";
+import { AUCTION_DATE, ALL_OWNERS, CONTRACT_VALUE_MULTIPLIERS } from "@/lib/config";
 import { playerHeadshotUrls } from "@/lib/player-images";
-import { bidIncrement, bidToBeatTable, awardWarnings, MIN_BID } from "@/lib/auction";
+import { bidIncrement, bidToBeatTable, awardWarnings, calculateContractValue, MIN_BID } from "@/lib/auction";
 import type { AuctionPublicState, DerivedOwnerCap, DerivedFreeAgent, AuctionResultRow, PlayerRankings } from "@/types/auction";
 
 type SortDir = "asc" | "desc";
@@ -1125,7 +1125,7 @@ function DraftedPlayersTab({ results }: { results: AuctionResultRow[] }) {
   );
 }
 
-type AuctionTab = "owners" | "nominate" | "results";
+type AuctionTab = "owners" | "nominate" | "results" | "values";
 
 // The three standing views under the live board. The Owner Board and the
 // results used to be always-on sections stacked above these tabs, which made
@@ -1134,10 +1134,12 @@ type AuctionTab = "owners" | "nominate" | "results";
 function AuctionTabs({ state, rankings }: { state: AuctionPublicState; rankings: PlayerRankings }) {
   const [tab, setTab] = useState<AuctionTab>("owners");
 
-  const tabs: { id: AuctionTab; label: string; count: number }[] = [
+  const tabs: { id: AuctionTab; label: string; count?: number }[] = [
     { id: "owners", label: "Owner Board", count: state.owners.length },
     { id: "nominate", label: "Nomination", count: state.pool.filter((p) => p.status === "available").length },
     { id: "results", label: "Results", count: state.results.length },
+    // Static reference — no count.
+    { id: "values", label: "Value Ladder" },
   ];
 
   return (
@@ -1159,7 +1161,7 @@ function AuctionTabs({ state, rankings }: { state: AuctionPublicState; rankings:
               }}
             >
               {t.label}
-              <span className="ml-1.5 font-code text-[11px] font-normal opacity-70">{t.count}</span>
+              {t.count !== undefined && <span className="ml-1.5 font-code text-[11px] font-normal opacity-70">{t.count}</span>}
             </button>
           );
         })}
@@ -1167,7 +1169,64 @@ function AuctionTabs({ state, rankings }: { state: AuctionPublicState; rankings:
       {tab === "owners" && <OwnerGrid owners={state.owners} />}
       {tab === "nominate" && <AvailablePlayersTab state={state} rankings={rankings} />}
       {tab === "results" && <DraftedPlayersTab results={state.results} />}
+      {tab === "values" && <ValueLadder />}
     </section>
+  );
+}
+
+// Static reference for the league's contract-value formula: value = salary ×
+// the multiplier for the contract length. A cheat sheet for the live call, so
+// owners can eyeball "what's a 3-year, $20 deal actually worth?" without doing
+// the math. Not tied to results — it's the same formula everywhere on the site.
+function ValueLadder() {
+  const years = [1, 2, 3, 4, 5];
+  // $1–$60 covers the practical bid range; value scales linearly with salary,
+  // so anything past the table is just salary × the multiplier below.
+  const salaries = Array.from({ length: 60 }, (_, i) => i + 1);
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="bg-card border border-border rounded-[10px] p-4">
+        <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-3">Contract Value Multiplier</div>
+        <div className="flex flex-wrap gap-2">
+          {years.map((y) => (
+            <div key={y} className="flex flex-col items-center bg-secondary border border-border rounded-lg px-4 py-2 min-w-[60px]">
+              <span className="font-code text-[11px] text-muted-foreground">{y}yr</span>
+              <span className="font-heading text-lg font-black" style={{ color: GOLD }}>×{CONTRACT_VALUE_MULTIPLIERS[y].toFixed(1)}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mt-3">
+          Auction value = salary × the multiplier for the contract length. A 0-year deal
+          (mid-season pickup) is worth $0.
+        </p>
+      </div>
+
+      <div className="bg-card border border-border rounded-[10px] overflow-hidden">
+        <div className="overflow-x-auto max-h-[440px] overflow-y-auto">
+          <table className="w-full border-collapse min-w-[420px]">
+            <thead>
+              <tr className="bg-secondary">
+                <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground sticky left-0 top-0 z-20 bg-secondary">Salary</th>
+                {years.map((y) => (
+                  <th key={y} className="px-3 py-2 text-right text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground sticky top-0 z-10 bg-secondary">{y}yr</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {salaries.map((s) => (
+                <tr key={s} className="border-t border-border/50">
+                  <td className="px-3 py-1.5 font-code text-sm font-semibold sticky left-0 bg-card">${s.toFixed(1)}</td>
+                  {years.map((y) => (
+                    <td key={y} className="px-3 py-1.5 text-right font-code text-sm text-muted-foreground">${calculateContractValue(s, y).toFixed(1)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 }
 
