@@ -854,33 +854,6 @@ function OwnerGrid({ owners }: { owners: DerivedOwnerCap[] }) {
   );
 }
 
-// ── Results feed ──────────────────────────────────────────────────────────────
-
-function ResultsFeed({ results }: { results: AuctionResultRow[] }) {
-  return (
-    <div className="bg-card border border-border rounded-[10px] overflow-hidden max-h-[320px] overflow-y-auto">
-      {results.length === 0 ? (
-        <div className="px-4 py-8 text-center text-sm text-muted-foreground italic">No awards yet.</div>
-      ) : (
-        results.map((r) => (
-          <div key={r.id} className="px-4 py-2.5 border-b border-border/50 last:border-0 flex items-center gap-2 flex-wrap text-sm">
-            <span className="font-code text-xs text-muted-foreground">Pick {String(r.pickNumber).padStart(3, "0")}</span>
-            <span className="text-muted-foreground">—</span>
-            <OwnerAvatar name={r.winner} size={20} />
-            <span className="font-semibold">{r.winner}</span>
-            <span className="text-muted-foreground">wins</span>
-            <PlayerAvatar playerId={r.playerId} name={r.player} pos={r.position} size={22} />
-            <PlayerLink playerId={r.playerId} className="font-semibold hover:underline underline-offset-2">{r.player}</PlayerLink>
-            <PosBadge pos={r.position} />
-            <span className="font-code text-xs text-muted-foreground ml-auto whitespace-nowrap">
-              {r.years}yr / ${r.salary.toFixed(1)}
-            </span>
-          </div>
-        ))
-      )}
-    </div>
-  );
-}
 
 // ── Available / Drafted tabs ─────────────────────────────────────────────────
 
@@ -1193,27 +1166,13 @@ function AuctionTabs({ state, rankings }: { state: AuctionPublicState; rankings:
       </div>
       {tab === "owners" && <OwnerGrid owners={state.owners} />}
       {tab === "nominate" && <AvailablePlayersTab state={state} rankings={rankings} />}
-      {tab === "results" && <ResultsTab results={state.results} />}
+      {tab === "results" && <DraftedPlayersTab results={state.results} />}
     </section>
   );
 }
 
 // Results keeps both existing views: the chronological feed for glancing at who
 // just won what mid-auction, and the sortable table for the full record.
-function ResultsTab({ results }: { results: AuctionResultRow[] }) {
-  return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2">Recent Awards</div>
-        <ResultsFeed results={results} />
-      </div>
-      <div>
-        <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2">All Picks</div>
-        <DraftedPlayersTab results={results} />
-      </div>
-    </div>
-  );
-}
 
 // ── Pre/post-auction states ───────────────────────────────────────────────────
 
