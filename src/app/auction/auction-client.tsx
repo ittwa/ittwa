@@ -9,7 +9,7 @@ import { GOLD, ACCENT, getPositionColors } from "@/lib/ui-utils";
 import { AUCTION_DATE, ALL_OWNERS } from "@/lib/config";
 import { playerHeadshotUrls } from "@/lib/player-images";
 import { bidIncrement, bidToBeatTable, MIN_BID } from "@/lib/auction";
-import type { AuctionPublicState, DerivedOwnerCap, DerivedFreeAgent, AuctionResultRow } from "@/types/auction";
+import type { AuctionPublicState, DerivedOwnerCap, DerivedFreeAgent, AuctionResultRow, PlayerRankings } from "@/types/auction";
 
 type SortDir = "asc" | "desc";
 
@@ -842,13 +842,30 @@ function ResultsFeed({ results }: { results: AuctionResultRow[] }) {
 
 // ── Available / Drafted tabs ─────────────────────────────────────────────────
 
-type AvailableSortKey = "player" | "position" | "rfa";
+type AvailableSortKey = "player" | "position" | "rfa" | "dynasty" | "lastSeason";
 
-function AvailablePlayersTab({ state }: { state: AuctionPublicState }) {
+// The Dynasty / Last Season cells. Primary line is what the column sorts on
+// (dynasty overall rank; last-season points); the muted line is the positional
+// rank for quick "is this the WR1 or the WR40" context. Dashes when unranked.
+function RankCell({ primary, sub }: { primary: string | null; sub: string | null }) {
+  if (primary == null && sub == null) {
+    return <span className="text-muted-foreground text-xs">—</span>;
+  }
+  return (
+    <div className="flex flex-col items-end leading-tight">
+      <span className="font-code text-sm font-semibold">{primary ?? "—"}</span>
+      {sub && <span className="font-code text-[11px] text-muted-foreground">{sub}</span>}
+    </div>
+  );
+}
+
+function AvailablePlayersTab({ state, rankings }: { state: AuctionPublicState; rankings: PlayerRankings }) {
   const [search, setSearch] = useState("");
   const [pos, setPos] = useState("");
   const [rfaOnly, setRfaOnly] = useState(false);
-  const [sortKey, setSortKey] = useState<AvailableSortKey>("player");
+  // Default to dynasty overall rank, best (rank 1) first — "who's the best
+  // player still on the board" is the question this tab exists to answer.
+  const [sortKey, setSortKey] = useState<AvailableSortKey>("dynasty");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [nominatingId, setNominatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -856,7 +873,12 @@ function AvailablePlayersTab({ state }: { state: AuctionPublicState }) {
   function onSort(field: string) {
     const key = field as AvailableSortKey;
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(key); setSortDir("asc"); }
+    else {
+      setSortKey(key);
+      // Best-first per column: dynasty rank ascending (1 first), last-season
+      // points descending (high first), everything else ascending.
+      setSortDir(key === "lastSeason" ? "desc" : "asc");
+    }
   }
 
   // Nobody has to go back up to the search box — this credits whichever
@@ -894,6 +916,17 @@ function AvailablePlayersTab({ state }: { state: AuctionPublicState }) {
         (!rfaOnly || p.rfa),
     );
     r.sort((a, b) => {
+      if (sortKey === "dynasty" || sortKey === "lastSeason") {
+        const av = sortKey === "dynasty" ? rankings[a.playerId]?.overallRank ?? null : rankings[a.playerId]?.lastPoints ?? null;
+        const bv = sortKey === "dynasty" ? rankings[b.playerId]?.overallRank ?? null : rankings[b.playerId]?.lastPoints ?? null;
+        // Unranked players (write-ins, defenses, anyone not covered) always sink
+        // to the bottom, regardless of sort direction — falling back to name.
+        if (av == null && bv == null) return a.player.localeCompare(b.player);
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        const cmp = av - bv;
+        return sortDir === "asc" ? cmp : -cmp;
+      }
       let cmp = 0;
       if (sortKey === "player") cmp = a.player.localeCompare(b.player);
       else if (sortKey === "position") cmp = a.position.localeCompare(b.position);
@@ -901,7 +934,7 @@ function AvailablePlayersTab({ state }: { state: AuctionPublicState }) {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return r;
-  }, [available, search, pos, rfaOnly, sortKey, sortDir]);
+  }, [available, search, pos, rfaOnly, sortKey, sortDir, rankings]);
 
   return (
     <div>
@@ -934,11 +967,13 @@ function AvailablePlayersTab({ state }: { state: AuctionPublicState }) {
       )}
       <div className="bg-card border border-border rounded-[10px] overflow-hidden">
         <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
-          <table className="w-full border-collapse min-w-[500px]">
+          <table className="w-full border-collapse min-w-[640px]">
             <thead>
               <tr className="bg-secondary">
                 <SortTh label="Player" field="player" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-                <SortTh label="Position" field="position" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+                <SortTh label="Pos" field="position" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+                <SortTh label="Dynasty" field="dynasty" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+                <SortTh label="Last Season" field="lastSeason" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
                 <SortTh label="RFA" field="rfa" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="center" />
                 <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground text-right">Nominate{state.onClock ? ` for ${state.onClock}` : ""}</th>
               </tr>
@@ -946,10 +981,12 @@ function AvailablePlayersTab({ state }: { state: AuctionPublicState }) {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground italic">No players match.</td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground italic">No players match.</td>
                 </tr>
               ) : (
-                filtered.map((p) => (
+                filtered.map((p) => {
+                  const rk = rankings[p.playerId];
+                  return (
                   <tr key={p.playerId} className="border-t border-border/50">
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
@@ -958,6 +995,18 @@ function AvailablePlayersTab({ state }: { state: AuctionPublicState }) {
                       </div>
                     </td>
                     <td className="px-3 py-2"><PosBadge pos={p.position} /></td>
+                    <td className="px-3 py-2 text-right">
+                      <RankCell
+                        primary={rk?.overallRank != null ? `#${rk.overallRank}` : null}
+                        sub={rk?.dynastyPosRank != null ? `${p.position}${rk.dynastyPosRank}` : null}
+                      />
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <RankCell
+                        primary={rk?.lastPoints != null ? `${rk.lastPoints.toFixed(1)} pts` : null}
+                        sub={rk?.lastPosRank != null ? `${p.position}${rk.lastPosRank}` : null}
+                      />
+                    </td>
                     <td className="px-3 py-2 text-center">
                       {p.rfa ? <RfaBadge previousOwner={p.previousOwner} /> : <span className="text-muted-foreground text-xs">—</span>}
                     </td>
@@ -971,7 +1020,8 @@ function AvailablePlayersTab({ state }: { state: AuctionPublicState }) {
                       </Btn>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -1056,7 +1106,7 @@ type AuctionTab = "owners" | "nominate" | "results";
 // results used to be always-on sections stacked above these tabs, which made
 // the page a long scroll during a live auction — everything below the block is
 // now one click away instead.
-function AuctionTabs({ state }: { state: AuctionPublicState }) {
+function AuctionTabs({ state, rankings }: { state: AuctionPublicState; rankings: PlayerRankings }) {
   const [tab, setTab] = useState<AuctionTab>("owners");
 
   const tabs: { id: AuctionTab; label: string; count: number }[] = [
@@ -1090,7 +1140,7 @@ function AuctionTabs({ state }: { state: AuctionPublicState }) {
         })}
       </div>
       {tab === "owners" && <OwnerGrid owners={state.owners} />}
-      {tab === "nominate" && <AvailablePlayersTab state={state} />}
+      {tab === "nominate" && <AvailablePlayersTab state={state} rankings={rankings} />}
       {tab === "results" && <ResultsTab results={state.results} />}
     </section>
   );
@@ -1138,7 +1188,7 @@ function CompleteBanner({ season }: { season: string }) {
 
 // ── Main client component ────────────────────────────────────────────────────
 
-export function AuctionBoardClient() {
+export function AuctionBoardClient({ rankings }: { rankings: PlayerRankings }) {
   const { data, error } = useSWR<AuctionPublicState>(STATE_KEY, fetcher, {
     refreshInterval: 4000,
     keepPreviousData: true,
@@ -1199,7 +1249,7 @@ export function AuctionBoardClient() {
               <LiveBoard key={data.current?.playerId ?? "none"} state={data} />
             </>
           )}
-          <AuctionTabs state={data} />
+          <AuctionTabs state={data} rankings={rankings} />
         </>
       )}
 

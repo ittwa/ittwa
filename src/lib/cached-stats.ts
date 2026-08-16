@@ -42,6 +42,56 @@ export async function getCachedSeasonPosRanks(
  * in Sleeper's own Players view. We compute the rank ourselves rather than
  * trusting the precomputed pos_rank_half_ppr field, which is inconsistent.
  */
+export interface NflPosStat {
+  points: number;
+  posRank: number;
+}
+
+// Like getCachedNflPosRanks, but returns the half-PPR points alongside the
+// positional rank so a table can show both. Same Sleeper stats feed, same
+// caching; kept separate so the existing rank-only callers are untouched.
+export async function getCachedNflPosStats(
+  season: string,
+  nflPlayers: SleeperPlayersMap,
+  isCurrentSeason: boolean,
+): Promise<Record<string, NflPosStat>> {
+  const cached = unstable_cache(
+    async (yr: string) => {
+      try {
+        const res = await fetch(`${SLEEPER_API_BASE}/stats/nfl/regular/${yr}`, {
+          next: { revalidate: isCurrentSeason ? 3600 : 86400, tags: [CACHE_TAGS.sleeper] },
+        });
+        if (!res.ok) return {};
+        const data: Record<string, { pts_half_ppr?: number }> = await res.json();
+
+        // Group by position (from the players map — the stats blob's own pos
+        // field is unreliable), then rank each group by half-PPR points.
+        const byPosition = new Map<string, { pid: string; pts: number }[]>();
+        for (const [pid, stats] of Object.entries(data)) {
+          const pts = stats.pts_half_ppr;
+          const pos = nflPlayers[pid]?.position;
+          if (!pos || pts === undefined || pts <= 0) continue;
+          const arr = byPosition.get(pos) || [];
+          arr.push({ pid, pts });
+          byPosition.set(pos, arr);
+        }
+
+        const out: Record<string, NflPosStat> = {};
+        for (const [, players] of byPosition) {
+          players.sort((a, b) => b.pts - a.pts);
+          players.forEach((p, i) => { out[p.pid] = { points: Math.round(p.pts * 10) / 10, posRank: i + 1 }; });
+        }
+        return out;
+      } catch {
+        return {};
+      }
+    },
+    ["nfl-pos-stats"],
+    { revalidate: isCurrentSeason ? 3600 : 86400, tags: [CACHE_TAGS.sleeper] },
+  );
+  return cached(season);
+}
+
 export async function getCachedNflPosRanks(
   season: string,
   nflPlayers: SleeperPlayersMap,

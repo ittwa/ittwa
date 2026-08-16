@@ -5,6 +5,20 @@ export type AuctionStatus = "setup" | "live" | "paused" | "complete";
 export type RosterSource = "import" | "manual" | "auction";
 export type PoolStatus = "available" | "nominated" | "drafted";
 
+// Player rankings surfaced in the nomination tab so the room can sort by the
+// best available players. Keyed by Sleeper player_id (the same id the auction
+// pool uses). Every field is nullable: write-ins, team defenses, and anyone
+// FantasyCalc/Sleeper-stats don't cover simply carry no rank and sort last.
+export interface PlayerRanking {
+  overallRank: number | null;    // FantasyCalc dynasty overall rank (default sort)
+  dynastyValue: number | null;   // FantasyCalc dynasty trade value
+  dynastyPosRank: number | null; // FantasyCalc rank within position
+  lastPoints: number | null;     // last completed season half-PPR points
+  lastPosRank: number | null;    // last completed season rank within position
+}
+
+export type PlayerRankings = Record<string, PlayerRanking>;
+
 // ── Derivation inputs/outputs (used both pre-auction and to recompute live) ──
 
 export interface DerivedRosterEntry {
