@@ -177,6 +177,28 @@ export async function nominate(auctionId: number, input: NominateInput): Promise
   );
 }
 
+// Reverse of nominate(): take the current player off the block without awarding
+// them. The player returns to the pool and the same owner stays on the clock —
+// nothing was awarded, so the nominator index does NOT advance (unlike award).
+// No-op if nothing is nominated.
+export async function clearNomination(auctionId: number): Promise<void> {
+  const sql = getSql();
+  const rows = (await sql.query(
+    `SELECT player_id AS "playerId" FROM auction_current WHERE auction_id = $1`,
+    [auctionId],
+  )) as unknown as { playerId: string | null }[];
+  const playerId = rows[0]?.playerId;
+
+  await sql.query(`DELETE FROM auction_current WHERE auction_id = $1`, [auctionId]);
+
+  if (playerId) {
+    await sql.query(
+      `UPDATE auction_pool SET status = 'available' WHERE auction_id = $1 AND player_id = $2`,
+      [auctionId, playerId],
+    );
+  }
+}
+
 export async function setBid(
   auctionId: number,
   bid: { salary: number; years: number; bidder: string | null },

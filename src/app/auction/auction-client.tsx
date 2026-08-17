@@ -698,6 +698,11 @@ function AuctionControls({
     await postJSON("/api/auction/timer", { seconds });
     globalMutate(STATE_KEY);
   }
+  async function clearNomination() {
+    if (!confirm(`Remove ${state.current!.player} from the block? Any current bid is discarded and they return to the pool. The same owner stays on the clock.`)) return;
+    await postJSON("/api/auction/clear-nomination");
+    globalMutate(STATE_KEY);
+  }
 
   return (
     <div className="bg-card border border-border rounded-[10px] p-4 md:p-5 mb-5">
@@ -706,6 +711,8 @@ function AuctionControls({
         <div className="flex gap-2 flex-wrap">
           {auction.status === "live" && <Btn onClick={pause}>Pause</Btn>}
           {auction.status === "paused" && <Btn variant="primary" onClick={resume}>Resume</Btn>}
+          {/* Only meaningful with a player on the block. */}
+          {state.current && <Btn variant="ghost" onClick={clearNomination}>Cancel Nomination</Btn>}
           <Btn onClick={undo}>Undo Last</Btn>
           <Btn onClick={() => setTimer(30)}>30s</Btn>
           <Btn onClick={() => setTimer(60)}>60s</Btn>
