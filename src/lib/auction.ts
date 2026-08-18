@@ -18,7 +18,7 @@ import type {
   AuctionResultRow,
 } from "@/types/auction";
 import { SALARY_CAP, SALARY_FLOOR, YEARS_CAP, ROSTER_SIZE, ALL_OWNERS } from "./config";
-import { calculateContractValue, resolveOwnerName } from "./contracts";
+import { calculateContractValue, resolveOwnerName, canonicalContractPlayerId } from "./contracts";
 import { getDisplayName } from "./sleeper";
 
 export { calculateContractValue };
@@ -126,7 +126,9 @@ export function deriveRosterFromContracts(
     )
     .map((c) => ({
       owner: resolveOwnerName(c.owner),
-      playerId: c.playerId,
+      // Canonical Sleeper id so a nickname-keyed defense ("Texans") still
+      // matches the roster's abbreviation ("HOU") in attributeRosterToSleeperOwners.
+      playerId: canonicalContractPlayerId(c),
       player: c.player,
       position: c.position,
       years: c.years,

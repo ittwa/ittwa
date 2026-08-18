@@ -1,5 +1,42 @@
 import { ContractRow, ContractWithValue } from "@/types/contracts";
-import { CONTRACT_VALUE_MULTIPLIERS, OWNER_LAST_NAME_MAP } from "./config";
+import { CONTRACT_VALUE_MULTIPLIERS, OWNER_LAST_NAME_MAP, NFL_TEAMS } from "./config";
+
+// ── Team-defense id canonicalization ─────────────────────────────────────────
+//
+// Sleeper keys every team defense by its team abbreviation ("HOU"). The
+// Contracts sheet, however, has keyed defenses by abbreviation in older seasons
+// and by nickname ("Texans") in newer ones — so a single defense ends up under
+// two different player_ids. That splits it into two "players": the Sleeper
+// roster (which uses "HOU") joins the stale abbreviation row and shows the
+// current nickname-keyed contract as missing (rendered $0/0). Collapsing both
+// to the Sleeper abbreviation fixes every defense at once.
+const DEF_POSITIONS = new Set(["DEF", "DST", "D/ST"]);
+
+const DEF_ALIAS_TO_ABBREV: Record<string, string> = (() => {
+  const m: Record<string, string> = {};
+  for (const [abbrev, fullName] of Object.entries(NFL_TEAMS)) {
+    m[abbrev.toLowerCase()] = abbrev; // "HOU"
+    m[fullName.toLowerCase()] = abbrev; // "houston texans"
+    const nickname = fullName.split(" ").pop(); // "Texans"
+    if (nickname) m[nickname.toLowerCase()] = abbrev;
+  }
+  return m;
+})();
+
+// Canonical player_id for a contract row. Team defenses resolve to the Sleeper
+// team abbreviation (from the sheet's abbreviation, nickname, or full name);
+// every other row is returned unchanged.
+export function canonicalContractPlayerId(
+  contract: Pick<ContractRow, "playerId" | "player" | "position">,
+): string {
+  if (DEF_POSITIONS.has((contract.position || "").toUpperCase())) {
+    const fromId = DEF_ALIAS_TO_ABBREV[(contract.playerId || "").toLowerCase().trim()];
+    if (fromId) return fromId;
+    const fromName = DEF_ALIAS_TO_ABBREV[(contract.player || "").toLowerCase().trim()];
+    if (fromName) return fromName;
+  }
+  return contract.playerId;
+}
 
 // Contract Status = "Active" is the SINGLE SOURCE OF TRUTH for whether a player
 // appears anywhere on the site.
@@ -85,11 +122,15 @@ export function getLatestActiveContracts(contracts: ContractRow[]): ContractWith
 
   const latest = new Map<string, ContractRow>();
   for (const c of sorted) {
+    // Defenses key by their canonical Sleeper abbreviation so a team's
+    // abbreviation- and nickname-keyed rows collapse to one player and the most
+    // recent season wins — matching how Sleeper rosters reference the defense.
+    const canonicalId = canonicalContractPlayerId(c);
     const key =
-      c.playerId && c.playerId !== "#N/A" && c.playerId !== "N/A" && c.playerId !== ""
-        ? c.playerId
+      canonicalId && canonicalId !== "#N/A" && canonicalId !== "N/A" && canonicalId !== ""
+        ? canonicalId
         : c.player.toLowerCase().trim();
-    latest.set(key, c);
+    latest.set(key, canonicalId !== c.playerId ? { ...c, playerId: canonicalId } : c);
   }
 
   return [...latest.values()].map(enrichContract);
