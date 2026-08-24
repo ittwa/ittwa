@@ -14,7 +14,7 @@ import {
 } from "@/lib/data";
 import { getNFLPlayers, getDisplayName } from "@/lib/sleeper";
 import { getTeamValueSums, type TeamValueSums } from "@/lib/trade-analyzer/player-values";
-import { OWNER_LAST_NAME_MAP, SALARY_CAP, YEARS_CAP } from "@/lib/config";
+import { OWNER_LAST_NAME_MAP, SALARY_CAP, YEARS_CAP, AUCTION_DATE } from "@/lib/config";
 import { TeamsClient, type TeamDirectoryEntry } from "./teams-client";
 
 function getOwnerLastName(displayName: string): string {
@@ -45,8 +45,17 @@ export default async function TeamsPage() {
   const standings = calculateStandings(teams, allMatchups);
   const allActiveContracts = getLatestActiveContracts(contracts);
   const currentSeasonNum = parseInt(season, 10);
-  const seasonStarted = allMatchups.size > 0;
-  const capHitYear = seasonStarted ? currentSeasonNum + 1 : currentSeasonNum;
+  // Once the current league season's FA auction has happened, rosters are set
+  // and paid, so the cap directory looks forward to the next season: expiring
+  // 1-year deals free up and only multi-year salaries + penalties carry over.
+  // AUCTION_DATE always points at the upcoming auction, so the current season's
+  // auction is complete when that date has rolled to a later year than the
+  // league season, or — while still in the current season — once it has passed.
+  // (Mirrors the per-team page so both views agree.)
+  const auctionYear = AUCTION_DATE.getFullYear();
+  const currentAuctionDone =
+    auctionYear > currentSeasonNum || (auctionYear === currentSeasonNum && new Date() >= AUCTION_DATE);
+  const capHitYear = currentAuctionDone ? currentSeasonNum + 1 : currentSeasonNum;
   const playoffTeams = league.settings.playoff_teams || 6;
 
   const teamNames: Record<string, string> = {};
@@ -95,6 +104,7 @@ export default async function TeamsPage() {
     const ownerKey = ownerLastName.toLowerCase();
 
     let playerSalary = 0;
+    let playerSalaryMulti = 0;
     let playerYears = 0;
     let expiringContracts = 0;
     const pos: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0, K: 0, DEF: 0 };
@@ -110,6 +120,7 @@ export default async function TeamsPage() {
         playerSalary += contract.salary;
         playerYears += contract.years;
         if (contract.years <= 1) expiringContracts++;
+        if (contract.years > 1) playerSalaryMulti += contract.salary; // carries into next season
       }
       const position = sp?.position || contract?.position;
       if (position && position in pos) pos[position]++;
@@ -125,7 +136,10 @@ export default async function TeamsPage() {
       }
     }
 
-    const committed = playerSalary + dpSalary;
+    // Forward-looking: only multi-year salaries stay on next season's books —
+    // expiring 1-year deals fall off, and current-season draft picks convert
+    // separately. Before the auction, the full current roster + picks count.
+    const committed = currentAuctionDone ? playerSalaryMulti : playerSalary + dpSalary;
     const yearsUsed = playerYears + dpYears;
     const dead = (capHitsByOwner.get(ownerKey) ?? [])
       .reduce((s, ch) => s + (ch.yearlyHits[capHitYear] ?? 0), 0);
@@ -157,5 +171,5 @@ export default async function TeamsPage() {
     };
   });
 
-  return <TeamsClient teams={entries} season={season} ownerAvatars={ownerAvatars} />;
+  return <TeamsClient teams={entries} season={season} capSeason={capHitYear} ownerAvatars={ownerAvatars} />;
 }

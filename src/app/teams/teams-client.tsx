@@ -458,7 +458,7 @@ function CapBarRow({ team, max, isHover, onHover }: {
   );
 }
 
-function CapChart({ teams, hovered, onHover }: { teams: TeamDirectoryEntry[]; hovered: string | null; onHover: (n: string | null) => void }) {
+function CapChart({ teams, capSeason, hovered, onHover }: { teams: TeamDirectoryEntry[]; capSeason: number; hovered: string | null; onHover: (n: string | null) => void }) {
   const { sorted, max } = useMemo(() => {
     const s = [...teams].sort((a, b) => b.capRem - a.capRem);
     return { sorted: s, max: Math.max(SALARY_CAP, ...s.map((t) => t.capCommit + t.capDead + Math.max(t.capRem, 0))) };
@@ -467,7 +467,7 @@ function CapChart({ teams, hovered, onHover }: { teams: TeamDirectoryEntry[]; ho
     <ChartFrame
       title="Cap Breakdown"
       color={EMERALD}
-      subtitle={`Remaining + Committed + Dead · Cap floor $${SALARY_CAP}`}
+      subtitle={`${capSeason} · Remaining + Committed + Dead · Cap floor $${SALARY_CAP}`}
       footer={
         <InsightLegend
           items={[
@@ -699,7 +699,7 @@ function ValueChart({ teams, hovered, onHover }: { teams: TeamDirectoryEntry[]; 
   );
 }
 
-function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
+function InsightsBoard({ teams, capSeason }: { teams: TeamDirectoryEntry[]; capSeason: number }) {
   const [hovered, setHovered] = useState<string | null>(null);
   const overCap = useMemo(() => teams.filter((t) => t.yearsRem < 0), [teams]);
   const tightOnSpace = useMemo(() => teams.filter((t) => t.capRem < 30), [teams]);
@@ -759,7 +759,7 @@ function InsightsBoard({ teams }: { teams: TeamDirectoryEntry[] }) {
 
       <div className={hasValues ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3" : "grid grid-cols-1 md:grid-cols-3 gap-3"}>
         {hasValues && <ValueChart teams={teams} hovered={hovered} onHover={setHovered} />}
-        <CapChart teams={teams} hovered={hovered} onHover={setHovered} />
+        <CapChart teams={teams} capSeason={capSeason} hovered={hovered} onHover={setHovered} />
         <RosterChart teams={teams} hovered={hovered} onHover={setHovered} />
         <YearsChart teams={teams} hovered={hovered} onHover={setHovered} />
       </div>
@@ -840,7 +840,7 @@ function Segmented<T extends string>({
 
 // ── Main Client Component ────────────────────────────────────────────────────
 
-export function TeamsClient({ teams, season, ownerAvatars }: { teams: TeamDirectoryEntry[]; season: string; ownerAvatars: Record<string, string> }) {
+export function TeamsClient({ teams, season, capSeason, ownerAvatars }: { teams: TeamDirectoryEntry[]; season: string; capSeason: number; ownerAvatars: Record<string, string> }) {
   const [view, setView] = useState<ViewMode>("grid");
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [sort, setSort] = useState<SortKey>("cap");
@@ -907,7 +907,7 @@ export function TeamsClient({ teams, season, ownerAvatars }: { teams: TeamDirect
 
       <LeagueRibbon teams={teams} />
 
-      <InsightsBoard teams={teams} />
+      <InsightsBoard teams={teams} capSeason={capSeason} />
 
       <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
         <div className="flex items-center gap-3">
