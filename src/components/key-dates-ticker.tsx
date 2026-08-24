@@ -6,13 +6,13 @@ import type { KeyDate } from "@/lib/key-dates";
 // in a preview build). The live banner is driven by the `events` prop sourced
 // from the Google Sheet so edits there show up here.
 const FALLBACK_EVENTS: KeyDate[] = [
-  { season: "2026", week: -1, date: "2026-04-27T12:00:00", event: "Rookie Draft", note: "" },
-  { season: "2026", week: -1, date: "2026-05-14T12:00:00", event: "5th Year Tag Deadline", note: "" },
-  { season: "2026", week: -1, date: "2026-06-19T12:00:00", event: "Franchise Tag Deadline", note: "" },
-  { season: "2026", week: -1, date: "2026-08-11T12:00:00", event: "Rosters Lock", note: "Pre-auction" },
-  { season: "2026", week: 0, date: "2026-08-18T19:00:00", event: "FA Auction", note: "7:00 PM" },
-  { season: "2026", week: 10, date: "2026-11-12T12:00:00", event: "Trade Deadline", note: "Wk 10" },
-  { season: "2026", week: 15, date: "2026-12-10T12:00:00", event: "Rosters Lock", note: "Wk 15" },
+  { season: "2027", week: -1, date: "2027-04-26T12:00:00", event: "Rookie Draft", note: "" },
+  { season: "2027", week: -1, date: "2027-05-14T12:00:00", event: "5th Year Tag Deadline", note: "" },
+  { season: "2027", week: -1, date: "2027-06-18T12:00:00", event: "Franchise Tag Deadline", note: "" },
+  { season: "2027", week: -1, date: "2027-08-10T12:00:00", event: "Rosters Lock", note: "Pre-auction" },
+  { season: "2027", week: 0, date: "2027-08-17T19:00:00", event: "FA Auction", note: "7:00 PM" },
+  { season: "2027", week: 10, date: "2027-11-11T12:00:00", event: "Trade Deadline", note: "Wk 10" },
+  { season: "2027", week: 15, date: "2027-12-09T12:00:00", event: "Rosters Lock", note: "Wk 15" },
 ];
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
