@@ -245,24 +245,34 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   const rosterYears = rosterPlayers.reduce((sum, p) => sum + (p.years ?? 0), 0) + draftPickYears;
   const maxRosterSalary = Math.max(...rosterPlayers.map((p) => p.salary ?? 0), 1);
 
-  const seasonStarted = allMatchups.size > 0;
-  const capHitYear = seasonStarted ? currentSeasonNum + 1 : currentSeasonNum;
+  // Once the current league season's FA auction has happened, the roster is set
+  // and fully paid for that season, so the cap view pivots to planning the NEXT
+  // season: expiring 1-year deals fall off and only cap penalties + multi-year
+  // salaries carry forward. AUCTION_DATE always points at the upcoming auction,
+  // so the current season's auction is complete either when AUCTION_DATE has
+  // already been rolled to a later year than the league season, or — while it
+  // still points at the current season — once that date has passed. This one
+  // signal drives both the stat cards and the cap-hit table so they agree.
+  const auctionYear = AUCTION_DATE.getFullYear();
+  const currentAuctionDone =
+    auctionYear > currentSeasonNum || (auctionYear === currentSeasonNum && new Date() >= AUCTION_DATE);
+  const displaySeason = currentAuctionDone ? currentSeasonNum + 1 : currentSeasonNum;
+  const capHitYear = displaySeason;
 
   const ownerCapHitRows = capHits.filter((ch) => ch.owner.toLowerCase() === ownerLastName.toLowerCase());
   const capHitTotal = ownerCapHitRows.reduce((sum, ch) => sum + (ch.yearlyHits[capHitYear] ?? 0), 0);
 
-  const capSpaceSalary = seasonStarted
+  // Salary on the books for the display season. Looking ahead, only players
+  // whose contracts extend past the current season (years > 1) still count —
+  // expiring 1-year deals free up. Before the auction, the whole current roster
+  // salary counts against the cap.
+  const capSpaceSalary = currentAuctionDone
     ? rosterPlayers.filter((p) => (p.years ?? 0) > 1).reduce((sum, p) => sum + (p.salary ?? 0), 0)
     : rosterSalary;
   const capSpace = SALARY_CAP - capSpaceSalary - capHitTotal;
 
-  const isBeforeAuction = new Date() < AUCTION_DATE;
-  const displaySeason = isBeforeAuction ? currentSeasonNum : currentSeasonNum + 1;
   const ownerCapHits = ownerCapHitRows.filter((ch) =>
-    Object.entries(ch.yearlyHits).some(([year, value]) => {
-      const y = parseInt(year, 10);
-      return (isBeforeAuction ? y >= currentSeasonNum : y > currentSeasonNum) && value > 0;
-    })
+    Object.entries(ch.yearlyHits).some(([year, value]) => parseInt(year, 10) >= displaySeason && value > 0)
   );
 
   const nameToPlayerId = new Map<string, string>();
