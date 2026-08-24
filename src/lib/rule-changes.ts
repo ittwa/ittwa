@@ -11,8 +11,8 @@ export type RuleChange = {
 
 export const ruleChanges: RuleChange[] = [
   // --- 2026 ---
-  { season: 2026, rule: "Remove Years Cap", description: "Proposal to get rid of the years cap starting in 2027", proposedBy: "Albarran", result: "Pending", implementedSeason: null },
-  { season: 2026, rule: "Remove Tag Rights Trading", description: "Get rid of the ability to trade tag rights", proposedBy: "Williams", result: "Pending", implementedSeason: null },
+  { season: 2026, rule: "Remove Years Cap", description: "Proposal to get rid of the years cap starting in 2027", proposedBy: "Albarran", result: "Denied", implementedSeason: null },
+  { season: 2026, rule: "Remove Tag Rights Trading", description: "Get rid of the ability to trade tag rights of any kind — both Franchise Tag and RFA (MATCH) rights", proposedBy: "Williams", result: "Passed", implementedSeason: 2027 },
 
   // --- 2025 ---
   { season: 2025, rule: "Reduce Draft Pick Timer", description: "Reduce draft pick time to 4 hours per pick and keep pause overnight from 10pm to 8am", proposedBy: "Durkin", result: "Passed", implementedSeason: 2026 },

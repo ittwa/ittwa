@@ -359,8 +359,8 @@ export default function ConstitutionPage() {
               <SubHeader>Draft Pick Trading Window</SubHeader>
               <P>Rookie draft picks may be traded up to two (2) years in advance.</P>
 
-              <SubHeader>Trading RFA Rights</SubHeader>
-              <P>Owners may trade Restricted Free Agent (RFA) matching rights. The acquiring owner gains the ability to match the highest bid on that player during the Free Agent Auction.</P>
+              <SubHeader>Trading Tag Rights</SubHeader>
+              <P>As of 2027, tag rights of any kind may no longer be traded — this covers both Franchise Tag rights and Restricted Free Agent (RFA) matching rights. If an owner wants to move a player they intend to tag, they must apply the tag first and then trade the player.</P>
 
               <SectionHeader id="waiver-wire" title="11. Waiver Wire" />
               <InfoBox>
