@@ -607,7 +607,7 @@ function SortTh({ label, field, sortKey, sortDir, onSort, align = "left", classN
   );
 }
 
-const BREAKDOWN_COLS = [2023, 2024, 2025, 2026, 2027];
+const BREAKDOWN_COLS = [2024, 2025, 2026, 2027, 2028];
 
 function BreakdownTable({ rows, season, ownersFilter, search, posFilter, ownerDivisions }: {
   rows: CapHitClientRow[]; season: number; ownersFilter: string[] | null;
