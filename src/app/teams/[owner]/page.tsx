@@ -7,7 +7,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { getTeamsData, calculateStandings, getContracts, getCapHits, getAllTransactions, buildRosterOwnerMap, getLatestActiveContracts, getLeagueUsers, getLeagueHistory } from "@/lib/data";
-import { getCachedNflPosRanks } from "@/lib/cached-stats";
+import { getCachedLatestNflPosRanks } from "@/lib/cached-stats";
 import { getPlayerValueMap } from "@/lib/trade-analyzer/player-values";
 import { getNFLPlayers, getDisplayName } from "@/lib/sleeper";
 import { OWNER_LAST_NAME_MAP, AUCTION_DATE, SALARY_CAP, ROSTER_SIZE } from "@/lib/config";
@@ -201,8 +201,8 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
 
   const { teams, season, currentWeek, allMatchups, allScheduleMatchups } = teamsData;
 
-  const prevSeason = String(parseInt(season, 10) - 1);
-  const posRanks = await getCachedNflPosRanks(prevSeason, nflPlayers, false);
+  // Current-season ranks once games have been played (last season's before that).
+  const posRanks = await getCachedLatestNflPosRanks(season, nflPlayers);
   const standings = calculateStandings(teams, allMatchups);
 
   const team = standings.find((t) => t.displayName === ownerName);

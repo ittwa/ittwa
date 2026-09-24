@@ -40,8 +40,8 @@ export interface SeasonRecordItem {
 }
 
 export interface SeasonSummary {
-  highScore: { value: string; detail: string };
-  lowScore: { value: string; detail: string };
+  highScore: { value: string; detail: string; owner?: string };
+  lowScore: { value: string; detail: string; owner?: string };
   leaders: { label: string; name: string; value: string; colorType: string }[];
 }
 
@@ -387,8 +387,8 @@ export function computeSeasonSummaries(scores: ScoreRow[]): Record<string, Seaso
     }
 
     result[season] = {
-      highScore: { value: high.pts.toFixed(1), detail: `${resolveOwner(high.owner)} · Week ${high.week}` },
-      lowScore: { value: low.pts === Infinity ? "—" : low.pts.toFixed(1), detail: low.pts === Infinity ? "—" : `${resolveOwner(low.owner)} · Week ${low.week}` },
+      highScore: { value: high.pts.toFixed(1), detail: `${resolveOwner(high.owner)} · Week ${high.week}`, owner: resolveOwner(high.owner) || undefined },
+      lowScore: { value: low.pts === Infinity ? "—" : low.pts.toFixed(1), detail: low.pts === Infinity ? "—" : `${resolveOwner(low.owner)} · Week ${low.week}`, owner: low.pts === Infinity ? undefined : resolveOwner(low.owner) || undefined },
       leaders: [
         { label: "Points Leader", name: resolveOwner(pfArr[0]?.[0] || ""), value: pfArr[0]?.[1]?.toFixed(1) || "—", colorType: "gold" },
         { label: "Best Record", name: resolveOwner(best?.owner || ""), value: best ? `${best.w}–${best.l}` : "—", colorType: "emerald" },

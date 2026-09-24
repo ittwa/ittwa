@@ -7,14 +7,15 @@ import {
   getTeamsData,
   buildRosterOwnerMap,
   calculateStandings,
+  getNFLPlayers,
 } from "@/lib/data";
 import { getDisplayName } from "@/lib/sleeper";
 import { LEAGUE_ID, SEASON_LEAGUE_IDS, SALARY_CAP, SALARY_FLOOR, YEARS_CAP, ALL_OWNERS, CACHE_TAGS } from "@/lib/config";
 import { computeLuckIndex, type AllPlayRecord } from "@/lib/luck-index";
-import { computeWeeklyRecaps, type WeeklyRecap } from "@/lib/weekly-recap";
+import { computeWeeklyRecaps, type WeeklyRecap, type PlayerLookup } from "@/lib/weekly-recap";
 import { buildHeadToHeadMatrix, type H2HMatrix, type H2HGame } from "@/lib/head-to-head";
 import type { StandingsEntry } from "@/lib/standings";
-import type { SleeperMatchup } from "@/types/sleeper";
+import type { SleeperMatchup, SleeperPlayersMap } from "@/types/sleeper";
 
 // ── Winners bracket (defending champion) ────────────────────────────────────
 // The Sleeper winners-bracket endpoint isn't covered by the (do-not-touch)
@@ -53,10 +54,37 @@ export interface SeasonStats {
   lastCompletedWeek: number;
 }
 
+// Slim player_id → name/position lookup covering only the players in these
+// matchups, for the recap's player callouts. Defenses read as "Bills D/ST".
+function buildPlayerLookup(
+  weeks: Map<number, SleeperMatchup[]>,
+  nflPlayers: SleeperPlayersMap,
+): PlayerLookup {
+  const lookup: PlayerLookup = {};
+  for (const [, matchups] of weeks) {
+    for (const m of matchups) {
+      for (const pid of m.players ?? []) {
+        if (lookup[pid]) continue;
+        const p = nflPlayers[pid];
+        if (!p) continue;
+        const name =
+          p.position === "DEF"
+            ? `${p.last_name} D/ST`
+            : p.full_name || `${p.first_name} ${p.last_name}`.trim();
+        if (name) lookup[pid] = { name, position: p.position };
+      }
+    }
+  }
+  return lookup;
+}
+
 async function computeSeasonStats(leagueId: string): Promise<SeasonStats> {
-  const [teamsData, league] = await Promise.all([
+  const [teamsData, league, nflPlayers] = await Promise.all([
     getTeamsData(leagueId),
     getLeague(leagueId),
+    // Player names only flavor the recap; if the players feed is down, the
+    // recap just skips player callouts.
+    getNFLPlayers().catch((): SleeperPlayersMap => ({})),
   ]);
 
   const standings = calculateStandings(teamsData.teams, teamsData.allMatchups);
@@ -79,7 +107,7 @@ async function computeSeasonStats(leagueId: string): Promise<SeasonStats> {
     season: teamsData.season,
     standings,
     luck: computeLuckIndex(regular),
-    recaps: computeWeeklyRecaps(regular, rosterOwnerMap),
+    recaps: computeWeeklyRecaps(regular, rosterOwnerMap, buildPlayerLookup(regular, nflPlayers)),
     rosterOwnerMap,
     lastCompletedWeek,
   };

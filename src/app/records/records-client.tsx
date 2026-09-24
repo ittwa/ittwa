@@ -89,6 +89,19 @@ function OwnerAvatar({ name, size = 24 }: { name: string; size?: number }) {
   );
 }
 
+// Card footer line: owner avatar + name, followed by optional detail text
+// (e.g. " · Week 4"). Falls back to plain text when there's no owner.
+function OwnerDetail({ owner, detail }: { owner?: string; detail: string }) {
+  if (!owner || owner === "—" || owner === "N/A") return <div className="text-xs text-muted-foreground mt-2">{owner || "—"}{detail}</div>;
+  return (
+    <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5 min-w-0">
+      <OwnerAvatar name={owner} size={18} />
+      <OwnerLink name={owner} className="truncate hover:underline underline-offset-2">{owner}</OwnerLink>
+      {detail && <span className="shrink-0">{detail}</span>}
+    </div>
+  );
+}
+
 type SortKey = "owner" | "wins" | "losses" | "winPct" | "pf" | "rings" | "playoffs";
 type HardwareSortKey = "owner" | "golds" | "silvers" | "bronzes" | "total";
 type PayoutSortKey = "owner" | "seasons" | "dues" | "winnings" | "net" | "roi";
@@ -352,7 +365,14 @@ export function RecordsClient({
                     <div className="text-[10px] text-muted-foreground tracking-widest uppercase mt-0.5">
                       Championship{ringLeaders[idx]?.rings !== 1 ? "s" : ""}
                     </div>
-                    <div className="text-sm font-semibold mt-2">{ringLeaders[idx]?.owner ? <OwnerLink name={ringLeaders[idx].owner} className="hover:underline underline-offset-2">{ringLeaders[idx].owner}</OwnerLink> : "—"}</div>
+                    <div className="text-sm font-semibold mt-2">
+                      {ringLeaders[idx]?.owner ? (
+                        <OwnerLink name={ringLeaders[idx].owner} className="inline-flex items-center justify-center gap-1.5 max-w-full hover:underline underline-offset-2">
+                          <OwnerAvatar name={ringLeaders[idx].owner} size={20} />
+                          <span className="truncate">{ringLeaders[idx].owner}</span>
+                        </OwnerLink>
+                      ) : "—"}
+                    </div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
                       {ringLeaders[idx]?.playoffs} playoff appearances
                     </div>
@@ -735,15 +755,15 @@ export function RecordsClient({
               <SectionLabel label="Game Records" />
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "Highest Single-Game Score", value: highestScore.points.toFixed(2), detail: `${highestScore.name} · Week ${highestScore.week}`, color: "#E8B84B" },
-                  { label: "Lowest Single-Game Score", value: lowestScore.points.toFixed(2), detail: `${lowestScore.name} · Week ${lowestScore.week}`, color: "#FD4A48" },
-                  { label: "Longest Win Streak", value: `${streaks.longestWin.count}W`, detail: streaks.longestWin.name, color: "#4ade80" },
-                  { label: "Longest Losing Streak", value: `${streaks.longestLoss.count}L`, detail: streaks.longestLoss.name, color: "#FD4A48" },
+                  { label: "Highest Single-Game Score", value: highestScore.points.toFixed(2), owner: highestScore.name, detail: ` · Week ${highestScore.week}`, color: "#E8B84B" },
+                  { label: "Lowest Single-Game Score", value: lowestScore.points.toFixed(2), owner: lowestScore.name, detail: ` · Week ${lowestScore.week}`, color: "#FD4A48" },
+                  { label: "Longest Win Streak", value: `${streaks.longestWin.count}W`, owner: streaks.longestWin.name, detail: "", color: "#4ade80" },
+                  { label: "Longest Losing Streak", value: `${streaks.longestLoss.count}L`, owner: streaks.longestLoss.name, detail: "", color: "#FD4A48" },
                 ].map((r) => (
                   <RCard key={r.label} className="p-5">
                     <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-2.5">{r.label}</div>
                     <div className="font-heading text-[42px] font-black leading-none" style={{ color: r.color }}>{r.value}</div>
-                    <div className="text-xs text-muted-foreground mt-2">{r.detail}</div>
+                    <OwnerDetail owner={r.owner} detail={r.detail} />
                   </RCard>
                 ))}
               </div>
@@ -862,7 +882,9 @@ export function RecordsClient({
                       <RCard key={r.label} className="p-5">
                         <div className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-2.5">{r.label}</div>
                         <div className="font-heading text-[42px] font-black leading-none" style={{ color: r.color }}>{r.value}</div>
-                        <div className="text-xs text-muted-foreground mt-2">{r.detail}</div>
+                        {r.owner && r.detail.startsWith(r.owner)
+                          ? <OwnerDetail owner={r.owner} detail={r.detail.slice(r.owner.length)} />
+                          : <div className="text-xs text-muted-foreground mt-2">{r.detail}</div>}
                       </RCard>
                     ))}
                   </div>

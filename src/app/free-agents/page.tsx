@@ -11,7 +11,7 @@ import {
   getLeagueUsers,
   getMatchups,
 } from "@/lib/data";
-import { getCachedNflPosRanks } from "@/lib/cached-stats";
+import { getCachedLatestNflPosRanks } from "@/lib/cached-stats";
 import { resolveOwnerName } from "@/lib/contracts";
 import { getDisplayName } from "@/lib/sleeper";
 import { SEASON_LEAGUE_IDS, ALL_OWNERS } from "@/lib/config";
@@ -70,7 +70,9 @@ export default async function FreeAgentsPage() {
   const rankSeasonId = SEASON_LEAGUE_IDS[rankSeason] || leagueId;
 
   const [nflPosRanks, playerPoints] = await Promise.all([
-    getCachedNflPosRanks(rankSeason, nflPlayers, rankSeason === season),
+    // Position badges show current-season ranks (matching Sleeper); "Last Pts"
+    // below stays on the last completed season.
+    getCachedLatestNflPosRanks(season, nflPlayers),
     (async () => {
       const pts = new Map<string, number>();
       const fetches = [];

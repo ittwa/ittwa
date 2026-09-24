@@ -365,6 +365,7 @@ export function RankingsClient({
       {
         label: "Power #1",
         value: powerOne.displayName,
+        owner: powerOne,
         sub: `${powerOne.actualWins}-${powerOne.actualLosses} · ${powerOne.allPlayWins}-${powerOne.allPlayLosses} AP`,
         color: "#E8B84B",
         icon: "★",
@@ -372,6 +373,7 @@ export function RankingsClient({
       {
         label: "Biggest Riser",
         value: biggestRiser?.displayName || "—",
+        owner: biggestRiser,
         sub: biggestRiser
           ? `▲${biggestRiser.rankChange} spots this week`
           : "No movement",
@@ -381,6 +383,7 @@ export function RankingsClient({
       {
         label: "Biggest Faller",
         value: biggestFaller?.displayName || "—",
+        owner: biggestFaller,
         sub: biggestFaller
           ? `▼${Math.abs(biggestFaller.rankChange)} spots this week`
           : "No movement",
@@ -390,6 +393,7 @@ export function RankingsClient({
       {
         label: "Most Unlucky",
         value: mostUnlucky.displayName,
+        owner: mostUnlucky,
         sub: `${(mostUnlucky.luckIndex * 100).toFixed(1)}% luck index`,
         color: "#60a5fa",
         icon: "◎",
@@ -589,10 +593,18 @@ export function RankingsClient({
                 {card.label}
               </div>
               <div
-                className="font-heading text-[22px] font-extrabold leading-none"
+                className="font-heading text-[22px] font-extrabold leading-none flex items-center gap-2 min-w-0"
                 style={{ color: card.color }}
               >
-                {card.value}
+                {card.owner && (
+                  <OwnerAvatar
+                    name={card.owner.displayName}
+                    avatarId={ownerAvatars[card.owner.displayName]}
+                    division={card.owner.division || undefined}
+                    size={24}
+                  />
+                )}
+                <span className="truncate">{card.value}</span>
               </div>
               <div className="text-[11px] text-muted-foreground mt-1 font-mono">
                 {card.sub}

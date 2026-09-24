@@ -134,3 +134,18 @@ export async function getCachedNflPosRanks(
   );
   return cached(season);
 }
+
+/**
+ * Positional ranks "as of now": the current season's NFL-wide ranks once any
+ * games have been played, otherwise (preseason / offseason, when the current
+ * season has no stats yet) the last completed season's final ranks. This is
+ * what Sleeper's Players view shows, so roster badges line up with the app.
+ */
+export async function getCachedLatestNflPosRanks(
+  currentSeason: string,
+  nflPlayers: SleeperPlayersMap,
+): Promise<Record<string, number>> {
+  const current = await getCachedNflPosRanks(currentSeason, nflPlayers, true);
+  if (Object.keys(current).length > 0) return current;
+  return getCachedNflPosRanks(String(parseInt(currentSeason, 10) - 1), nflPlayers, false);
+}
