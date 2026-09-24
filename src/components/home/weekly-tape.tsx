@@ -17,19 +17,22 @@ function SectionTick({ label, accent = "#E8B84B" }: { label: string; accent?: st
   );
 }
 
-// One small award chip — an emoji, a label, the owner, and a stat line.
+// One small award chip — an emoji, a label, the owner (optionally with a
+// player name), and a stat line.
 function AwardChip({
   emoji,
   label,
   owner,
   avatarId,
   detail,
+  player,
 }: {
   emoji: string;
   label: string;
   owner: string;
   avatarId?: string;
   detail: string;
+  player?: string;
 }) {
   const dc = getDivColorsByOwner(owner);
   return (
@@ -38,9 +41,18 @@ function AwardChip({
       <OwnerBadgeAvatar owner={owner} avatarId={avatarId} size={28} />
       <div className="min-w-0 flex-1">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-        <OwnerLink name={owner} className="text-sm font-semibold truncate block hover:underline" style={{ color: dc.text }}>
-          {owner}
-        </OwnerLink>
+        {player ? (
+          <p className="text-sm font-semibold truncate">
+            {player}{" "}
+            <OwnerLink name={owner} className="text-xs font-medium hover:underline" style={{ color: dc.text }}>
+              ({owner})
+            </OwnerLink>
+          </p>
+        ) : (
+          <OwnerLink name={owner} className="text-sm font-semibold truncate block hover:underline" style={{ color: dc.text }}>
+            {owner}
+          </OwnerLink>
+        )}
       </div>
       <span className="font-code text-xs text-muted-foreground tabular-nums shrink-0">{detail}</span>
     </div>
@@ -122,7 +134,7 @@ export function WeeklyTape({
             </div>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: motwColors.text }}>
-                Week {recap.week} · Manager of the Week
+                Week {recap.week} · On the Tape
               </p>
               <h3 className="font-heading text-2xl font-black leading-tight mt-0.5">{recap.headline}</h3>
             </div>
@@ -162,6 +174,26 @@ export function WeeklyTape({
             avatarId={ownerAvatars[recap.toilet.owner]}
             detail={recap.toilet.points.toFixed(1)}
           />
+          {recap.topPlayer && (
+            <AwardChip
+              emoji="🔥"
+              label="Player of the Week"
+              player={recap.topPlayer.name}
+              owner={recap.topPlayer.owner}
+              avatarId={ownerAvatars[recap.topPlayer.owner]}
+              detail={recap.topPlayer.points.toFixed(1)}
+            />
+          )}
+          {recap.dud && (
+            <AwardChip
+              emoji="🧊"
+              label="Dud of the Week"
+              player={recap.dud.name}
+              owner={recap.dud.owner}
+              avatarId={ownerAvatars[recap.dud.owner]}
+              detail={recap.dud.points.toFixed(1)}
+            />
+          )}
         </div>
       </CardContent>
     </Card>
