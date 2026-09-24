@@ -65,14 +65,16 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
-function OwnerAvatar({ name, division }: { name: string; division: string }) {
+function OwnerAvatar({ name, division, size = 30 }: { name: string; division: string; size?: number }) {
   const color = getDivisionColor(division);
   const avatarId = useOwnerAvatar(name);
   const initials = name.slice(0, 2).toUpperCase();
   return (
     <div
-      className="w-[30px] h-[30px] rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
+      className="rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
       style={{
+        width: size,
+        height: size,
         background: getDivisionColorAlpha(division, 0.1),
         border: `1px solid ${getDivisionColorAlpha(division, 0.2)}`,
       }}
@@ -113,16 +115,16 @@ function StatSummary({ standings, seasonStarted }: { standings: StandingsEntry[]
   // are arbitrary. Show the card shells with em-dashes until the season starts.
   const stats = seasonStarted
     ? [
-        { label: "Points Leader", owner: topScorer?.displayName, sub: `${topScorer?.pointsFor.toFixed(1)} PF`, color: "#E8B84B" },
-        { label: "Most Wins", owner: topWins?.displayName, sub: `${topWins?.wins}-${topWins?.losses} record`, color: "#4ade80" },
-        { label: "Hot Streak", owner: hotStreak?.displayName, sub: hotStreak?.streak || "—", color: "#FD4A48" },
-        { label: "Most Balanced", owner: tightest?.displayName, sub: `±${Math.abs((tightest?.pointsFor || 0) - (tightest?.pointsAgainst || 0)).toFixed(1)}`, color: "#60a5fa" },
+        { label: "Points Leader", owner: topScorer?.displayName, division: topScorer?.division, sub: `${topScorer?.pointsFor.toFixed(1)} PF`, color: "#E8B84B" },
+        { label: "Most Wins", owner: topWins?.displayName, division: topWins?.division, sub: `${topWins?.wins}-${topWins?.losses} record`, color: "#4ade80" },
+        { label: "Hot Streak", owner: hotStreak?.displayName, division: hotStreak?.division, sub: hotStreak?.streak || "—", color: "#FD4A48" },
+        { label: "Most Balanced", owner: tightest?.displayName, division: tightest?.division, sub: `±${Math.abs((tightest?.pointsFor || 0) - (tightest?.pointsAgainst || 0)).toFixed(1)}`, color: "#60a5fa" },
       ]
     : [
-        { label: "Points Leader", owner: undefined, sub: "—", color: "#E8B84B" },
-        { label: "Most Wins", owner: undefined, sub: "—", color: "#4ade80" },
-        { label: "Hot Streak", owner: undefined, sub: "—", color: "#FD4A48" },
-        { label: "Most Balanced", owner: undefined, sub: "—", color: "#60a5fa" },
+        { label: "Points Leader", owner: undefined, division: undefined, sub: "—", color: "#E8B84B" },
+        { label: "Most Wins", owner: undefined, division: undefined, sub: "—", color: "#4ade80" },
+        { label: "Hot Streak", owner: undefined, division: undefined, sub: "—", color: "#FD4A48" },
+        { label: "Most Balanced", owner: undefined, division: undefined, sub: "—", color: "#60a5fa" },
       ];
 
   return (
@@ -131,7 +133,12 @@ function StatSummary({ standings, seasonStarted }: { standings: StandingsEntry[]
         <div key={s.label} className="bg-card border border-border rounded-[10px] px-4 py-3.5">
           <div className="text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground mb-1.5">{s.label}</div>
           <div className="font-heading text-[22px] font-extrabold leading-none" style={{ color: s.color }}>
-            {s.owner ? <OwnerLink name={s.owner} className="hover:underline underline-offset-2" style={{ color: s.color }}>{s.owner}</OwnerLink> : "—"}
+            {s.owner ? (
+              <OwnerLink name={s.owner} className="inline-flex items-center gap-2 min-w-0 hover:underline underline-offset-2" style={{ color: s.color }}>
+                <OwnerAvatar name={s.owner} division={s.division ?? ""} size={24} />
+                <span className="truncate">{s.owner}</span>
+              </OwnerLink>
+            ) : "—"}
           </div>
           <div className="text-[11px] text-muted-foreground mt-1">{s.sub}</div>
         </div>
@@ -140,7 +147,7 @@ function StatSummary({ standings, seasonStarted }: { standings: StandingsEntry[]
   );
 }
 
-type SortKey = "wins" | "pf" | "pa";
+type SortKey = "rank" | "wins" | "pf" | "pa";
 
 // ─── Props ─────────────────────────────────────────────────────────────────
 export interface StandingsClientProps {
@@ -160,11 +167,14 @@ export function StandingsClient({
   ownerAvatars,
 }: StandingsClientProps) {
   const [activeTab, setActiveTab] = useState<"overall" | "division">("overall");
-  const [sortCol, setSortCol] = useState<SortKey>("wins");
+  const [sortCol, setSortCol] = useState<SortKey>("rank");
   const [sortDir, setSortDir] = useState(-1);
 
   const sorted = useMemo(() => {
     return [...standings].sort((a, b) => {
+      // Standing order: `rank` comes from calculateStandings' full tiebreaker
+      // cascade (wins → H2H → div record → PF). -1 = 1st place first.
+      if (sortCol === "rank") return sortDir === -1 ? a.rank - b.rank : b.rank - a.rank;
       if (sortCol === "wins") return sortDir * (b.wins - a.wins || b.pointsFor - a.pointsFor);
       if (sortCol === "pf") return sortDir * (b.pointsFor - a.pointsFor);
       if (sortCol === "pa") return sortDir * (b.pointsAgainst - a.pointsAgainst);
@@ -181,6 +191,11 @@ export function StandingsClient({
   function handleSort(col: SortKey) {
     if (sortCol === col) setSortDir(d => d * -1);
     else { setSortCol(col); setSortDir(-1); }
+  }
+
+  function resetSort() {
+    if (sortCol === "rank") setSortDir(d => d * -1);
+    else { setSortCol("rank"); setSortDir(-1); }
   }
 
   const thCls = "px-4 py-2 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground whitespace-nowrap";
@@ -242,7 +257,13 @@ export function StandingsClient({
             <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
               <thead>
                 <tr className="border-b border-border">
-                  <th className={`${thCls} w-[50px] text-center`}>#</th>
+                  <th
+                    className={`${thCls} w-[50px] text-center cursor-pointer select-none`}
+                    style={{ color: sortCol === "rank" ? "#FD4A48" : undefined }}
+                    onClick={resetSort}
+                  >
+                    #{sortCol === "rank" ? (sortDir === -1 ? " ↓" : " ↑") : ""}
+                  </th>
                   <th className={`${thCls} w-[6px] !p-0`}></th>
                   <th className={`${thCls} text-left pl-2`}>Owner</th>
                   <th className={`${thCls} text-left hidden md:table-cell`}>Division</th>
@@ -274,7 +295,9 @@ export function StandingsClient({
               </thead>
               <tbody>
                 {sorted.map((entry, i) => {
-                  const rank = i + 1;
+                  // Rank badge shows true standing; row position only differs
+                  // when re-sorted by PF/PA.
+                  const rank = sortCol === "rank" ? entry.rank : i + 1;
                   const total = entry.wins + entry.losses;
                   // Playoff status comes from the canonical seeding map (keyed by
                   // rosterId), and only once the season has started — never during
@@ -283,8 +306,8 @@ export function StandingsClient({
                   const isPlayoff = !!slot;
                   const isDivLeader = slot?.type === "division";
                   // Cutoff divider after the last playoff seed, in the default
-                  // wins sort (where display order matches standings rank).
-                  const isPlayoffLine = isPlayoff && slot!.seed === PLAYOFF_SPOTS && sortCol === "wins";
+                  // standing sort (where display order matches standings rank).
+                  const isPlayoffLine = isPlayoff && slot!.seed === PLAYOFF_SPOTS && sortCol === "rank" && sortDir === -1;
                   return (
                     <Fragment key={entry.rosterId}>
                       <tr className="border-b border-border/50 hover:bg-accent/50 transition-colors">

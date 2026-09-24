@@ -138,7 +138,7 @@ function OwnerAvatar({ name, division, size = 40 }: { name: string; division: st
   return (
     <div
       style={{
-        width: size, height: size, borderRadius: 10, flexShrink: 0, overflow: "hidden",
+        width: size, height: size, borderRadius: Math.round(size / 4), flexShrink: 0, overflow: "hidden",
         background: d.bg, border: `1px solid ${d.border}`,
         display: "flex", alignItems: "center", justifyContent: "center",
       }}
@@ -780,12 +780,12 @@ function LeagueRibbon({ teams }: { teams: TeamDirectoryEntry[] }) {
     const mostExpiring = [...teams].sort((a, b) => b.expiringContracts - a.expiringContracts)[0];
     return [
       ...(mostValuable
-        ? [{ label: "Most Valuable", value: mostValuable.owner, sub: `${fmtK(totalValue(mostValuable))} asset value`, color: GOLD }]
+        ? [{ label: "Most Valuable", value: mostValuable.owner, division: mostValuable.division, sub: `${fmtK(totalValue(mostValuable))} asset value`, color: GOLD }]
         : []),
-      { label: "Most Cap Space", value: mostCap?.owner || "—", sub: mostCap ? `$${mostCap.capRem.toFixed(0)} remaining` : "", color: EMERALD },
-      { label: "Most Draft Picks", value: mostPicks?.owner || "—", sub: mostPicks ? `${mostPicks.picks} picks` : "", color: GOLD },
-      { label: "Most Years Used", value: mostYears?.owner || "—", sub: mostYears ? `${mostYears.yearsUsed} of ${YEARS_CAP}` : "", color: ACCENT },
-      { label: "Most Expiring", value: mostExpiring?.owner || "—", sub: mostExpiring ? `${mostExpiring.expiringContracts} contracts` : "", color: ROSE },
+      { label: "Most Cap Space", value: mostCap?.owner || "—", division: mostCap?.division, sub: mostCap ? `$${mostCap.capRem.toFixed(0)} remaining` : "", color: EMERALD },
+      { label: "Most Draft Picks", value: mostPicks?.owner || "—", division: mostPicks?.division, sub: mostPicks ? `${mostPicks.picks} picks` : "", color: GOLD },
+      { label: "Most Years Used", value: mostYears?.owner || "—", division: mostYears?.division, sub: mostYears ? `${mostYears.yearsUsed} of ${YEARS_CAP}` : "", color: ACCENT },
+      { label: "Most Expiring", value: mostExpiring?.owner || "—", division: mostExpiring?.division, sub: mostExpiring ? `${mostExpiring.expiringContracts} contracts` : "", color: ROSE },
     ];
   }, [teams]);
 
@@ -795,7 +795,12 @@ function LeagueRibbon({ teams }: { teams: TeamDirectoryEntry[] }) {
         <div key={s.label} style={{ background: CARD, border: `1px solid ${CARD_BORDER}`, borderRadius: 10, padding: "12px 14px" }}>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: MUTED, marginBottom: 4 }}>{s.label}</div>
           <div className="font-heading" style={{ fontSize: 20, fontWeight: 800, color: s.color, lineHeight: 1, letterSpacing: "0.02em", textTransform: "uppercase" }}>
-            {s.value === "—" ? s.value : <OwnerLink name={s.value} className="hover:underline underline-offset-2" style={{ color: "inherit" }}>{s.value}</OwnerLink>}
+            {s.value === "—" ? s.value : (
+              <OwnerLink name={s.value} className="inline-flex items-center gap-2 max-w-full hover:underline underline-offset-2" style={{ color: "inherit" }}>
+                <OwnerAvatar name={s.value} division={s.division ?? ""} size={22} />
+                <span className="truncate">{s.value}</span>
+              </OwnerLink>
+            )}
           </div>
           <div className="font-code" style={{ fontSize: 10, color: MUTED_TEXT, marginTop: 4 }}>{s.sub}</div>
         </div>
