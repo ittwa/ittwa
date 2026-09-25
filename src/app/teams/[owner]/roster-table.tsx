@@ -124,8 +124,8 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
     { key: "nflTeam", label: "Team", className: "px-4 py-3 text-left font-medium hidden sm:table-cell" },
     { key: "dpOriginalOwner", label: "DP Original Owner", className: "px-4 py-3 text-left font-medium hidden md:table-cell" },
     { key: "salary", label: "Salary", className: "px-4 py-3 text-right font-medium" },
-    { key: "value", label: "Value", className: "px-4 py-3 text-right font-medium", tooltip: VALUE_TOOLTIP },
     { key: "years", label: "Years", className: "px-4 py-3 text-center font-medium" },
+    { key: "value", label: "Value", className: "px-4 py-3 text-right font-medium", tooltip: VALUE_TOOLTIP },
   ];
 
   return (
@@ -202,6 +202,9 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
                       <span className="text-muted-foreground">{"—"}</span>
                     )}
                   </td>
+                  <td className="px-4 py-2.5 text-center tabular-nums">
+                    {p.years !== null ? p.years : <span className="text-muted-foreground">{"—"}</span>}
+                  </td>
                   <td className="px-4 py-2.5 text-right tabular-nums">
                     {p.value !== null && p.value !== undefined ? (
                       <span style={{ color: p.value > 0 ? "#4ade80" : p.value < 0 ? "#f87171" : undefined }}>
@@ -210,9 +213,6 @@ export function RosterTable({ players, maxRosterSalary, rosterSalary }: RosterTa
                     ) : (
                       <span className="text-muted-foreground">{"—"}</span>
                     )}
-                  </td>
-                  <td className="px-4 py-2.5 text-center tabular-nums">
-                    {p.years !== null ? p.years : <span className="text-muted-foreground">{"—"}</span>}
                   </td>
                 </tr>
               ))

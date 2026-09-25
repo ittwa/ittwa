@@ -485,8 +485,8 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
                 <SortTh label="Pos" field="position" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <SortTh label="Owner" field="owner" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <SortTh label="Salary" field="salary" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
-                <SortTh label="Value" field="value" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" tooltip={VALUE_TOOLTIP} />
                 <SortTh label="Yrs" field="years" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="center" />
+                <SortTh label="Value" field="value" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" tooltip={VALUE_TOOLTIP} />
                 <SortTh label="Signed" field="contractStartYear" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="center" />
                 <th className="px-3 py-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground text-center border-b border-border bg-secondary whitespace-nowrap">Tags</th>
               </tr>
@@ -523,11 +523,11 @@ export function ContractsClient({ contracts, season, availableSeasons, ownerAvat
                         <SalaryCell salary={c.salary} maxSalary={maxSalary} />
                       )}
                     </td>
-                    <td className="px-3 py-2 text-right">
-                      <ValueCell value={c.value} />
-                    </td>
                     <td className="px-3 py-2 text-center">
                       <YearBadge years={c.years} />
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <ValueCell value={c.value} />
                     </td>
                     <td className="px-3 py-2 text-center text-xs text-muted-foreground font-mono">{c.contractStartYear || "—"}</td>
                     <td className="px-3 py-2 pr-4 text-center">
