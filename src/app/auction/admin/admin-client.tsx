@@ -153,8 +153,8 @@ function OwnerRosterPanel({
           <span className="text-muted-foreground text-xs">{open ? "▾" : "▸"}</span>
         </button>
         <span className="font-code text-xs text-right">{cap.playersRostered}</span>
-        <span className="font-code text-xs text-right">{cap.yearsRostered}</span>
         <span className="font-code text-xs text-right">${cap.salaryRostered.toFixed(1)}</span>
+        <span className="font-code text-xs text-right">{cap.yearsRostered}</span>
         <span className="font-code text-xs text-right">${cap.cash.toFixed(1)}</span>
         <span className="font-code text-xs text-right">{cap.maxBid != null ? `$${cap.maxBid.toFixed(1)}` : "—"}</span>
         <div className="flex items-center gap-1 justify-end">
@@ -354,8 +354,8 @@ function SetupWizard({ defaultSeason }: { defaultSeason: string }) {
           <div className="font-heading text-sm font-bold uppercase tracking-[0.06em] mb-2 mt-4">Review Screen</div>
           <div className="bg-card border border-border rounded-[10px] overflow-hidden mb-6">
             <div className="px-3 py-2 grid grid-cols-[1.5fr_repeat(6,1fr)] gap-2 bg-secondary text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground">
-              <span>Owner</span><span className="text-right">Players</span><span className="text-right">Years</span>
-              <span className="text-right">Salary</span><span className="text-right">Cash</span><span className="text-right">Max Bid</span><span className="text-right">Cap Hit</span>
+              <span>Owner</span><span className="text-right">Players</span><span className="text-right">Salary</span>
+              <span className="text-right">Years</span><span className="text-right">Cash</span><span className="text-right">Max Bid</span><span className="text-right">Cap Hit</span>
             </div>
             {owners.map((o) => (
               <OwnerRosterPanel

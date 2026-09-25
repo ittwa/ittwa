@@ -783,13 +783,13 @@ function OwnerGridRow({ o }: { o: DerivedOwnerCap }) {
         </div>
       </td>
       <td className="px-3 py-2 text-right font-code text-sm whitespace-nowrap">{o.playersRostered}<span className="text-muted-foreground">/{o.spotsRemaining}</span></td>
+      <td className="px-3 py-2 text-right font-code text-sm whitespace-nowrap">${o.salaryRostered.toFixed(1)}</td>
       <td className="px-3 py-2 whitespace-nowrap">
         <div className="flex items-center gap-2 justify-end">
           <span className="font-code text-sm">{o.yearsRostered}<span className="text-muted-foreground">/{o.yearsRemaining}</span></span>
           {bar(o.yearsRostered, 60, GOLD)}
         </div>
       </td>
-      <td className="px-3 py-2 text-right font-code text-sm whitespace-nowrap">${o.salaryRostered.toFixed(1)}</td>
       <td className="px-3 py-2 text-right font-code text-sm font-bold whitespace-nowrap" style={{ color: capSpaceColor }}>
         ${o.cash.toFixed(1)}
       </td>
@@ -845,8 +845,8 @@ function OwnerGrid({ owners }: { owners: DerivedOwnerCap[] }) {
             <tr className="bg-secondary">
               <SortTh label="Owner" field="owner" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="sticky left-0 bg-secondary" />
               <SortTh label="Players" field="players" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
-              <SortTh label="Years" field="years" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
               <SortTh label="Salary" field="salary" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+              <SortTh label="Years" field="years" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
               <SortTh label="Cap Space" field="capSpace" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
               <SortTh label="Max Bid" field="maxBid" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
               <SortTh label="Max Yrs" field="maxYears" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
@@ -1095,8 +1095,8 @@ function DraftedPlayersTab({ results }: { results: AuctionResultRow[] }) {
               <SortTh label="Winner" field="winner" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
               <SortTh label="Player" field="player" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
               <SortTh label="Pos" field="position" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              <SortTh label="Yrs" field="years" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
               <SortTh label="Salary" field="salary" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+              <SortTh label="Yrs" field="years" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
             </tr>
           </thead>
           <tbody>
@@ -1122,8 +1122,8 @@ function DraftedPlayersTab({ results }: { results: AuctionResultRow[] }) {
                   </div>
                 </td>
                 <td className="px-3 py-2"><PosBadge pos={r.position} /></td>
-                <td className="px-3 py-2 text-right font-code text-sm">{r.years}</td>
                 <td className="px-3 py-2 text-right font-code text-sm">${r.salary.toFixed(1)}</td>
+                <td className="px-3 py-2 text-right font-code text-sm">{r.years}</td>
               </tr>
             ))}
           </tbody>
