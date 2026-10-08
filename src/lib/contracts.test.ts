@@ -60,3 +60,39 @@ describe("getLatestActiveContracts — defense id unification", () => {
     expect(latest.map((c) => c.playerId).sort()).toEqual(["HOU", "NYJ"]);
   });
 });
+
+describe("getLatestActiveContracts — cut / traded players", () => {
+  it("does not resurrect a prior season's Active row once the latest season's row is Cut", () => {
+    // Efton Chism: 2025 rookie deal stays "Active" in the sheet; the 2026 row
+    // was set to Cut. Whoever picks him up must not inherit the $2 / 5yr deal.
+    const rows = [
+      contract({ playerId: "12542", season: "2025", owner: "Clancy", player: "Efton Chism", years: 5, salary: 2, contractStatus: "Active" }),
+      contract({ playerId: "12542", season: "2026", owner: "Clancy", player: "Efton Chism", years: 4, salary: 2, contractStatus: "Cut" }),
+    ];
+    expect(getLatestActiveContracts(rows)).toEqual([]);
+  });
+
+  it("uses the new $0 / 0 pickup row written after a cut in the same season", () => {
+    const rows = [
+      contract({ playerId: "100", season: "2025", owner: "Clancy", years: 5, salary: 2, contractStatus: "Active" }),
+      contract({ playerId: "100", season: "2026", owner: "Clancy", years: 4, salary: 2, contractStatus: "Cut" }),
+      contract({ playerId: "100", season: "2026", owner: "HoganLamb", years: 0, salary: 0, contractStatus: "Active" }),
+    ];
+    const latest = getLatestActiveContracts(rows);
+    expect(latest).toHaveLength(1);
+    expect(latest[0]).toMatchObject({ owner: "HoganLamb", salary: 0, years: 0, isMidSeasonPickup: true });
+  });
+
+  it("follows the Active duplicate row on a trade", () => {
+    const rows = [
+      contract({ playerId: "200", season: "2026", owner: "Collins", years: 2, salary: 24, contractStatus: "Traded" }),
+      contract({ playerId: "200", season: "2026", owner: "Chapman", years: 2, salary: 24, contractStatus: "Active" }),
+    ];
+    expect(getLatestActiveContracts(rows).map((c) => c.owner)).toEqual(["Chapman"]);
+  });
+
+  it("still falls back to the latest season when the player has no newer row", () => {
+    const rows = [contract({ playerId: "300", season: "2025", owner: "Katz", years: 3, salary: 10, contractStatus: "Active" })];
+    expect(getLatestActiveContracts(rows).map((c) => c.season)).toEqual(["2025"]);
+  });
+});

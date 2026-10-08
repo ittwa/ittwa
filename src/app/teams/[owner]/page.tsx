@@ -209,6 +209,13 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   if (!team) return notFound();
 
   const ownerLastName = getOwnerLastName(ownerName);
+  // Every sheet spelling for this owner (e.g. HoganLamb is written as "Hogan",
+  // "Lamb" or "HoganLamb" in the sheet) — matching only the first alias hid
+  // that team's draft picks and dead cap.
+  const ownerSheetNames = new Set(
+    [ownerLastName, ownerName, ...Object.keys(OWNER_LAST_NAME_MAP).filter((k) => OWNER_LAST_NAME_MAP[k] === ownerName)]
+      .map((n) => n.toLowerCase()),
+  );
   const allActiveContracts = getLatestActiveContracts(contracts);
 
   const ownerAvatars: Record<string, string> = {};
@@ -224,7 +231,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
     .filter((c) =>
       c.contractStatus.toLowerCase() === "active" &&
       c.position.toLowerCase() === "draft pick" &&
-      c.owner.toLowerCase() === ownerLastName.toLowerCase() &&
+      ownerSheetNames.has(c.owner.toLowerCase()) &&
       parseInt(c.season, 10) >= currentSeasonNum
     )
     .sort((a, b) => {
@@ -259,7 +266,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ own
   const displaySeason = currentAuctionDone ? currentSeasonNum + 1 : currentSeasonNum;
   const capHitYear = displaySeason;
 
-  const ownerCapHitRows = capHits.filter((ch) => ch.owner.toLowerCase() === ownerLastName.toLowerCase());
+  const ownerCapHitRows = capHits.filter((ch) => ownerSheetNames.has(ch.owner.toLowerCase()));
   const capHitTotal = ownerCapHitRows.reduce((sum, ch) => sum + (ch.yearlyHits[capHitYear] ?? 0), 0);
 
   // Salary on the books for the display season. Looking ahead, only players
