@@ -49,7 +49,7 @@ Salary cap is $270. Cap floor is $220 (not counting cap penalties). Years cap is
 
 - Cut with years remaining: penalty = 50% of remaining contract value. Rounded to one decimal.
 - Penalty can be lump sum or spread evenly over remaining years. Owner chooses before FA Auction.
-- If a cut player is claimed on waivers the same week: no penalty to the cutter, claimer assumes contract.
+- A dropped player is immediately a free agent with no contract. Whoever picks him up (waivers or FA, any week) gets him at $0 / 0 years. The claimer NEVER inherits the old contract (the same-week "claimer assumes contract" rule was repealed in 2021). Prior seasons' rows stay `Active` in the sheet forever, so a player's contract comes from his **latest season's** rows only. If none of them are Active (Cut/Traded), he has no contract (see `getLatestActiveContracts`).
 - Retirement with years remaining: penalty = 25% of remaining contract (half the normal cut penalty).
 
 ## Franchise Tag

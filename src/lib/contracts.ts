@@ -116,10 +116,20 @@ export function getActiveContractsForSeason(
 // The spreadsheet has one row per player per season. This deduplicates to the
 // most recent season's entry so roster/cap data is correct even when the
 // Sleeper season (e.g. "2026") has only partial data (draft picks).
+//
+// The player's LATEST SEASON decides: if none of that season's rows are
+// Active (he was cut or traded away and nobody has a new contract for him),
+// he has no contract. Earlier seasons' rows stay "Active" in the sheet forever,
+// so filtering to Active first would resurrect a stale prior-season deal — e.g.
+// a rookie cut in 2026 would show his 2025 $2 / 5yr row on whichever team
+// picked him up. A dropped player is a free agent; the claimer never inherits
+// the old contract.
 export function getLatestActiveContracts(contracts: ContractRow[]): ContractWithValue[] {
-  const active = filterActiveContracts(contracts);
-  const sorted = [...active].sort((a, b) => a.season.localeCompare(b.season));
+  // Stable sort keeps sheet order within a season, so the last Active row of a
+  // season (e.g. a new $0 / 0 pickup row after a cut) wins.
+  const sorted = [...contracts].sort((a, b) => a.season.localeCompare(b.season));
 
+  const latestSeason = new Map<string, string>();
   const latest = new Map<string, ContractRow>();
   for (const c of sorted) {
     // Defenses key by their canonical Sleeper abbreviation so a team's
@@ -130,6 +140,13 @@ export function getLatestActiveContracts(contracts: ContractRow[]): ContractWith
       canonicalId && canonicalId !== "#N/A" && canonicalId !== "N/A" && canonicalId !== ""
         ? canonicalId
         : c.player.toLowerCase().trim();
+
+    // A newer season (any status) supersedes everything before it.
+    if (latestSeason.get(key) !== c.season) {
+      latestSeason.set(key, c.season);
+      latest.delete(key);
+    }
+    if (c.contractStatus.toLowerCase() !== "active") continue;
     latest.set(key, canonicalId !== c.playerId ? { ...c, playerId: canonicalId } : c);
   }
 

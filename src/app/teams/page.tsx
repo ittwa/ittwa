@@ -17,11 +17,10 @@ import { getTeamValueSums, type TeamValueSums } from "@/lib/trade-analyzer/playe
 import { OWNER_LAST_NAME_MAP, SALARY_CAP, YEARS_CAP, AUCTION_DATE } from "@/lib/config";
 import { TeamsClient, type TeamDirectoryEntry } from "./teams-client";
 
-function getOwnerLastName(displayName: string): string {
-  for (const [lastName, fullName] of Object.entries(OWNER_LAST_NAME_MAP)) {
-    if (fullName === displayName) return lastName;
-  }
-  return displayName.split(" ").pop() || displayName;
+// Key sheet rows by owner display name so every sheet spelling of an owner
+// ("Hogan", "Lamb", "HoganLamb") lands on the same team.
+function sheetOwnerKey(sheetOwner: string): string {
+  return (OWNER_LAST_NAME_MAP[sheetOwner] || sheetOwner).toLowerCase();
 }
 
 export default async function TeamsPage() {
@@ -85,7 +84,7 @@ export default async function TeamsPage() {
   );
   const draftPicksByOwner = new Map<string, typeof activeDraftPicks>();
   for (const dp of activeDraftPicks) {
-    const key = dp.owner.toLowerCase();
+    const key = sheetOwnerKey(dp.owner);
     const arr = draftPicksByOwner.get(key) ?? [];
     arr.push(dp);
     draftPicksByOwner.set(key, arr);
@@ -93,15 +92,14 @@ export default async function TeamsPage() {
 
   const capHitsByOwner = new Map<string, typeof capHits>();
   for (const ch of capHits) {
-    const key = ch.owner.toLowerCase();
+    const key = sheetOwnerKey(ch.owner);
     const arr = capHitsByOwner.get(key) ?? [];
     arr.push(ch);
     capHitsByOwner.set(key, arr);
   }
 
   const entries: TeamDirectoryEntry[] = standings.map((team) => {
-    const ownerLastName = getOwnerLastName(team.displayName);
-    const ownerKey = ownerLastName.toLowerCase();
+    const ownerKey = team.displayName.toLowerCase();
 
     let playerSalary = 0;
     let playerSalaryMulti = 0;
