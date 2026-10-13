@@ -86,7 +86,8 @@ if (scores.length === 0) {
 mkdirSync(path.dirname(OUT_PATH), { recursive: true });
 writeFileSync(
   OUT_PATH,
-  JSON.stringify({ exportedAt: new Date().toISOString(), rowCount: scores.length, rows: scores }, null, 2) + "\n"
+  // No timestamp in the payload so unchanged data produces no diff; git history records when it ran.
+  JSON.stringify({ rowCount: scores.length, rows: scores }, null, 2) + "\n"
 );
 
 console.log(`Wrote ${scores.length} rows to ${path.relative(root, OUT_PATH)}`);
