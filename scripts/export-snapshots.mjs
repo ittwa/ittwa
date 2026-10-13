@@ -24,6 +24,7 @@ const DATA_DIR = path.join(root, "data");
 // Required tabs are the ones the site reads; optional ones are snapshotted if present.
 const REQUIRED_TABS = ["Scores", "Contracts", "CapHits", "Finances", "Dates"];
 const OPTIONAL_TABS = ["Trades", "Players", "Owners"];
+const PRIVATE_COLUMN = /e-?mail|phone/i;
 
 const SLEEPER_API_BASE = "https://api.sleeper.app/v1";
 const MAX_WEEK = 18;
@@ -97,10 +98,16 @@ async function exportSheets(sheetsId, apiKey) {
   let contracts = null;
   data.valueRanges.forEach((vr, i) => {
     const tab = wanted[i];
-    const values = vr.values || [];
+    let values = vr.values || [];
     if (values.length === 0) {
       errors.push(`Sheet tab "${tab}" came back empty — kept previous snapshot`);
       return;
+    }
+    // The repo is public: never commit owners' contact details.
+    const drop = new Set(values[0].flatMap((h, c) => (PRIVATE_COLUMN.test(h || "") ? [c] : [])));
+    if (drop.size) {
+      console.log(`  ${tab}: dropped private columns ${[...drop].map((c) => values[0][c]).join(", ")}`);
+      values = values.map((row) => row.filter((_, c) => !drop.has(c)));
     }
     writeJson(`sheets/${fileSafe(tab)}.json`, { tab, values });
     console.log(`  sheets/${fileSafe(tab)}.json — ${values.length} rows`);
