@@ -25,6 +25,8 @@ const DATA_DIR = path.join(root, "data");
 const REQUIRED_TABS = ["Scores", "Contracts", "CapHits", "Finances", "Dates"];
 const OPTIONAL_TABS = ["Trades", "Players", "Owners"];
 const PRIVATE_COLUMN = /e-?mail|phone/i;
+// Tabs refreshed less often than weekly. Players is ~10 MB and mostly weekly noise (injuries, teams).
+const REFRESH_EVERY_DAYS = { players: 56 };
 
 const SLEEPER_API_BASE = "https://api.sleeper.app/v1";
 const MAX_WEEK = 18;
@@ -77,6 +79,17 @@ const fileSafe = (s) => s.replace(/[^A-Za-z0-9_-]+/g, "-");
 
 // --- Google Sheets ---
 
+const today = () => new Date().toISOString().slice(0, 10);
+
+function isFresh(tab) {
+  const days = REFRESH_EVERY_DAYS[normalize(tab)];
+  const file = path.join(DATA_DIR, "sheets", `${fileSafe(tab)}.json`);
+  if (!days || !existsSync(file)) return false;
+  const last = JSON.parse(readFileSync(file, "utf8")).refreshedAt;
+  if (!last) return false;
+  return (Date.parse(today()) - Date.parse(last)) / 86_400_000 < days;
+}
+
 async function exportSheets(sheetsId, apiKey) {
   const base = `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}`;
   const meta = await getJson(`${base}?fields=sheets.properties.title&key=${apiKey}`, "Sheets tab list");
@@ -86,7 +99,8 @@ async function exportSheets(sheetsId, apiKey) {
   const wanted = [];
   for (const name of [...REQUIRED_TABS, ...OPTIONAL_TABS]) {
     const title = titles.find((t) => normalize(t) === normalize(name));
-    if (title) wanted.push(title);
+    if (title && isFresh(title)) console.log(`"${title}" tab refreshed within the last ${REFRESH_EVERY_DAYS[normalize(title)]} days — skipped`);
+    else if (title) wanted.push(title);
     else if (REQUIRED_TABS.includes(name)) errors.push(`Sheet tab "${name}" not found`);
     else console.log(`No "${name}" tab in the workbook — skipped`);
   }
@@ -109,7 +123,8 @@ async function exportSheets(sheetsId, apiKey) {
       console.log(`  ${tab}: dropped private columns ${[...drop].map((c) => values[0][c]).join(", ")}`);
       values = values.map((row) => row.filter((_, c) => !drop.has(c)));
     }
-    writeJson(`sheets/${fileSafe(tab)}.json`, { tab, values });
+    const refreshedAt = REFRESH_EVERY_DAYS[normalize(tab)] ? { refreshedAt: today() } : {};
+    writeJson(`sheets/${fileSafe(tab)}.json`, { tab, ...refreshedAt, values });
     console.log(`  sheets/${fileSafe(tab)}.json — ${values.length} rows`);
     if (normalize(tab) === "contracts") contracts = values;
   });

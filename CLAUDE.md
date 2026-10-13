@@ -28,7 +28,7 @@ Two data sources, joined by `player_id`:
 
 **Join key:** `player_id` links Sleeper data to Google Sheets rows. Sheet player IDs can diverge from Sleeper IDs — handle mismatches gracefully (log, don't crash).
 
-**Backups in `data/`:** `scripts/export-snapshots.mjs` (run weekly in season by `.github/workflows/export-scores.yml`) writes raw copies of the Sheets tabs to `data/sheets/` and per-season Sleeper data to `data/sleeper/`. The app does not read these files; don't hand-edit them.
+**Backups in `data/`:** `scripts/export-snapshots.mjs` (run weekly in season by `.github/workflows/export-scores.yml`) writes raw copies of the Sheets tabs to `data/sheets/` and per-season Sleeper data to `data/sleeper/`. The large Players tab is refreshed only every 8 weeks (tracked by its `refreshedAt` field). The app does not read these files; don't hand-edit them.
 
 **Contract Status field:** If `Active`, show the player on rosters even if salary is $0. A $0/0-year active player is a mid-season waiver pickup who becomes a free agent after the season.
 
