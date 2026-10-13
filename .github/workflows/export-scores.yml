@@ -1,0 +1,38 @@
+name: Export scores history
+
+on:
+  schedule:
+    # Every Tuesday at 11:00 UTC, Sep–Dec and Jan (regular season + playoffs).
+    # Off-season runs are harmless (no-op) if ever triggered manually.
+    - cron: "0 11 * 9-12,1 2"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Export Scores tab to data/scores-history.json
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: node scripts/export-scores.mjs
+
+      - name: Commit snapshot if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- data/scores-history.json; then
+            echo "No changes to data/scores-history.json"
+            exit 0
+          fi
+          git add data/scores-history.json
+          git commit -m "chore: weekly scores history snapshot"
+          git push
