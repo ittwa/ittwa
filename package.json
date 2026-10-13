@@ -10,7 +10,7 @@
     "test": "vitest run",
     "db:migrate": "node scripts/migrate-auction.mjs",
     "db:seed:auction": "node scripts/seed-auction.mjs",
-    "export-scores": "node scripts/export-scores.mjs"
+    "export-snapshots": "node scripts/export-snapshots.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

@@ -1,9 +1,8 @@
-name: Export scores history
+name: Export league data snapshots
 
 on:
   schedule:
     # Every Tuesday at 11:00 UTC, Sep–Dec and Jan (regular season + playoffs).
-    # Off-season runs are harmless (no-op) if ever triggered manually.
     - cron: "0 11 * 9-12,1 2"
   workflow_dispatch: {}
 
@@ -20,20 +19,23 @@ jobs:
         with:
           node-version: 20
 
-      - name: Export Scores tab to data/scores-history.json
+      - name: Export Google Sheets tabs and Sleeper data to data/
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        run: node scripts/export-scores.mjs
+        run: node scripts/export-snapshots.mjs
 
-      - name: Commit snapshot if changed
+      # Runs even if the export reported a problem, so whatever did succeed is still saved.
+      - name: Commit snapshots if changed
+        if: ${{ !cancelled() }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Stage first: plain `git diff` ignores untracked files, so the first snapshot would be skipped.
-          git add data/scores-history.json
-          if git diff --cached --quiet -- data/scores-history.json; then
-            echo "No changes to data/scores-history.json"
+          # Stage first: plain `git diff` ignores untracked files, so new snapshots would be skipped.
+          git add data/
+          if git diff --cached --quiet -- data/; then
+            echo "No changes in data/"
             exit 0
           fi
-          git commit -m "chore: weekly scores history snapshot"
+          git commit -m "chore: weekly league data snapshot"
+          git pull --rebase
           git push
