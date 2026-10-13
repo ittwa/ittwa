@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "db:migrate": "node scripts/migrate-auction.mjs",
-    "db:seed:auction": "node scripts/seed-auction.mjs"
+    "db:seed:auction": "node scripts/seed-auction.mjs",
+    "export-scores": "node scripts/export-scores.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
