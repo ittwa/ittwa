@@ -329,13 +329,8 @@ function applyTrade_(info, inboxRow) {
 /** PICK TRADE: same surgery on the pick's Contracts row ("Draft Pick" position). */
 function applyPickTrade_(info, inboxRow) {
   // Inbox rows fetched before pick trades were automated have no payload —
-  // rebuild what we can from the visible columns (original owner unknown).
-  if (!info.round) {
-    const m = String(inboxRow[IB.PLAYER - 1]).match(/^(\d{4}) Rd (\d+)/);
-    if (!m) throw new Error('Can\'t read pick season/round from "' + inboxRow[IB.PLAYER - 1] + '" — update manually.');
-    info = { season: m[1], round: Number(m[2]), orig: '',
-             from: inboxRow[IB.FROM - 1], to: inboxRow[IB.TO - 1] };
-  }
+  // re-read the pick from the Sleeper transaction (key = "<txnId>:pick<i>").
+  if (!info.round) info = legacyPickInfo_(inboxRow);
   if (info.from === '?' || info.to === '?' || info.orig === '?') {
     throw new Error('Owner map has "?" for this pick — fix From/To manually.');
   }
@@ -362,21 +357,33 @@ function moveContractRow_(rowNum, from, to, inboxRow) {
   return 'row ' + rowNum + ' → Traded, new row ' + newRow + ' for ' + to + '; ' + logNote;
 }
 
+/** Pick details for an old payload-less inbox row, straight from Sleeper. */
+function legacyPickInfo_(inboxRow) {
+  const m = String(inboxRow[IB.KEY - 1]).match(/^(.+):pick(\d+)$/);
+  if (!m) throw new Error('Unrecognised pick key "' + inboxRow[IB.KEY - 1] + '" — update manually.');
+  const t = fetchAllTransactions_().filter(x => String(x.transaction_id) === m[1])[0];
+  const dp = t && (t.draft_picks || [])[Number(m[2])];
+  if (!dp) throw new Error('Sleeper transaction ' + m[1] + ' / pick ' + m[2] + ' not found — update manually.');
+  const map = buildOwnerMap_();
+  return { season: String(dp.season), round: Number(dp.round), orig: map[dp.roster_id] || '?',
+           from: map[dp.previous_owner_id] || '?', to: map[dp.owner_id] || '?' };
+}
+
 /**
  * Find the Active Contracts row for a traded pick. Pick rows are identified
  * by Position "Draft Pick" + current owner + DP Original Owner + pick
  * season/round, read from the label:
  *   "1.10"                → round 1; season = first 4 digits of Draft Pick ID
  *   "2027 1st - Williams" → season 2027, round 1
+ * The Season column is NOT filtered: a pick's row lives under the pick's own
+ * season (the "2028 1st" row has Season 2028), not the current one.
  * Exactly one match is required; anything else is left for you to fix by hand.
  */
 function findPickContract_(info) {
   const v = readContracts_();
-  const season = effectiveSeason_(v);
   const hits = [];
   for (let i = 1; i < v.length; i++) {
     const r = v[i];
-    if (String(r[C.SEASON - 1]) !== season) continue;
     if (String(r[C.STATUS - 1]).trim() !== 'Active') continue;
     if (String(r[C.POS - 1]).trim() !== 'Draft Pick') continue;
     if (r[C.OWNER - 1] !== info.from) continue;
@@ -432,9 +439,12 @@ function logTrade_(inboxRow, src, from, to) {
     }
   }
 
-  // Date the trade happened in Sleeper (not today), time stripped.
-  const d = new Date(inboxRow[IB.DATE - 1]);
-  const tradeDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  // Date the trade happened in Sleeper (not today), time stripped. Written as
+  // a date serial computed in the SPREADSHEET's time zone — a midnight Date
+  // built in the script's time zone can display as the day before.
+  const ymd = Utilities.formatDate(new Date(inboxRow[IB.DATE - 1]),
+    SpreadsheetApp.getActive().getSpreadsheetTimeZone(), 'yyyy-MM-dd').split('-').map(Number);
+  const tradeDate = Date.UTC(ymd[0], ymd[1] - 1, ymd[2]) / 86400000 + 25569; // 25569 = 1970-01-01 serial
 
   const newRow = last + 1;
   const width = sh.getLastColumn();
