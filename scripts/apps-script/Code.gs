@@ -10,7 +10,8 @@
  *       CUT   → Contract Status = "Cut", new CapHits row (copies the
  *               row above so formulas F,G,H,N+ drag down automatically)
  *       ADD   → new Contracts row ($0 / 0 yr, Status Active)
- *       TRADE → old row = "Traded", duplicated row for the new owner
+ *       TRADE → old row = "Traded", duplicated row for the new owner,
+ *               plus one row per player/pick on the Trades tab
  *   • Waiver / FA pickups NEVER inherit a contract. A dropped player is
  *     immediately a free agent at $0 / 0 — including when he is claimed
  *     the same week he was cut. (The old Section 9 "claimer assumes the
@@ -41,6 +42,7 @@ const CONFIG = {
   TABS: {
     contracts: 'Contracts',
     capHits: 'CapHits',
+    trades: 'Trades',
     inbox: 'Transaction Inbox',
     log: 'Automation Log',
     playerDb: 'PlayerDB', // hidden helper tab, built on demand
@@ -60,6 +62,13 @@ const C = { PID: 1, SEASON: 2, OWNER: 3, PLAYER: 4, POS: 5, YEARS: 6, SALARY: 7,
 // L Years, M Salary, N Cap Hit*, O+ formulas   (* = formula columns)
 const H = { SEASON: 1, WEEK: 2, RETIRE: 3, CLAIM: 4, TYPE: 5,
   OWNER: 9, PLAYER: 10, POS: 11, YEARS: 12, SALARY: 13 };
+
+// Trades: A Season, B Trade ID, C Date, D Week, E Owner (sender),
+// F Receiving, G Player Sent, H Position, I Years, J Salary,
+// K DP Original Owner, L Draft Pick ID, M Cash Sent†, N Cash Received†,
+// O Players Received*, P Notes   (* = formula, † = legacy, left blank)
+const T = { SEASON: 1, ID: 2, DATE: 3, WEEK: 4, OWNER: 5, TO: 6, PLAYER: 7, POS: 8,
+  YEARS: 9, SALARY: 10, DP_OWNER: 11, DP_ID: 12, CASH_SENT: 13, CASH_RECV: 14, NOTES: 16 };
 
 // Inbox layout
 const IB = { KEY: 1, DATE: 2, WEEK: 3, TYPE: 4, PLAYER: 5, POS: 6, FROM: 7, TO: 8,
@@ -153,25 +162,34 @@ function runCheck_(interactive) {
     const when = new Date(t.status_updated || t.created);
 
     if (t.type === 'trade') {
+      // 3+ team trades are rare — hold every leg for a human look before applying.
+      const multiTeam = (t.roster_ids || []).length > 2;
+      const review = multiTeam ? { status: 'Needs Review',
+        note: (t.roster_ids || []).length + '-team trade — verify From/To, then set Approved' } : {};
+
       Object.keys(t.adds || {}).forEach(pid => {
         const toOwner = map[t.adds[pid]] || '?';
         const fromOwner = map[(t.drops || {})[pid]] || '?';
         const p = playerInfo_(pid, contracts);
-        pushRow_(rows, known, {
+        pushRow_(rows, known, Object.assign({
           key: t.transaction_id + ':' + pid + ':TRADE', when, week, type: 'TRADE',
           player: p.name, pos: p.pos, from: fromOwner, to: toOwner,
-          action: 'Mark ' + fromOwner + "'s row Traded → duplicate for " + toOwner,
+          action: 'Mark ' + fromOwner + "'s row Traded → duplicate for " + toOwner + ' + log to Trades',
           data: { pid, from: fromOwner, to: toOwner },
-        });
+        }, review));
       });
       (t.draft_picks || []).forEach((dp, i) => {
-        pushRow_(rows, known, {
+        const fromOwner = map[dp.previous_owner_id] || '?';
+        const toOwner = map[dp.owner_id] || '?';
+        const origOwner = map[dp.roster_id] || '?'; // dp.roster_id = pick's original team
+        pushRow_(rows, known, Object.assign({
           key: t.transaction_id + ':pick' + i, when, week, type: 'PICK TRADE',
-          player: dp.season + ' Rd ' + dp.round + ' pick', pos: 'Pick',
-          from: map[dp.previous_owner_id] || '?', to: map[dp.owner_id] || '?',
-          action: 'Draft pick traded — update the pick row manually', data: {},
-          status: 'Needs Review',
-        });
+          player: dp.season + ' Rd ' + dp.round + ' pick (' + origOwner + ')', pos: 'Pick',
+          from: fromOwner, to: toOwner,
+          action: 'Mark ' + fromOwner + "'s pick row Traded → duplicate for " + toOwner + ' + log to Trades',
+          data: { season: String(dp.season), round: Number(dp.round), orig: origOwner,
+                  from: fromOwner, to: toOwner },
+        }, review));
       });
       return;
     }
@@ -221,7 +239,7 @@ function pushRow_(rows, known, o) {
   if (known[o.key]) return;
   known[o.key] = true;
   rows.push([o.key, o.when, o.week, o.type, o.player, o.pos, o.from, o.to,
-             o.action, o.status || 'Pending', '', JSON.stringify(o.data)]);
+             o.action, o.status || 'Pending', o.note || '', JSON.stringify(o.data)]);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -245,7 +263,8 @@ function applyRows_(filterFn) {
       let note = '';
       if (type === 'CUT')        note = applyCut_(info, row[IB.WEEK - 1]);
       else if (type === 'ADD')   note = applyAdd_(info);
-      else if (type === 'TRADE') note = applyTrade_(info);
+      else if (type === 'TRADE') note = applyTrade_(info, row);
+      else if (type === 'PICK TRADE') note = applyPickTrade_(info, row);
       else if (type === 'CLAIM') {
         // Legacy Section 9 row — that rule is repealed. Never transfer a contract.
         setStatus_(inbox, i + 1, 'Skipped',
@@ -301,16 +320,162 @@ function applyAdd_(info) {
   return 'contract row ' + newRow + ' added';
 }
 
-/** TRADE: mark Traded, duplicate the row under the new owner. */
-function applyTrade_(info) {
-  const sh = tab_(CONFIG.TABS.contracts);
+/** TRADE: mark Traded, duplicate the row under the new owner, log to Trades. */
+function applyTrade_(info, inboxRow) {
   const r = findActiveContract_(info.pid, info.from);
-  sh.getRange(r.row, C.STATUS).setValue('Traded');
+  return moveContractRow_(r.row, info.from, info.to, inboxRow);
+}
+
+/** PICK TRADE: same surgery on the pick's Contracts row ("Draft Pick" position). */
+function applyPickTrade_(info, inboxRow) {
+  // Inbox rows fetched before pick trades were automated have no payload —
+  // rebuild what we can from the visible columns (original owner unknown).
+  if (!info.round) {
+    const m = String(inboxRow[IB.PLAYER - 1]).match(/^(\d{4}) Rd (\d+)/);
+    if (!m) throw new Error('Can\'t read pick season/round from "' + inboxRow[IB.PLAYER - 1] + '" — update manually.');
+    info = { season: m[1], round: Number(m[2]), orig: '',
+             from: inboxRow[IB.FROM - 1], to: inboxRow[IB.TO - 1] };
+  }
+  if (info.from === '?' || info.to === '?' || info.orig === '?') {
+    throw new Error('Owner map has "?" for this pick — fix From/To manually.');
+  }
+  const row = findPickContract_(info);
+  return moveContractRow_(row, info.from, info.to, inboxRow);
+}
+
+/**
+ * Shared trade surgery: mark the Contracts row Traded, copy it to a new
+ * Active row for the receiving owner (salary/years travel with the player),
+ * then append the matching Trades-tab row.
+ */
+function moveContractRow_(rowNum, from, to, inboxRow) {
+  const sh = tab_(CONFIG.TABS.contracts);
+  const src = sh.getRange(rowNum, 1, 1, C.TAG5_AMT).getValues()[0];
+  // Displayed text, so a pick labelled "1.10" isn't logged as the number 1.1.
+  src[C.PLAYER - 1] = sh.getRange(rowNum, C.PLAYER).getDisplayValue();
+  sh.getRange(rowNum, C.STATUS).setValue('Traded');
   const newRow = sh.getLastRow() + 1;
-  sh.getRange(r.row, 1, 1, sh.getLastColumn()).copyTo(sh.getRange(newRow, 1, 1, sh.getLastColumn()));
-  sh.getRange(newRow, C.OWNER).setValue(info.to);
+  sh.getRange(rowNum, 1, 1, sh.getLastColumn()).copyTo(sh.getRange(newRow, 1, 1, sh.getLastColumn()));
+  sh.getRange(newRow, C.OWNER).setValue(to);
   sh.getRange(newRow, C.STATUS).setValue('Active');
-  return 'row ' + r.row + ' → Traded, new row ' + newRow + ' for ' + info.to;
+  const logNote = logTrade_(inboxRow, src, from, to);
+  return 'row ' + rowNum + ' → Traded, new row ' + newRow + ' for ' + to + '; ' + logNote;
+}
+
+/**
+ * Find the Active Contracts row for a traded pick. Pick rows are identified
+ * by Position "Draft Pick" + current owner + DP Original Owner + pick
+ * season/round, read from the label:
+ *   "1.10"                → round 1; season = first 4 digits of Draft Pick ID
+ *   "2027 1st - Williams" → season 2027, round 1
+ * Exactly one match is required; anything else is left for you to fix by hand.
+ */
+function findPickContract_(info) {
+  const v = readContracts_();
+  const season = effectiveSeason_(v);
+  const hits = [];
+  for (let i = 1; i < v.length; i++) {
+    const r = v[i];
+    if (String(r[C.SEASON - 1]) !== season) continue;
+    if (String(r[C.STATUS - 1]).trim() !== 'Active') continue;
+    if (String(r[C.POS - 1]).trim() !== 'Draft Pick') continue;
+    if (r[C.OWNER - 1] !== info.from) continue;
+    if (info.orig && r[C.DP_OWNER - 1] !== info.orig) continue;
+    const p = parsePickLabel_(r[C.PLAYER - 1], r[C.DP_ID - 1], r[C.SEASON - 1]);
+    if (!p || p.season !== String(info.season) || p.round !== Number(info.round)) continue;
+    hits.push(i + 1);
+  }
+  const what = info.season + ' round ' + info.round + (info.orig ? ' (' + info.orig + "'s)" : '') +
+               ' pick owned by ' + info.from;
+  if (hits.length === 0) throw new Error('No Active Draft Pick row found for ' + what + ' — update manually.');
+  if (hits.length > 1) throw new Error(hits.length + ' rows match ' + what + ' (rows ' + hits.join(', ') +
+                                       ') — update manually.');
+  return hits[0];
+}
+
+/** { season, round } from a pick label, or null if it isn't one we recognise. */
+function parsePickLabel_(label, dpId, rowSeason) {
+  const s = String(label).trim();
+  let m = s.match(/^(\d{4})\s+(\d+)(?:st|nd|rd|th)\b/i);   // "2027 3rd - Peterson"
+  if (m) return { season: m[1], round: Number(m[2]) };
+  m = s.match(/^(\d+)\.\d+$/);                               // "1.10" (Sheets may hand back 1.1)
+  if (m) {
+    const id = String(dpId).trim();
+    return { season: /^\d{6}$/.test(id) ? id.slice(0, 4) : String(rowSeason), round: Number(m[1]) };
+  }
+  return null;
+}
+
+/**
+ * Append one Trades-tab row for a traded player/pick. Copies the last row so
+ * the Players Received formula (O) drags down, then overwrites the literals.
+ * Cash Sent / Cash Received are legacy columns and Notes is left for you, so
+ * all three are cleared.
+ *   src = the Contracts row values as they were before the trade.
+ */
+function logTrade_(inboxRow, src, from, to) {
+  const sh = tab_(CONFIG.TABS.trades);
+  const season = effectiveSeason_(readContracts_());
+  const txnId = String(inboxRow[IB.KEY - 1]).split(':')[0];
+  const tradeId = tradeIdFor_(txnId, season, sh);
+  const player = src[C.PLAYER - 1];
+
+  // Idempotence: a retry after a partial failure must not double-log.
+  const last = sh.getLastRow();
+  if (last >= 2) {
+    const v = sh.getRange(2, 1, last - 1, T.PLAYER).getValues();
+    for (let i = 0; i < v.length; i++) {
+      if (String(v[i][T.ID - 1]) === String(tradeId) && v[i][T.OWNER - 1] === from &&
+          String(v[i][T.PLAYER - 1]) === String(player)) {
+        return 'already on Trades (ID ' + tradeId + ')';
+      }
+    }
+  }
+
+  // Date the trade happened in Sleeper (not today), time stripped.
+  const d = new Date(inboxRow[IB.DATE - 1]);
+  const tradeDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+  const newRow = last + 1;
+  const width = sh.getLastColumn();
+  sh.getRange(last, 1, 1, width).copyTo(sh.getRange(newRow, 1, 1, width));
+  sh.getRange(newRow, T.SEASON, 1, T.DP_ID).setValues([[
+    Number(season), tradeId, tradeDate, inboxRow[IB.WEEK - 1], from, to,
+    player, src[C.POS - 1], src[C.YEARS - 1], src[C.SALARY - 1],
+    src[C.DP_OWNER - 1], src[C.DP_ID - 1],
+  ]]);
+  [T.CASH_SENT, T.CASH_RECV, T.NOTES].forEach(col => {
+    if (col <= width) sh.getRange(newRow, col).clearContent();
+  });
+  return 'Trades row ' + newRow + ' (ID ' + tradeId + ')';
+}
+
+/**
+ * Trade ID = season × 100 + sequence (202601, 202602, …), restarting each
+ * season. Every leg of one Sleeper trade shares an ID, so the Sleeper
+ * transaction → Trade ID assignment is remembered in document properties
+ * (pruned to the current season to stay under the property size limit).
+ */
+function tradeIdFor_(txnId, season, sh) {
+  const props = PropertiesService.getDocumentProperties();
+  const ids = JSON.parse(props.getProperty('TRADE_IDS') || '{}');
+  if (ids[txnId]) return ids[txnId];
+
+  let max = Number(season) * 100;
+  const last = sh.getLastRow();
+  if (last >= 2) {
+    sh.getRange(2, T.ID, last - 1, 1).getValues().forEach(r => {
+      const n = Number(r[0]);
+      if (String(n).slice(0, 4) === String(season) && n > max) max = n;
+    });
+  }
+  Object.keys(ids).forEach(k => {
+    if (String(ids[k]).slice(0, 4) !== String(season)) delete ids[k];
+    else if (ids[k] > max) max = ids[k];
+  });
+  ids[txnId] = max + 1;
+  props.setProperty('TRADE_IDS', JSON.stringify(ids));
+  return ids[txnId];
 }
 
 /**
@@ -514,11 +679,23 @@ function fetchAllTransactions_() {
   return out;
 }
 
-/** Week for the sheet's Week column: txn leg, or -1 for offseason moves. */
+/**
+ * Week for the sheet's Week column: the Sleeper week the transaction
+ * happened in, or -1 for anything before Week 1. Judged by the
+ * transaction's own timestamp against the season start, so a Week 5 trade
+ * you record weeks later (or after the season) still gets 5.
+ */
 function txnWeek_(t, state) {
-  if (t.leg && t.leg > 0 && state.season_type === 'regular') return t.leg;
-  if (t.leg && t.leg > 0 && state.season_type === 'post') return t.leg;
-  return -1;
+  const leg = Number(t.leg) || 0;
+  if (leg <= 0) return -1;
+  const when = t.status_updated || t.created;
+  if (String(state.season) === String(CONFIG.SEASON) && state.season_start_date) {
+    const start = new Date(state.season_start_date + 'T00:00:00');
+    if (!isNaN(start.getTime())) return when < start.getTime() ? -1 : leg;
+  }
+  // No usable season start (e.g. Sleeper has rolled to next season) — fall
+  // back to the old rule based on the current phase.
+  return (state.season_type === 'regular' || state.season_type === 'post') ? leg : -1;
 }
 
 // ═══════════════════════════════════════════════════════════════════
