@@ -1,95 +1,76 @@
 import { unstable_cache } from "next/cache";
-import { getSeasonPosRanks } from "@/lib/data";
-import { SLEEPER_API_BASE, CACHE_TAGS } from "@/lib/config";
+import { getLeague } from "@/lib/sleeper";
+import { SLEEPER_API_BASE, SEASON_LEAGUE_IDS, CACHE_TAGS } from "@/lib/config";
+import { fantasyPoints, rankByPosition, type StatLine } from "@/lib/league-scoring";
 import type { SleeperPlayersMap } from "@/types/sleeper";
-
-/**
- * Cached positional ranks for a season, keyed by leagueId.
- *
- * `getSeasonPosRanks` reads and aggregates 18 weeks of matchup blobs. Past
- * seasons never change, yet the underlying matchup fetches use a 5-minute
- * revalidate — so without this, the contracts page re-read and re-aggregated
- * ~144 blobs (8 seasons × 18 weeks) on every render. Here we cache the small
- * computed result (a player_id -> rank map) with a long TTL for completed
- * seasons and a short one for the in-progress season.
- *
- * `nflPlayers` is captured via closure rather than passed as an argument so the
- * 5-10MB player map is never serialized into the cache key. Player positions
- * are stable, so reusing a prior render's map on a cache hit is safe.
- */
-export async function getCachedSeasonPosRanks(
-  leagueId: string,
-  nflPlayers: SleeperPlayersMap,
-  isCurrentSeason: boolean,
-): Promise<Record<string, number>> {
-  const cached = unstable_cache(
-    async (lid: string) => {
-      const ranks = await getSeasonPosRanks(lid, nflPlayers);
-      return Object.fromEntries(ranks);
-    },
-    ["season-pos-ranks"],
-    { revalidate: isCurrentSeason ? 600 : 86400, tags: [CACHE_TAGS.sleeper] },
-  );
-  return cached(leagueId);
-}
 
 /**
  * NFL-wide positional ranks for a season, computed from Sleeper's stats API.
  *
- * Unlike getCachedSeasonPosRanks (which ranks only league-rostered players from
- * matchup blobs), this ranks every NFL player at each position by their actual
- * half-PPR fantasy points (pts_half_ppr) — reproducing exactly the order shown
- * in Sleeper's own Players view. We compute the rank ourselves rather than
- * trusting the precomputed pos_rank_half_ppr field, which is inconsistent.
+ * Ranks every NFL player (not just league-rostered ones) at each position by his fantasy
+ * points under the LEAGUE'S OWN scoring settings — reproducing exactly the
+ * order shown in Sleeper's in-league Players view. Sleeper's generic
+ * pts_half_ppr / pos_rank_half_ppr fields use default scoring and rank
+ * players differently (e.g. interceptions cost more here), so they are only a
+ * fallback for a season with no league ID.
  */
 export interface NflPosStat {
   points: number;
   posRank: number;
 }
 
-// Like getCachedNflPosRanks, but returns the half-PPR points alongside the
-// positional rank so a table can show both. Same Sleeper stats feed, same
-// caching; kept separate so the existing rank-only callers are untouched.
-export async function getCachedNflPosStats(
+// player_id -> league-scored season points, every NFL player with a stat line.
+async function getCachedNflLeaguePoints(
   season: string,
-  nflPlayers: SleeperPlayersMap,
   isCurrentSeason: boolean,
-): Promise<Record<string, NflPosStat>> {
+): Promise<Record<string, number>> {
+  const revalidate = isCurrentSeason ? 3600 : 86400;
   const cached = unstable_cache(
     async (yr: string) => {
       try {
-        const res = await fetch(`${SLEEPER_API_BASE}/stats/nfl/regular/${yr}`, {
-          next: { revalidate: isCurrentSeason ? 3600 : 86400, tags: [CACHE_TAGS.sleeper] },
-        });
+        const leagueId = SEASON_LEAGUE_IDS[yr];
+        const [res, scoring] = await Promise.all([
+          fetch(`${SLEEPER_API_BASE}/stats/nfl/regular/${yr}`, {
+            next: { revalidate, tags: [CACHE_TAGS.sleeper] },
+          }),
+          leagueId
+            ? getLeague(leagueId).then((l) => l.scoring_settings ?? null).catch(() => null)
+            : Promise.resolve(null),
+        ]);
         if (!res.ok) return {};
-        const data: Record<string, { pts_half_ppr?: number }> = await res.json();
-
-        // Group by position (from the players map — the stats blob's own pos
-        // field is unreliable), then rank each group by half-PPR points.
-        const byPosition = new Map<string, { pid: string; pts: number }[]>();
+        const data: Record<string, StatLine> = await res.json();
+        const out: Record<string, number> = {};
         for (const [pid, stats] of Object.entries(data)) {
-          const pts = stats.pts_half_ppr;
-          const pos = nflPlayers[pid]?.position;
-          if (!pos || pts === undefined || pts <= 0) continue;
-          const arr = byPosition.get(pos) || [];
-          arr.push({ pid, pts });
-          byPosition.set(pos, arr);
-        }
-
-        const out: Record<string, NflPosStat> = {};
-        for (const [, players] of byPosition) {
-          players.sort((a, b) => b.pts - a.pts);
-          players.forEach((p, i) => { out[p.pid] = { points: Math.round(p.pts * 10) / 10, posRank: i + 1 }; });
+          const pts = fantasyPoints(stats, scoring);
+          if (pts !== undefined) out[pid] = pts;
         }
         return out;
       } catch {
         return {};
       }
     },
-    ["nfl-pos-stats"],
-    { revalidate: isCurrentSeason ? 3600 : 86400, tags: [CACHE_TAGS.sleeper] },
+    ["nfl-league-points"],
+    { revalidate, tags: [CACHE_TAGS.sleeper] },
   );
   return cached(season);
+}
+
+// Like getCachedNflPosRanks, but returns the league-scored points alongside
+// the positional rank so a table can show both.
+export async function getCachedNflPosStats(
+  season: string,
+  nflPlayers: SleeperPlayersMap,
+  isCurrentSeason: boolean,
+): Promise<Record<string, NflPosStat>> {
+  const points = await getCachedNflLeaguePoints(season, isCurrentSeason);
+  // Position comes from the players map — the stats blob's own pos field is
+  // unreliable.
+  const ranks = rankByPosition(points, (pid) => nflPlayers[pid]?.position);
+  const out: Record<string, NflPosStat> = {};
+  for (const [pid, posRank] of Object.entries(ranks)) {
+    out[pid] = { points: Math.round(points[pid] * 10) / 10, posRank };
+  }
+  return out;
 }
 
 export async function getCachedNflPosRanks(
@@ -97,42 +78,8 @@ export async function getCachedNflPosRanks(
   nflPlayers: SleeperPlayersMap,
   isCurrentSeason: boolean,
 ): Promise<Record<string, number>> {
-  const cached = unstable_cache(
-    async (yr: string) => {
-      try {
-        const res = await fetch(`${SLEEPER_API_BASE}/stats/nfl/regular/${yr}`, {
-          next: { revalidate: isCurrentSeason ? 3600 : 86400, tags: [CACHE_TAGS.sleeper] },
-        });
-        if (!res.ok) return {};
-        const data: Record<string, { pts_half_ppr?: number }> =
-          await res.json();
-
-        // Group players by position (from the players map — the stats blob's
-        // own pos field is unreliable), ranking each by half-PPR fantasy points.
-        const byPosition = new Map<string, { pid: string; pts: number }[]>();
-        for (const [pid, stats] of Object.entries(data)) {
-          const pts = stats.pts_half_ppr;
-          const pos = nflPlayers[pid]?.position;
-          if (!pos || pts === undefined || pts <= 0) continue;
-          const arr = byPosition.get(pos) || [];
-          arr.push({ pid, pts });
-          byPosition.set(pos, arr);
-        }
-
-        const ranks: Record<string, number> = {};
-        for (const [, players] of byPosition) {
-          players.sort((a, b) => b.pts - a.pts);
-          players.forEach((p, i) => { ranks[p.pid] = i + 1; });
-        }
-        return ranks;
-      } catch {
-        return {};
-      }
-    },
-    ["nfl-pos-ranks"],
-    { revalidate: isCurrentSeason ? 3600 : 86400, tags: [CACHE_TAGS.sleeper] },
-  );
-  return cached(season);
+  const points = await getCachedNflLeaguePoints(season, isCurrentSeason);
+  return rankByPosition(points, (pid) => nflPlayers[pid]?.position);
 }
 
 /**

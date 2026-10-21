@@ -21,7 +21,7 @@ import {
   calculatePowerRankingsFromScores,
   computeHistoricalPowerOnes,
 } from "@/lib/power-rankings";
-import { getCachedSeasonPosRanks } from "@/lib/cached-stats";
+import { getCachedNflPosRanks } from "@/lib/cached-stats";
 import { calculateRosterStrength } from "@/lib/roster-strength";
 import { SleeperMatchup } from "@/types/sleeper";
 import { RankingsClient } from "./rankings-client";
@@ -93,7 +93,7 @@ export default async function PowerRankingsPage({
           getNFLPlayers(),
           getContracts(),
         ]);
-        const posRanks = await getCachedSeasonPosRanks(prevLeagueId, nflPlayers, false);
+        const posRanks = await getCachedNflPosRanks(prevSeason, nflPlayers, false);
         const rosterOwnerMap = await buildRosterOwnerMap(LEAGUE_ID);
 
         const rosterDivisionMap: Record<number, string> = {};
