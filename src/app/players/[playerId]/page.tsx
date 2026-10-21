@@ -247,7 +247,7 @@ function CareerStatsTable({
   return (
     <Card>
       <div className="px-5 pt-4 pb-1">
-        <SectionTick label="Career Stats" sub="Half-PPR · by season" />
+        <SectionTick label="Career Stats" sub="League scoring · by season" />
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -300,7 +300,7 @@ function CareerStatsSkeleton() {
   return (
     <Card>
       <div className="px-5 pt-4 pb-1">
-        <SectionTick label="Career Stats" sub="Half-PPR · by season" />
+        <SectionTick label="Career Stats" sub="League scoring · by season" />
       </div>
       <div className="p-4 flex flex-col gap-2.5">
         {Array.from({ length: 5 }).map((_, i) => (

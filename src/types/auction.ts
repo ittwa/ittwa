@@ -13,7 +13,7 @@ export interface PlayerRanking {
   overallRank: number | null;    // FantasyCalc dynasty overall rank (default sort)
   dynastyValue: number | null;   // FantasyCalc dynasty trade value
   dynastyPosRank: number | null; // FantasyCalc rank within position
-  lastPoints: number | null;     // last completed season half-PPR points
+  lastPoints: number | null;     // last completed season points (league scoring)
   lastPosRank: number | null;    // last completed season rank within position
 }
 
