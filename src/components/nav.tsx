@@ -22,6 +22,7 @@ const NAV_STRUCTURE: NavGroup[] = [
     items: [
       { href: "/standings", label: "Standings", icon: "trophy", desc: "League table & playoff line" },
       { href: "/power-rankings", label: "Power Rankings", icon: "bolt", desc: "Weekly tiers & movement" },
+      { href: "/playoff-odds", label: "Playoff Odds", icon: "chart", desc: "Chances by record, every week" },
       { href: "/matchups", label: "Matchups", icon: "swords", desc: "Head-to-head, this week" },
       { href: "/schedule", label: "Schedule", icon: "calendar", desc: "All 14 weeks + playoffs" },
     ],
@@ -69,6 +70,7 @@ const MOBILE_NAV_SECTIONS: MobileNavSectionDef[] = [
   { label: "Standings", items: [
     { href: "/standings", label: "Standings", icon: "trophy", desc: "League table" },
     { href: "/power-rankings", label: "Power Rankings", icon: "bolt", desc: "Weekly tiers" },
+    { href: "/playoff-odds", label: "Playoff Odds", icon: "chart", desc: "Chances by record" },
     { href: "/matchups", label: "Matchups", icon: "swords", desc: "Head-to-head" },
     { href: "/schedule", label: "Schedule", icon: "calendar", desc: "Weekly games" },
   ]},
@@ -133,6 +135,8 @@ function NavIcon({ name, size = 20, color = "currentColor" }: { name: string; si
       return <svg {...p}><path d="M14.5 3.5l6 6-4 4-6-6 4-4z"/><path d="M3 21l5-5"/><path d="M9.5 14.5l-6-6 4-4 6 6"/><path d="M21 21l-5-5"/></svg>;
     case "bolt":
       return <svg {...p}><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z" /></svg>;
+    case "chart":
+      return <svg {...p}><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/></svg>;
     case "doc":
       return <svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>;
     case "wallet":
