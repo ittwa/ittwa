@@ -1,5 +1,6 @@
 import type { ScoreRow } from "./sheets";
 import { MODEL_ODDS } from "./playoff-odds-model";
+import { OWNER_LAST_NAME_MAP } from "./config";
 
 // Playoff odds by record. Two sources:
 //
@@ -67,6 +68,8 @@ export interface HistoryCell {
   semis: number;
   final: number;
   title: number;
+  /** Who won the title from this record, oldest season first. */
+  champions: { season: string; owner: string }[];
 }
 
 /** history[week][wins] → how teams with that record after that week finished. */
@@ -88,7 +91,9 @@ export function computeHistoricalRecordOdds(scores: ScoreRow[]): HistoryTable {
   }
 
   const table: HistoryTable = {};
-  for (const rows of bySeason.values()) {
+  const seasons = [...bySeason.keys()].sort();
+  for (const season of seasons) {
+    const rows = bySeason.get(season)!;
     if (!rows.some((r) => r.playoffType === "Championship")) continue;
 
     const byOwner = new Map<string, ScoreRow[]>();
@@ -98,7 +103,7 @@ export function computeHistoricalRecordOdds(scores: ScoreRow[]): HistoryTable {
       byOwner.set(r.owner, list);
     }
 
-    for (const ownerRows of byOwner.values()) {
+    for (const [owner, ownerRows] of byOwner) {
       const playoffRows = ownerRows.filter((r) => r.playoffType);
       const madePlayoffs = playoffRows.length > 0;
       const gotBye = playoffRows.some((r) => r.playoffType === "BYE" || r.opponent === "BYE");
@@ -122,10 +127,12 @@ export function computeHistoricalRecordOdds(scores: ScoreRow[]): HistoryTable {
         if (r.points > r.opponentPoints) wins++;
         const week = i + 1;
         const cell = ((table[week] ??= {})[wins] ??= {
-          teams: 0, playoffs: 0, bye: 0, semis: 0, final: 0, title: 0,
+          teams: 0, playoffs: 0, bye: 0, semis: 0, final: 0, title: 0, champions: [],
         });
         cell.teams++;
         for (const k of ODDS_OUTCOMES) if (outcome[k]) cell[k]++;
+        // Sheet owners are last names; resolve to display names for the UI.
+        if (outcome.title) cell.champions.push({ season, owner: OWNER_LAST_NAME_MAP[owner] || owner });
       });
     }
   }

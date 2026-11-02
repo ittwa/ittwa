@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ODDS_OUTCOMES,
   ODDS_LABELS,
@@ -11,6 +11,7 @@ import {
   type Odds,
   type OddsOutcome,
   type HistoryTable,
+  type HistoryCell,
 } from "@/lib/playoff-odds";
 import { MODEL_PARAMS, SOURCE_ODDS, SOURCE_WEEK } from "@/lib/playoff-odds-model";
 import { getDivisionColor, getDivisionColorAlpha, GOLD, ACCENT } from "@/lib/ui-utils";
@@ -117,6 +118,77 @@ function OddsCell({
   );
 }
 
+/**
+ * "N titles" label that reveals who won those titles on hover (or tap on
+ * touch screens). The popover is position: fixed so the table's overflow-x
+ * scroll container can't clip it.
+ */
+function TitlesPopover({ champions, divisionByOwner }: { champions: HistoryCell["champions"]; divisionByOwner: Record<string, string> }) {
+  const [pos, setPos] = useState<{ top: number; right: number; below: boolean } | null>(null);
+  const ref = useRef<HTMLButtonElement>(null);
+
+  const show = () => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    // Open below when there isn't room above (estimated popover height).
+    const below = r.top < 40 + champions.length * 30;
+    setPos({ top: below ? r.bottom + 6 : r.top - 6, right: window.innerWidth - r.right, below });
+  };
+  const hide = () => setPos(null);
+
+  // Fixed coordinates go stale on scroll; just close it.
+  useEffect(() => {
+    if (!pos) return;
+    const onOutside = (e: Event) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) hide();
+    };
+    window.addEventListener("scroll", hide, true);
+    document.addEventListener("pointerdown", onOutside);
+    return () => {
+      window.removeEventListener("scroll", hide, true);
+      document.removeEventListener("pointerdown", onOutside);
+    };
+  }, [pos]);
+
+  const n = champions.length;
+  return (
+    <>
+      <button
+        ref={ref}
+        type="button"
+        className="text-[10px] underline decoration-dotted underline-offset-2 cursor-help"
+        style={{ color: GOLD }}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocus={show}
+        onBlur={hide}
+        onClick={() => (pos ? hide() : show())}
+        aria-label={`${n} ${n === 1 ? "title" : "titles"}: ${champions.map((c) => `${c.season} ${c.owner}`).join(", ")}`}
+      >
+        {n} {n === 1 ? "title" : "titles"}
+      </button>
+      {pos && (
+        <div
+          role="tooltip"
+          className="fixed z-50 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg px-3 py-2 text-left"
+          style={{ top: pos.top, right: pos.right, transform: pos.below ? undefined : "translateY(-100%)" }}
+        >
+          <div className="text-[9px] font-bold tracking-[0.08em] uppercase text-muted-foreground mb-1.5">Champions</div>
+          <div className="space-y-1.5">
+            {champions.map((c) => (
+              <div key={`${c.season}-${c.owner}`} className="flex items-center gap-2">
+                <span className="font-code text-[11px] text-muted-foreground">{c.season}</span>
+                <OwnerAvatar name={c.owner} division={divisionByOwner[c.owner] ?? ""} size={18} />
+                <span className="text-[12px] font-semibold whitespace-nowrap">{c.owner}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
@@ -147,6 +219,9 @@ export function PlayoffOddsClient({ teams, history, season, ownerAvatars }: Prop
     for (const [g, n] of counts) if (n > bestN || (n === bestN && g > best)) [best, bestN] = [g, n];
     return best;
   }, [teams]);
+  // Current division per owner, for coloring champion avatars. Past owners
+  // who've left the league fall back to the neutral color.
+  const divisionByOwner = useMemo(() => Object.fromEntries(teams.map((t) => [t.displayName, t.division])), [teams]);
   const inSeason = gamesPlayed >= FIRST_WEEK && gamesPlayed <= LAST_WEEK;
 
   const [week, setWeek] = useState(inSeason ? gamesPlayed : SOURCE_WEEK);
@@ -312,9 +387,9 @@ export function PlayoffOddsClient({ teams, history, season, ownerAvatars }: Prop
                             <div className="font-code text-[11px]">
                               <span className="font-semibold">{hist.playoffs}</span>
                               <span className="text-muted-foreground"> of {hist.teams} made it</span>
-                              {hist.title > 0 && (
-                                <div className="text-[10px]" style={{ color: GOLD }}>
-                                  {hist.title} {hist.title === 1 ? "title" : "titles"}
+                              {hist.champions.length > 0 && (
+                                <div>
+                                  <TitlesPopover champions={hist.champions} divisionByOwner={divisionByOwner} />
                                 </div>
                               )}
                             </div>

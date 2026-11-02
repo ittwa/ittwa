@@ -76,11 +76,24 @@ describe("computeHistoricalRecordOdds", () => {
     ];
 
     const t = computeHistoricalRecordOdds(scores);
-    expect(t[1][1]).toEqual({ teams: 1, playoffs: 1, bye: 1, semis: 1, final: 1, title: 1 });
-    expect(t[1][0]).toEqual({ teams: 2, playoffs: 1, bye: 0, semis: 0, final: 0, title: 0 });
-    expect(t[2][1]).toEqual({ teams: 1, playoffs: 1, bye: 0, semis: 0, final: 0, title: 0 });
+    expect(t[1][1]).toEqual({
+      teams: 1, playoffs: 1, bye: 1, semis: 1, final: 1, title: 1,
+      champions: [{ season: "2024", owner: "A" }],
+    });
+    expect(t[1][0]).toEqual({ teams: 2, playoffs: 1, bye: 0, semis: 0, final: 0, title: 0, champions: [] });
+    expect(t[2][1]).toEqual({ teams: 1, playoffs: 1, bye: 0, semis: 0, final: 0, title: 0, champions: [] });
     expect(t[2][0].teams).toBe(1);
     expect(t[2][2].title).toBe(1);
+  });
+
+  it("lists champions by season, oldest first", () => {
+    const champ = (season: string, owner: string) => [
+      row({ season, owner, week: 1, finalStanding: 1 }),
+      row({ season, owner, week: 2, playoffType: "Championship", finalStanding: 1 }),
+    ];
+    const t = computeHistoricalRecordOdds([...champ("2021", "B"), ...champ("2016", "A")]);
+    expect(t[1][1].title).toBe(2);
+    expect(t[1][1].champions.map((c) => c.season)).toEqual(["2016", "2021"]);
   });
 
   it("skips unplayed (0–0) regular-season rows", () => {
