@@ -202,7 +202,6 @@ export function FreeAgentsClient({ players, season, owners }: Props) {
 
   return (
     <div>
-      {/* TODO: PageHeader — gold bar + "Free Agents" title + subtitle */}
       <div className="pb-6 border-b border-border mb-6">
         <div className="flex items-center gap-3 mb-1.5">
           <div className="w-1 h-7 bg-[#E8B84B] rounded-sm" />
