@@ -11,7 +11,7 @@ const FALLBACK_EVENTS: KeyDate[] = [
   { season: "2027", week: -1, date: "2027-06-18T12:00:00", event: "Franchise Tag Deadline", note: "" },
   { season: "2027", week: -1, date: "2027-08-10T12:00:00", event: "Rosters Lock", note: "Pre-auction" },
   { season: "2027", week: 0, date: "2027-08-17T19:00:00", event: "FA Auction", note: "7:00 PM" },
-  { season: "2027", week: 10, date: "2027-11-11T12:00:00", event: "Trade Deadline", note: "Wk 10" },
+  { season: "2027", week: 11, date: "2027-11-18T12:00:00", event: "Trade Deadline", note: "Wk 11" },
   { season: "2027", week: 15, date: "2027-12-09T12:00:00", event: "Rosters Lock", note: "Wk 15" },
 ];
 
