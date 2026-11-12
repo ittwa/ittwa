@@ -196,3 +196,41 @@ export function calculateStreak(
 
   return streakType ? `${streakType}${streak}` : "-";
 }
+
+export interface ProjectedDraftPick {
+  pick: number; // 1-based slot in every round (rookie draft is NOT a snake)
+  rosterId: number;
+  displayName: string;
+  division: string;
+  optimalPoints: number; // Sleeper "Max PF" (roster.settings.ppts)
+  rank: number; // current overall standing
+}
+
+// ITTWA rookie draft order, picks 1–6 (Constitution §6, "Optimal Lineup for
+// Draft Order", 2018): the non-playoff teams pick first, ordered by optimal
+// points / Max PF ascending — fewest max points gets the 1st pick. Actual
+// record doesn't matter here (the Sacko goes to worst record, but the draft
+// does not).
+//
+// Picks 7–12 depend on playoff results (wildcard losers, consolation, final),
+// so they're not projected here.
+//
+// `seeding` is the playoff picture from computePlayoffPicture; any team not in
+// it is a non-playoff team. Ties on Max PF (essentially impossible with
+// decimals) fall to the team with the worse standing.
+export function computeProjectedDraftOrder(
+  standings: StandingsEntry[],
+  seeding: Map<number, PlayoffSlot>,
+): ProjectedDraftPick[] {
+  return standings
+    .filter((t) => !seeding.has(t.rosterId))
+    .sort((a, b) => a.optimalPoints - b.optimalPoints || b.rank - a.rank)
+    .map((t, i) => ({
+      pick: i + 1,
+      rosterId: t.rosterId,
+      displayName: t.displayName,
+      division: t.division,
+      optimalPoints: t.optimalPoints,
+      rank: t.rank,
+    }));
+}
