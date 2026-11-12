@@ -1,29 +1,15 @@
 "use client";
 
 import { useState, useMemo, Fragment } from "react";
-import { StandingsEntry, hasSeasonStarted, computePlayoffPicture } from "@/lib/standings";
+import { StandingsEntry, hasSeasonStarted, computePlayoffPicture, computeProjectedDraftOrder } from "@/lib/standings";
 import { DIVISIONS } from "@/lib/config";
+import { DraftOrderPanel } from "./draft-order-panel";
 import { getDivisionColor, getDivisionColorAlpha } from "@/lib/ui-utils";
-import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";
+import { OwnerAvatarsProvider } from "@/components/owner-avatar";
+import { DivisionBadge, OwnerAvatar } from "./standings-ui";
 import { OwnerLink } from "@/components/owner-link";
 
 const PLAYOFF_SPOTS = 6;
-
-function DivisionBadge({ division }: { division: string }) {
-  const color = getDivisionColor(division);
-  return (
-    <span
-      className="inline-flex items-center rounded-[5px] px-2 py-0.5 text-[10px] font-bold tracking-wide whitespace-nowrap"
-      style={{
-        background: getDivisionColorAlpha(division, 0.1),
-        color,
-        border: `1px solid ${getDivisionColorAlpha(division, 0.25)}`,
-      }}
-    >
-      {division}
-    </span>
-  );
-}
 
 function StreakBadge({ streak }: { streak: string }) {
   if (!streak || streak === "-") return <span className="text-muted-foreground text-xs">—</span>;
@@ -61,31 +47,6 @@ function RankBadge({ rank }: { rank: number }) {
   return (
     <div className="w-[26px] text-center">
       <span className="font-mono text-xs text-muted-foreground">{rank}</span>
-    </div>
-  );
-}
-
-function OwnerAvatar({ name, division, size = 30 }: { name: string; division: string; size?: number }) {
-  const color = getDivisionColor(division);
-  const avatarId = useOwnerAvatar(name);
-  const initials = name.slice(0, 2).toUpperCase();
-  return (
-    <div
-      className="rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
-      style={{
-        width: size,
-        height: size,
-        background: getDivisionColorAlpha(division, 0.1),
-        border: `1px solid ${getDivisionColorAlpha(division, 0.2)}`,
-      }}
-    >
-      <SleeperAvatarImage
-        avatarId={avatarId}
-        name={name}
-        fallback={
-          <span className="font-heading font-extrabold text-xs" style={{ color }}>{initials}</span>
-        }
-      />
     </div>
   );
 }
@@ -147,7 +108,7 @@ function StatSummary({ standings, seasonStarted }: { standings: StandingsEntry[]
   );
 }
 
-type SortKey = "rank" | "wins" | "pf" | "pa";
+type SortKey = "rank" | "wins" | "pf" | "pa" | "maxpf";
 
 // ─── Props ─────────────────────────────────────────────────────────────────
 export interface StandingsClientProps {
@@ -156,6 +117,9 @@ export interface StandingsClientProps {
   season: string;
   currentWeek: number;
   ownerAvatars: Record<string, string>;
+  draftSeason: string;
+  // Original team's rosterId → current holder of its rookie pick, by round.
+  pickHolders: Record<number, string[]>;
 }
 
 // ─── Main client component ─────────────────────────────────────────────────
@@ -165,8 +129,10 @@ export function StandingsClient({
   season,
   currentWeek,
   ownerAvatars,
+  draftSeason,
+  pickHolders,
 }: StandingsClientProps) {
-  const [activeTab, setActiveTab] = useState<"overall" | "division">("overall");
+  const [activeTab, setActiveTab] = useState<"overall" | "division" | "draft">("overall");
   const [sortCol, setSortCol] = useState<SortKey>("rank");
   const [sortDir, setSortDir] = useState(-1);
 
@@ -178,6 +144,7 @@ export function StandingsClient({
       if (sortCol === "wins") return sortDir * (b.wins - a.wins || b.pointsFor - a.pointsFor);
       if (sortCol === "pf") return sortDir * (b.pointsFor - a.pointsFor);
       if (sortCol === "pa") return sortDir * (b.pointsAgainst - a.pointsAgainst);
+      if (sortCol === "maxpf") return sortDir * (b.optimalPoints - a.optimalPoints);
       return 0;
     });
   }, [standings, sortCol, sortDir]);
@@ -187,6 +154,7 @@ export function StandingsClient({
   // stays correct even when the user re-sorts the table by PF/PA.
   const seasonStarted = hasSeasonStarted(standings);
   const seeding = useMemo(() => computePlayoffPicture(standings), [standings]);
+  const draftOrder = useMemo(() => computeProjectedDraftOrder(standings, seeding), [standings, seeding]);
 
   function handleSort(col: SortKey) {
     if (sortCol === col) setSortDir(d => d * -1);
@@ -230,7 +198,7 @@ export function StandingsClient({
 
       {/* Tab bar */}
       <div className="flex gap-1 mb-4">
-        {([["overall", "Overall"], ["division", "By Division"]] as const).map(([key, label]) => (
+        {([["overall", "Overall"], ["division", "By Division"], ["draft", "Draft Order"]] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}
@@ -288,6 +256,14 @@ export function StandingsClient({
                     onClick={() => handleSort("pa")}
                   >
                     PA{sortCol === "pa" ? (sortDir === -1 ? " ↓" : " ↑") : ""}
+                  </th>
+                  <th
+                    className={`${thCls} text-right cursor-pointer select-none hidden sm:table-cell`}
+                    style={{ color: sortCol === "maxpf" ? "#FD4A48" : undefined }}
+                    onClick={() => handleSort("maxpf")}
+                    title="Max PF: points from the optimal lineup each week. Fewest among non-playoff teams picks first in the rookie draft."
+                  >
+                    Max PF{sortCol === "maxpf" ? (sortDir === -1 ? " ↓" : " ↑") : ""}
                   </th>
                   <th className={`${thCls} text-center hidden lg:table-cell`}>Div Rec</th>
                   <th className={`${thCls} text-center`}>Streak</th>
@@ -368,6 +344,9 @@ export function StandingsClient({
                         <td className="px-4 py-3 text-right font-mono text-xs text-muted-foreground hidden sm:table-cell">
                           {entry.pointsAgainst.toFixed(1)}
                         </td>
+                        <td className="px-4 py-3 text-right font-mono text-xs text-muted-foreground hidden sm:table-cell">
+                          {entry.optimalPoints.toFixed(1)}
+                        </td>
                         <td className="px-4 py-3 text-center font-mono text-[11px] text-muted-foreground hidden lg:table-cell">
                           {entry.divisionRecord || "—"}
                         </td>
@@ -377,7 +356,7 @@ export function StandingsClient({
                       </tr>
                       {isPlayoffLine && (
                         <tr>
-                          <td colSpan={10} className="p-0">
+                          <td colSpan={11} className="p-0">
                             <div className="mx-4 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(253,74,72,0.33), transparent)" }} />
                           </td>
                         </tr>
@@ -438,6 +417,7 @@ export function StandingsClient({
                         <th className={`${thCls} text-left hidden sm:table-cell`} style={{ minWidth: 130 }}>Win%</th>
                         <th className={`${thCls} text-right hidden sm:table-cell`}>PF</th>
                         <th className={`${thCls} text-right hidden sm:table-cell`}>PA</th>
+                        <th className={`${thCls} text-right hidden sm:table-cell`}>Max PF</th>
                         <th className={`${thCls} text-center hidden lg:table-cell`}>Div Rec</th>
                         <th className={`${thCls} text-center`}>Streak</th>
                       </tr>
@@ -472,6 +452,9 @@ export function StandingsClient({
                             <td className="px-4 py-3 text-right font-mono text-xs text-muted-foreground hidden sm:table-cell">
                               {entry.pointsAgainst.toFixed(1)}
                             </td>
+                            <td className="px-4 py-3 text-right font-mono text-xs text-muted-foreground hidden sm:table-cell">
+                              {entry.optimalPoints.toFixed(1)}
+                            </td>
                             <td className="px-4 py-3 text-center font-mono text-[11px] text-muted-foreground hidden lg:table-cell">
                               {entry.divisionRecord || "—"}
                             </td>
@@ -488,6 +471,16 @@ export function StandingsClient({
             );
           })}
         </div>
+      )}
+
+      {/* ── Draft Order tab ── */}
+      {activeTab === "draft" && (
+        <DraftOrderPanel
+          picks={draftOrder}
+          draftSeason={draftSeason}
+          seasonStarted={seasonStarted}
+          pickHolders={pickHolders}
+        />
       )}
     </div>
     </OwnerAvatarsProvider>
