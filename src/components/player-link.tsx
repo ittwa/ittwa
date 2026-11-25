@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/intent-link";
 
 function isValidId(id: string | undefined | null): id is string {
   return !!id && id !== "#N/A" && id !== "N/A" && id !== "";

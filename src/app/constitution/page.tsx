@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import Link from "@/components/intent-link";
 import { Card, CardContent } from "@/components/ui/card";
 
 const SECTIONS = [

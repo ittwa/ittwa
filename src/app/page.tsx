@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/intent-link";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

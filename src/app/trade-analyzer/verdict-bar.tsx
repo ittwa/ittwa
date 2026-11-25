@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/intent-link";
 import { getDivisionColor } from "@/lib/ui-utils";
 import type { VerdictResult } from "@/lib/trade-analyzer/engine";
 import type { TradeTeam } from "@/lib/trade-analyzer/types";

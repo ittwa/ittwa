@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
+import Link from "@/components/intent-link";
 import { SALARY_CAP, YEARS_CAP } from "@/lib/config";
 import { getDivColors, ACCENT, ACCENT_DIM, GOLD } from "@/lib/ui-utils";
 import { OwnerAvatarsProvider, SleeperAvatarImage, useOwnerAvatar } from "@/components/owner-avatar";

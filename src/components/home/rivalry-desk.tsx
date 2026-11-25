@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/intent-link";
 import { Card, CardContent } from "@/components/ui/card";
 import { OwnerBadgeAvatar } from "@/components/home/owner-badge-avatar";
 import { getSeries, type H2HMatrix } from "@/lib/head-to-head";

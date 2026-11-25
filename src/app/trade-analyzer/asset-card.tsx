@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/intent-link";
 import { cn } from "@/lib/utils";
 import type { AssetEvaluation } from "@/lib/trade-analyzer/engine";
 import { AssetAvatar, PosBadge, ContractChip, DealBadge, LiabilityBadge, valueColor } from "./ui";

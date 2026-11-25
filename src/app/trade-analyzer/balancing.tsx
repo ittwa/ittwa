@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/intent-link";
 import type { BalancingSuggestion } from "@/lib/trade-analyzer/engine";
 import { AssetAvatar, OwnerAvatar, PosBadge, ContractChip } from "./ui";
 

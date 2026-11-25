@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/intent-link";
 import { cn } from "@/lib/utils";
 import { SALARY_CAP, YEARS_CAP } from "@/lib/config";
 import { getDivisionColor } from "@/lib/ui-utils";
