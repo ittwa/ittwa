@@ -1518,7 +1518,16 @@ function CompleteBanner({ season }: { season: string }) {
 
 export function AuctionBoardClient({ rankings }: { rankings: PlayerRankings }) {
   const { data, error } = useSWR<AuctionPublicState>(STATE_KEY, fetcher, {
-    refreshInterval: 4000,
+    // Every poll is a Vercel Function invocation, so only poll fast while an
+    // auction is actually running. A completed auction is a permanent record
+    // (stop polling; SWR still refetches once when the tab regains focus), and
+    // before any auction exists a slow 30s poll is enough to pick up "Start".
+    refreshInterval: (latest) => {
+      const status = latest?.auction?.status;
+      if (status === "complete") return 0;
+      if (!status) return 30_000;
+      return 4000; // setup / live / paused
+    },
     keepPreviousData: true,
   });
 
