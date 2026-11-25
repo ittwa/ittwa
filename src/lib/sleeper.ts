@@ -11,6 +11,7 @@ import {
   SleeperPlayersMap,
 } from "@/types/sleeper";
 import { LEAGUE_ID, SLEEPER_API_BASE, REVALIDATE, USERNAME_OVERRIDES, CACHE_TAGS } from "./config";
+import { getSlimNFLPlayers } from "./nfl-players";
 
 // --- Fetcher utility ---
 
@@ -112,7 +113,10 @@ export async function getNFLPlayers(): Promise<SleeperPlayersMap> {
     return playersCache.data;
   }
   try {
-    const data = await fetchSleeper<SleeperPlayersMap>("/players/nfl", REVALIDATE.players);
+    // Slimmed + Data-Cached copy — the raw ~15 MB response is over the 2 MB
+    // Data Cache limit and was re-downloaded on every cold start, which blew
+    // through the Vercel Hobby CPU limit (see lib/nfl-players.ts).
+    const data = await getSlimNFLPlayers();
     playersCache = { data, timestamp: Date.now() };
     return data;
   } catch {
